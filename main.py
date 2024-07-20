@@ -20,6 +20,7 @@ VFR_SQUAWK = "1200"
 IFR_SQUAWK = "2000"
 
 
+# Aircraft related classes
 class AircraftModel:
     def __init__(self, aircraft_type, climb_rate, turn_rate, air_braking_rate, thrust_rate, drag_rate, mass, max_speed,
                  cruise_speed, service_ceiling, fuel_capacity, fuel_consumption_rate, range, wing_span, length,
@@ -127,6 +128,7 @@ class AircraftList:
             aircraft.on_ground()
 
 
+# Radar related classes
 class RadarSweep:
     def __init__(self):
         self.angle = 0
@@ -168,9 +170,9 @@ class SecondaryRadarReturn:
 
     def plot(self, x, y):
         text = (f"{self.aircraft.callsign} {self.aircraft.squawk}\n"
-                f"{round(np.degrees(self.aircraft.angle))}° {self.aircraft.altitude}00 ft\n"
-                f"{self.aircraft.aircraft_model.aircraft_type} {self.aircraft.speed} kt\n"
-                f"{self.aircraft.distance:.1f} NM")
+                f"{round(np.degrees(self.aircraft.angle))} {self.aircraft.altitude}\n"
+                f"{self.aircraft.aircraft_model.aircraft_type} {self.aircraft.speed}\n"
+                f"{self.aircraft.distance:.1f}")
 
         heading_offset = np.pi  # 180 degrees in radians
         text_x = x + 40 * np.cos(self.aircraft.angle + heading_offset)
@@ -242,6 +244,79 @@ class RadarDisplay(arcade.Window):
 
     def update(self, delta_time):
         self.aircraft_list.update_positions()
+
+
+# ATC related classes
+class ATCFacility:
+    def __init__(self, name, location, facilities=[]):
+        self.name = name
+        self.location = location
+        self.facilities = facilities
+
+
+class ATCFacilityFrequencies:
+    def __init__(self, facility, frequencies=[]):
+        self.facility = facility
+        self.frequencies = frequencies
+
+
+class ATC:
+    def __init__(self, role, facility):
+        self.role = role
+        self.facility = facility
+
+
+class FlightPlate:
+    def __init__(self, plate_type, airport, procedure):
+        self.plate_type = plate_type  # Approach, Departure, etc.
+        self.airport = airport
+        self.procedure = procedure
+
+
+class RadarMap:
+    def __init__(self, area, map_data):
+        self.area = area
+        self.map_data = map_data
+
+
+class AirportDiagram:
+    def __init__(self, airport, diagram_data):
+        self.airport = airport
+        self.diagram_data = diagram_data
+
+
+class NavigationAid:
+    def __init__(self, name, navaid_type, location, frequency):
+        self.name = name
+        self.navaid_type = navaid_type  # VOR, NDB, ILS, etc.
+        self.location = location
+        self.frequency = frequency
+
+
+class FlightStrip:
+    def __init__(self, flight_id, aircraft, flight_plan):
+        self.flight_id = flight_id
+        self.aircraft = aircraft
+        self.flight_plan = flight_plan
+
+
+class FlightPlan:
+    def __init__(self, flight_id, origin, destination, route, altitude, speed):
+        self.flight_id = flight_id
+        self.origin = origin
+        self.destination = destination
+        self.route = route
+        self.altitude = altitude
+        self.speed = speed
+
+
+class Weather:
+    def __init__(self, location, temperature, wind, visibility, conditions):
+        self.location = location
+        self.temperature = temperature
+        self.wind = wind
+        self.visibility = visibility
+        self.conditions = conditions
 
 
 if __name__ == "__main__":
@@ -325,7 +400,7 @@ if __name__ == "__main__":
         Aircraft('A2', '2000', 'ID1002', 'AMF2118', boeing_737, np.pi / 3, 150, 450, 75, {"lat": 40.71, "lon": -74.00},
                  flight_rules="IFR"))
     list_of_aircraft.add_aircraft(
-        Aircraft('A3', '7500', 'ID1003', 'CAP279', f18e, np.pi / 2, 40, 600, 30, {"lat": 51.51, "lon": -0.13},
+        Aircraft('A3', '2000', 'ID1003', 'CAP279', f18e, np.pi / 2, 40, 600, 30, {"lat": 51.51, "lon": -0.13},
                  flight_rules="None"))
 
     app = RadarDisplay(list_of_aircraft)

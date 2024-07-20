@@ -20,10 +20,57 @@ VFR_SQUAWK = "1200"
 IFR_SQUAWK = "2000"
 
 
-# Aircraft related classes
 class AircraftModel:
+    """
+    Defines the specifications and performance characteristics of different aircraft models.
+
+    :param aircraft_type: The type of the aircraft (e.g., 'C172', 'B737').
+    :type aircraft_type: str
+    :param climb_rate: Climb rate in feet per second.
+    :type climb_rate: float
+    :param turn_rate: Turn rate in degrees per second.
+    :type turn_rate: float
+    :param air_braking_rate: Air braking rate in knots per second.
+    :type air_braking_rate: float
+    :param thrust_rate: Thrust rate in knots per second.
+    :type thrust_rate: float
+    :param drag_rate: Drag rate in knots per second.
+    :type drag_rate: float
+    :param mass: Mass of the aircraft in kilograms.
+    :type mass: float
+    :param max_speed: Maximum speed in knots.
+    :type max_speed: float
+    :param cruise_speed: Cruise speed in knots.
+    :type cruise_speed: float
+    :param service_ceiling: Service ceiling in feet.
+    :type service_ceiling: float
+    :param fuel_capacity: Fuel capacity in gallons.
+    :type fuel_capacity: float
+    :param fuel_consumption_rate: Fuel consumption rate in gallons per hour.
+    :type fuel_consumption_rate: float
+    :param max_range: Maximum range in nautical miles.
+    :type max_range: float
+    :param stall_speed: Stall speed in knots.
+    :type stall_speed: float
+    :param wing_span: Wing span in feet.
+    :type wing_span: float
+    :param length: Length of the aircraft in feet.
+    :type length: float
+    :param max_takeoff_weight: Maximum takeoff weight in kilograms.
+    :type max_takeoff_weight: float
+    :param engine_type: Type of the engine (e.g., 'Piston', 'Turbofan').
+    :type engine_type: str
+    :param passenger_capacity: Passenger capacity.
+    :type passenger_capacity: int
+    :param landing_gear_type: Type of landing gear (e.g., 'Fixed', 'Retractable').
+    :type landing_gear_type: str
+    :param avionics_systems: Avionics systems installed.
+    :type avionics_systems: str
+    :param min_takeoff_distance: Minimum takeoff distance in feet.
+    :type min_takeoff_distance: float
+    """
     def __init__(self, aircraft_type, climb_rate, turn_rate, air_braking_rate, thrust_rate, drag_rate, mass, max_speed,
-                 cruise_speed, service_ceiling, fuel_capacity, fuel_consumption_rate, range, wing_span, length,
+                 cruise_speed, service_ceiling, fuel_capacity, fuel_consumption_rate, max_range, stall_speed, wing_span, length,
                  max_takeoff_weight, engine_type, passenger_capacity, landing_gear_type, avionics_systems,
                  min_takeoff_distance):
         self.aircraft_type = aircraft_type
@@ -38,7 +85,8 @@ class AircraftModel:
         self.service_ceiling = service_ceiling
         self.fuel_capacity = fuel_capacity
         self.fuel_consumption_rate = fuel_consumption_rate
-        self.range = range
+        self.max_range = max_range
+        self.stall_speed = stall_speed
         self.wing_span = wing_span
         self.length = length
         self.max_takeoff_weight = max_takeoff_weight
@@ -50,6 +98,34 @@ class AircraftModel:
 
 
 class Aircraft:
+    """
+    Represents an instance of an aircraft with specific attributes and behaviors.
+
+    :param aircraft_id: Unique identifier for the aircraft.
+    :type aircraft_id: str
+    :param squawk: Squawk code for the aircraft.
+    :type squawk: str
+    :param mode_s: Mode S transponder code.
+    :type mode_s: str
+    :param callsign: Callsign of the aircraft.
+    :type callsign: str
+    :param aircraft_model: Model of the aircraft.
+    :type aircraft_model: AircraftModel
+    :param angle: Current heading angle of the aircraft in radians.
+    :type angle: float
+    :param altitude: Current altitude of the aircraft in hundreds of feet.
+    :type altitude: float
+    :param speed: Current speed of the aircraft in knots.
+    :type speed: float
+    :param distance: Current distance of the aircraft from the radar in miles.
+    :type distance: float
+    :param ads_b: ADS-B (Automatic Dependent Surveillance-Broadcast) data.
+    :type ads_b: dict
+    :param flight_rules: Flight rules (e.g., 'VFR', 'IFR', 'None').
+    :type flight_rules: str
+    :param landed: Whether the aircraft has landed.
+    :type landed: bool
+    """
     def __init__(self, aircraft_id, squawk, mode_s, callsign, aircraft_model, angle, altitude, speed, distance, ads_b,
                  flight_rules="None", landed=False):
         self.id = aircraft_id
@@ -79,10 +155,19 @@ class Aircraft:
                 self.altitude = ((self.altitude // 20) * 20) + 40  # Even intervals starting from 4000 feet
 
     def on_ground(self):
+        """
+        Update the distance of the aircraft if it is not landed.
+        """
         if not self.landed:
             self.distance = (self.distance + self.speed * KNOTS_TO_MILES_PER_FRAME) % MAX_DISTANCE_MILES
 
     def update_heading(self, target_angle):
+        """
+        Update the heading of the aircraft towards the target angle.
+
+        :param target_angle: The target angle to which the aircraft should turn.
+        :type target_angle: float
+        """
         current_angle_deg = np.degrees(self.angle)
         target_angle_deg = np.degrees(target_angle)
         angle_diff = (target_angle_deg - current_angle_deg + 360) % 360
@@ -98,12 +183,24 @@ class Aircraft:
             self.angle = (self.angle + angle_change) % (2 * np.pi)
 
     def update_altitude(self, target_altitude):
+        """
+        Update the altitude of the aircraft towards the target altitude.
+
+        :param target_altitude: The target altitude in hundreds of feet.
+        :type target_altitude: float
+        """
         if abs(target_altitude - self.altitude) < self.aircraft_model.climb_rate:
             self.altitude = target_altitude
         else:
             self.altitude += self.aircraft_model.climb_rate if target_altitude > self.altitude else -self.aircraft_model.climb_rate
 
     def update_speed(self, target_speed):
+        """
+        Update the speed of the aircraft towards the target speed.
+
+        :param target_speed: The target speed in knots.
+        :type target_speed: float
+        """
         if abs(target_speed - self.speed) < self.aircraft_model.thrust_rate:
             self.speed = target_speed
         else:
@@ -113,45 +210,92 @@ class Aircraft:
                 self.speed -= self.aircraft_model.air_braking_rate
 
     def update_squawk(self, squawk):
+        """
+        Update the squawk code of the aircraft.
+
+        :param squawk: The new squawk code.
+        :type squawk: str
+        """
         self.squawk = squawk
 
 
 class AircraftList:
+    """
+    Manages a list of aircraft and updates their positions.
+    """
     def __init__(self):
         self.aircraft_list = []
 
     def add_aircraft(self, aircraft):
+        """
+        Add an aircraft to the list.
+
+        :param aircraft: The aircraft to be added.
+        :type aircraft: Aircraft
+        """
         self.aircraft_list.append(aircraft)
 
     def update_positions(self):
+        """
+        Update the positions of all aircraft in the list.
+        """
         for aircraft in self.aircraft_list:
             aircraft.on_ground()
 
 
-# Radar related classes
 class RadarSweep:
+    """
+    Manages the radar sweep animation and logic.
+    """
     def __init__(self):
         self.angle = 0
         self.sweep_speed = SWEEP_SPEED
 
     def update(self):
+        """
+        Update the radar sweep angle.
+        """
         self.angle = (self.angle + self.sweep_speed) % (2 * np.pi)  # Clockwise rotation
 
 
 class RadarReturnManager:
+    """
+    Manages the radar returns for aircraft.
+    """
     def __init__(self):
         self.radar_returns = []
 
     def add_return(self, angle, distance):
+        """
+        Add a radar return at the specified angle and distance.
+
+        :param angle: The angle of the radar return.
+        :type angle: float
+        :param distance: The distance of the radar return.
+        :type distance: float
+        """
         self.radar_returns.append([angle, distance, 1.0])  # Add new return with full opacity
 
     def update(self):
+        """
+        Update the opacity of radar returns, decreasing over time.
+        """
         for radar_return in self.radar_returns:
             radar_return[2] -= 0.1 / 60  # Decrease opacity
         self.radar_returns = [r for r in self.radar_returns if r[2] > 0]  # Keep returns with positive opacity
 
 
 class PrimaryRadarReturn:
+    """
+    Handles the primary radar returns based on the radar sweep angle.
+
+    :param radar_return_manager: The manager handling radar returns.
+    :type radar_return_manager: RadarReturnManager
+    :param aircraft: The aircraft for which the radar return is generated.
+    :type aircraft: Aircraft
+    :param sweep_angle: The current angle of the radar sweep.
+    :type sweep_angle: float
+    """
     def __init__(self, radar_return_manager, aircraft, sweep_angle):
         self.radar_return_manager = radar_return_manager
         self.aircraft = aircraft
@@ -159,16 +303,33 @@ class PrimaryRadarReturn:
         self.add_return()
 
     def add_return(self):
+        """
+        Add a radar return for the aircraft if it is within the sweep angle tolerance.
+        """
         angle, distance = self.aircraft.angle, self.aircraft.distance
         if abs(angle - self.sweep_angle) < ANGLE_TOLERANCE:
             self.radar_return_manager.add_return(angle, distance)
 
 
 class SecondaryRadarReturn:
+    """
+    Plots the secondary radar return information for an aircraft.
+
+    :param aircraft: The aircraft for which the radar return is plotted.
+    :type aircraft: Aircraft
+    """
     def __init__(self, aircraft):
         self.aircraft = aircraft
 
     def plot(self, x, y):
+        """
+        Plot the secondary radar return on the display.
+
+        :param x: The x-coordinate for the radar return.
+        :type x: float
+        :param y: The y-coordinate for the radar return.
+        :type y: float
+        """
         text = (f"{self.aircraft.callsign} {self.aircraft.squawk}\n"
                 f"{round(np.degrees(self.aircraft.angle))} {self.aircraft.altitude}\n"
                 f"{self.aircraft.aircraft_model.aircraft_type} {self.aircraft.speed}\n"
@@ -184,6 +345,12 @@ class SecondaryRadarReturn:
 
 
 class RadarDisplay(arcade.Window):
+    """
+    Main class for managing the radar display window.
+
+    :param aircraft_list: The list of aircraft to be displayed.
+    :type aircraft_list: AircraftList
+    """
     def __init__(self, aircraft_list):
         super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
         arcade.set_background_color(arcade.color.BLACK)
@@ -195,9 +362,15 @@ class RadarDisplay(arcade.Window):
         self.center_y = SCREEN_HEIGHT // 2
 
     def setup(self):
+        """
+        Set up the radar display (placeholder for any setup operations).
+        """
         pass
 
     def on_draw(self):
+        """
+        Render the radar display.
+        """
         arcade.start_render()
 
         # Draw static radar overlay
@@ -213,6 +386,9 @@ class RadarDisplay(arcade.Window):
         self.radar_return_manager.update()
 
     def draw_static_overlay(self):
+        """
+        Draw the static overlay for the radar display.
+        """
         # Draw outer circle
         arcade.draw_circle_outline(self.center_x, self.center_y, DISPLAY_RADIUS, arcade.color.GREEN, 2,
                                    num_segments=CIRCLE_SEGMENTS)
@@ -225,6 +401,9 @@ class RadarDisplay(arcade.Window):
             arcade.draw_text(f"{degree}", x, y, arcade.color.LIGHT_BLUE, 12, anchor_x="center", anchor_y="center")
 
     def draw_sweep(self):
+        """
+        Draw the radar sweep line.
+        """
         sweep_angle_radian = np.radians(90 - np.degrees(self.radar_sweep.angle))  # Adjust to navigational coordinates
         end_x = self.center_x + DISPLAY_RADIUS * np.cos(sweep_angle_radian)
         end_y = self.center_y + DISPLAY_RADIUS * np.sin(sweep_angle_radian)
@@ -232,6 +411,9 @@ class RadarDisplay(arcade.Window):
         self.radar_sweep.update()
 
     def draw_aircraft(self):
+        """
+        Draw all aircraft on the radar display.
+        """
         for aircraft in self.aircraft_list.aircraft_list:
             aircraft_angle_radian = np.radians(90 - np.degrees(aircraft.angle))  # Adjust to navigational coordinates
             distance_in_pixels = DISPLAY_RADIUS * (aircraft.distance / MAX_DISTANCE_MILES)
@@ -243,30 +425,71 @@ class RadarDisplay(arcade.Window):
                 SecondaryRadarReturn(aircraft).plot(x, y + 10)
 
     def update(self, delta_time):
+        """
+        Update the positions of all aircraft and refresh the display.
+
+        :param delta_time: Time passed since the last update.
+        :type delta_time: float
+        """
         self.aircraft_list.update_positions()
 
 
-# ATC related classes
 class ATCFacility:
-    def __init__(self, name, location, facilities=[]):
+    """
+    Represents an ATC (Air Traffic Control) facility.
+
+    :param name: The name of the facility.
+    :type name: str
+    :param location: The location of the facility.
+    :type location: dict
+    :param facilities: List of facilities within this ATC facility.
+    :type facilities: list
+    """
+    def __init__(self, name, location, facilities=None):
         self.name = name
         self.location = location
-        self.facilities = facilities
+        self.facilities = facilities if facilities is not None else []
 
 
 class ATCFacilityFrequencies:
-    def __init__(self, facility, frequencies=[]):
+    """
+    Represents the frequencies used by an ATC facility.
+
+    :param facility: The ATC facility.
+    :type facility: ATCFacility
+    :param frequencies: List of frequencies used by the facility.
+    :type frequencies: list
+    """
+    def __init__(self, facility, frequencies=None):
         self.facility = facility
-        self.frequencies = frequencies
+        self.frequencies = frequencies if frequencies is not None else []
 
 
 class ATC:
+    """
+    Represents an ATC role within a facility.
+
+    :param role: The role of the ATC.
+    :type role: str
+    :param facility: The facility in which the ATC operates.
+    :type facility: ATCFacility
+    """
     def __init__(self, role, facility):
         self.role = role
         self.facility = facility
 
 
 class FlightPlate:
+    """
+    Represents a flight plate for navigation procedures.
+
+    :param plate_type: The type of the plate (e.g., 'Approach', 'Departure').
+    :type plate_type: str
+    :param airport: The airport associated with the plate.
+    :type airport: str
+    :param procedure: The navigation procedure.
+    :type procedure: str
+    """
     def __init__(self, plate_type, airport, procedure):
         self.plate_type = plate_type  # Approach, Departure, etc.
         self.airport = airport
@@ -274,18 +497,46 @@ class FlightPlate:
 
 
 class RadarMap:
+    """
+    Represents a radar map for a specific area.
+
+    :param area: The area covered by the radar map.
+    :type area: str
+    :param map_data: The data of the map.
+    :type map_data: dict
+    """
     def __init__(self, area, map_data):
         self.area = area
         self.map_data = map_data
 
 
 class AirportDiagram:
+    """
+    Represents an airport diagram.
+
+    :param airport: The airport for which the diagram is created.
+    :type airport: str
+    :param diagram_data: The data of the airport diagram.
+    :type diagram_data: dict
+    """
     def __init__(self, airport, diagram_data):
         self.airport = airport
         self.diagram_data = diagram_data
 
 
 class NavigationAid:
+    """
+    Represents a navigation aid.
+
+    :param name: The name of the navigation aid.
+    :type name: str
+    :param navaid_type: The type of the navigation aid (e.g., 'VOR', 'NDB', 'ILS').
+    :type navaid_type: str
+    :param location: The location of the navigation aid.
+    :type location: dict
+    :param frequency: The frequency of the navigation aid.
+    :type frequency: float
+    """
     def __init__(self, name, navaid_type, location, frequency):
         self.name = name
         self.navaid_type = navaid_type  # VOR, NDB, ILS, etc.
@@ -294,6 +545,16 @@ class NavigationAid:
 
 
 class FlightStrip:
+    """
+    Represents a flight strip for tracking flight information.
+
+    :param flight_id: The unique identifier for the flight.
+    :type flight_id: str
+    :param aircraft: The aircraft associated with the flight.
+    :type aircraft: Aircraft
+    :param flight_plan: The flight plan for the flight.
+    :type flight_plan: FlightPlan
+    """
     def __init__(self, flight_id, aircraft, flight_plan):
         self.flight_id = flight_id
         self.aircraft = aircraft
@@ -301,6 +562,22 @@ class FlightStrip:
 
 
 class FlightPlan:
+    """
+    Represents a flight plan.
+
+    :param flight_id: The unique identifier for the flight.
+    :type flight_id: str
+    :param origin: The origin airport.
+    :type origin: str
+    :param destination: The destination airport.
+    :type destination: str
+    :param route: The route of the flight.
+    :type route: str
+    :param altitude: The planned altitude in hundreds of feet.
+    :type altitude: float
+    :param speed: The planned speed in knots.
+    :type speed: float
+    """
     def __init__(self, flight_id, origin, destination, route, altitude, speed):
         self.flight_id = flight_id
         self.origin = origin
@@ -311,6 +588,20 @@ class FlightPlan:
 
 
 class Weather:
+    """
+    Represents weather information for a specific location.
+
+    :param location: The location of the weather report.
+    :type location: dict
+    :param temperature: The temperature in degrees Celsius.
+    :type temperature: float
+    :param wind: The wind speed and direction.
+    :type wind: dict
+    :param visibility: The visibility in miles.
+    :type visibility: float
+    :param conditions: The weather conditions (e.g., 'Clear', 'Rain').
+    :type conditions: str
+    """
     def __init__(self, location, temperature, wind, visibility, conditions):
         self.location = location
         self.temperature = temperature
@@ -320,6 +611,7 @@ class Weather:
 
 
 if __name__ == "__main__":
+    # Sample Aircraft Models
     cessna_172 = AircraftModel(
         aircraft_type='C172',
         climb_rate=7.5,  # feet per second (450 feet per minute)
@@ -333,7 +625,8 @@ if __name__ == "__main__":
         service_ceiling=14000,  # feet
         fuel_capacity=56,  # gallons
         fuel_consumption_rate=8.5,  # gallons per hour
-        range=518,  # nautical miles
+        max_range=518,  # nautical miles
+        stall_speed=48,  # knots
         wing_span=36.1,  # feet
         length=27.2,  # feet
         max_takeoff_weight=1049,  # kg
@@ -357,7 +650,8 @@ if __name__ == "__main__":
         service_ceiling=41000,  # feet
         fuel_capacity=6840,  # gallons
         fuel_consumption_rate=800,  # gallons per hour
-        range=2900,  # nautical miles
+        max_range=2900,  # nautical miles
+        stall_speed=125,  # knots
         wing_span=112.5,  # feet
         length=129.5,  # feet
         max_takeoff_weight=70308,  # kg
@@ -381,7 +675,8 @@ if __name__ == "__main__":
         service_ceiling=50000,  # feet
         fuel_capacity=1100,  # gallons
         fuel_consumption_rate=10,  # gallons per minute (typical)
-        range=1100,  # nautical miles
+        max_range=1100,  # nautical miles
+        stall_speed=110,  # knots
         wing_span=44.9,  # feet
         length=60.3,  # feet
         max_takeoff_weight=23543,  # kg
@@ -392,6 +687,7 @@ if __name__ == "__main__":
         min_takeoff_distance=1000  # feet
     )
 
+    # Sample Aircraft List
     list_of_aircraft = AircraftList()
     list_of_aircraft.add_aircraft(
         Aircraft('A1', '1200', 'ID1001', 'N135TC', cessna_172, np.pi / 6, 50, 120, 50, {"lat": 34.05, "lon": -118.25},
@@ -403,6 +699,7 @@ if __name__ == "__main__":
         Aircraft('A3', '2000', 'ID1003', 'CAP279', f18e, np.pi / 2, 40, 600, 30, {"lat": 51.51, "lon": -0.13},
                  flight_rules="None"))
 
+    # Start the radar display simulation
     app = RadarDisplay(list_of_aircraft)
     app.setup()
     arcade.run()

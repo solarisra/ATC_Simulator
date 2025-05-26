@@ -1,4 +1,5 @@
-from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QSlider, QLabel, QHBoxLayout, QPushButton
+from PyQt5.QtCore import Qt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.projections.polar import PolarAxes
 from typing import cast
@@ -23,46 +24,109 @@ class RadarCanvas(FigureCanvas):
 
         self.fig.patch.set_facecolor('black')
         self.ax.set_facecolor('black')
+        self._init_plot()
+
+        self.primary_returns = []
+        self.brightness = 1.0
+
+    def _init_plot(self):
         self.ax.set_theta_zero_location('N')
         self.ax.set_theta_direction(-1)
         self.ax.set_ylim(0, 100)
+        self.ax.set_facecolor('black')
+
+        # Disable all default ticks and gridlines
+        self.ax.grid(False)
+        self.ax.set_xticks([])
+        self.ax.set_yticks([])
+        self.ax.set_xticklabels([])
         self.ax.set_yticklabels([])
-        self.ax.set_xticks(np.deg2rad(np.arange(0, 360, 15)))
-        self.ax.set_xticklabels([str(d) for d in range(0, 360, 15)], color='lightblue')
-        self.ax.spines['polar'].set_color('lightblue')
 
-    def update_frame(self, sweep_angle_rad, aircraft_list):
+    def set_brightness(self, value):
+        self.brightness = value
+
+    def update_frame(self, sweep_angle, aircraft_list):
         self.ax.clear()
-        self._setup_plot()
+        self._init_plot()
 
-        # Radar sweep
-        self.ax.plot([sweep_angle_rad, sweep_angle_rad], [0, 100], color='orange', alpha=0.75)
+        base_orange = (1.0, 0.5, 0.0)  # Pure orange in RGB
+        dim_orange = tuple(c * self.brightness for c in base_orange)
 
-        for aircraft in aircraft_list:
-            dy = aircraft.ads_b["lat"] - self.radar_origin[0]
-            dx = aircraft.ads_b["lon"] - self.radar_origin[1]
-            angle = np.radians((np.degrees(np.arctan2(dx, dy)) + 360) % 360)
-            distance_val = np.sqrt(dx ** 2 + dy ** 2) * 111  # rough km
+        # Draw radar range rings (every 10 km except outermost)
+        for r in range(25, 100, 25):
+            self.ax.plot(np.linspace(0, 2 * np.pi, 512), [r] * 512,
+                         color=dim_orange,
+                         linewidth=0.5)
+        # Outermost ring full brightness
+        self.ax.plot(np.linspace(0, 2 * np.pi, 512), [100] * 512,
+                     color=base_orange, linewidth=2.0)
 
-            if distance_val > 100:
+        # Draw radial lines (every 15 degrees)
+        for t in np.deg2rad(np.arange(0, 360, 15)):
+            self.ax.plot([t, t], [0, 100],
+                         color=dim_orange,
+                         linewidth=0.5)
+
+        # Fade old primary returns
+        FADE_RATE = 1.0 / 600.0  # fades over ~5 sweeps
+
+        new_returns = []
+        for blip in self.primary_returns:
+            blip["alpha"] -= FADE_RATE
+            if blip["alpha"] > 0:
+                dist = blip["distance"]
+                angle = blip["angle"]
+                blip_len_km = max(0.1, 1.0 * (1 - dist / 100.0))
+                if dist < 0.1:
+                    continue
+                else:
+                    offset = blip_len_km / dist
+                theta1 = angle - offset / 2
+                theta2 = angle + offset / 2
+
+                self.ax.plot([theta1, theta2], [dist, dist],
+                             color='orange', alpha=blip["alpha"], linewidth=1.5)
+                new_returns.append(blip)
+        self.primary_returns = new_returns
+
+        # Add new primary returns from current sweep
+        for ac in aircraft_list:
+            dx = ac.ads_b["lon"] - self.radar_origin[1]
+            dy = ac.ads_b["lat"] - self.radar_origin[0]
+            angle = np.arctan2(dy, dx)
+            distance_km = np.hypot(dx, dy) * 111  # crude lat/lon deg to km
+
+            if distance_km > 100:
                 continue
 
-            self.ax.plot(angle, distance_val, marker='o', color='cyan')
-            self.ax.text(angle, distance_val + 4,
-                         f"{aircraft.id}\n{aircraft.mode_a}\nFL{int(aircraft.mode_c / 100)}",
-                         color='lightblue', fontsize=7, ha='center')
+            diff = abs((angle - sweep_angle + np.pi) % (2 * np.pi) - np.pi)
+            if diff < np.deg2rad(2):  # about 1 deg tolerance
+                self.primary_returns.append({
+                    "angle": angle,
+                    "distance": distance_km,
+                    "alpha": 1.0
+                })
+
+            # Display secondary radar info (Mode S callsign)
+            self.ax.plot(angle, distance_km, marker='o', markersize=4,
+                         markerfacecolor='none', markeredgecolor='cyan')
+            self.ax.text(angle, distance_km + 4,
+                         f"{ac.mode_s}\n{ac.mode_a}\n{int(ac.mode_c / 100)} {int(ac.velocity)}",
+                         color='lightblue', fontsize=7, ha='left')
+
+        # Sweep arc with fading trail (e.g., 15 degrees wide, fading back)
+        trail_width_deg = 15  # Total sweep width
+        num_lines = 60  # Number of lines in the trail
+        max_alpha = 0.75
+
+        for i in range(num_lines):
+            frac = i / num_lines
+            angle = sweep_angle - np.deg2rad(trail_width_deg * frac)
+            alpha = max_alpha * (1 - frac)
+            self.ax.plot([angle, angle], [0, 100], color='orange', alpha=alpha, linewidth=1.0)
 
         self.draw()
 
-    def _setup_plot(self):
-        self.ax.set_theta_zero_location('N')
-        self.ax.set_theta_direction(-1)
-        self.ax.set_ylim(0, 100)
-        self.ax.set_yticklabels([])
-        self.ax.set_xticks(np.deg2rad(np.arange(0, 360, 15)))
-        self.ax.set_xticklabels([str(d) for d in range(0, 360, 15)], color='lightblue')
-        self.ax.spines['polar'].set_color('lightblue')
-        self.ax.set_facecolor('black')
 
 
 class RadarWindow(QMainWindow):
@@ -71,67 +135,42 @@ class RadarWindow(QMainWindow):
         self.setWindowTitle("ATC Radar Display (PyQt5)")
         self.setGeometry(100, 100, 1000, 800)
 
-        # Radar origin
+        # Radar origin (define this early so canvas can use it)
         self.radar_origin = (42.3736, -122.872)  # MFR
 
-        # Initialize aircraft
-        self.aircraft_list = [
-            Aircraft(boeing_737, 170, boeing_737.cruise_speed, 'A1',
-                     '1200', 10000, 'ASA1046',
-                     {"lat": 42.923, "lon": -123.283}),
-            Aircraft(f16_type, 250, f16_type.cruise_speed, 'A2',
-                     '1201', 15000, 'TBIRD16',
-                     {"lat": 42.445, "lon": -122.321}),
-            Aircraft(cessna_172, 350, cessna_172.cruise_speed, 'A3',
-                     '1202', 5000, 'N914DK',
-                     {"lat": 41.746, "lon": -122.631})
-        ]
-
-        # Create radar canvas
+        # Create radar canvas (this must come before using self.canvas)
         self.canvas = RadarCanvas(self.radar_origin)
-        layout = QVBoxLayout()
-        layout.addWidget(self.canvas)
+
+        # Left (radar display)
+        radar_layout = QVBoxLayout()
+        radar_layout.addWidget(self.canvas)
+
+        # Right (control panel)
+        control_panel = QVBoxLayout()
+        self.brightness_slider = QSlider(Qt.Vertical)
+        self.brightness_slider.setMinimum(0)
+        self.brightness_slider.setMaximum(100)
+        self.brightness_slider.setValue(100)
+        self.brightness_slider.setTickInterval(10)
+        self.brightness_slider.setTickPosition(QSlider.TicksRight)
+        self.brightness_slider.valueChanged.connect(self.on_brightness_change)
+
+        brightness_label = QLabel("Brightness")
+        brightness_label.setAlignment(Qt.AlignHCenter)
+
+        control_panel.addWidget(brightness_label)
+        control_panel.addWidget(self.brightness_slider)
+
+        # Combine both layouts
+        main_layout = QHBoxLayout()
+        main_layout.addLayout(radar_layout, stretch=4)
+        main_layout.addLayout(control_panel, stretch=1)
 
         container = QWidget()
-        container.setLayout(layout)
+        container.setLayout(main_layout)
         self.setCentralWidget(container)
 
-        # Sweep and simulation timer
-        self.sweep_angle = 0
-        self.timer_id = self.startTimer(50)  # ~20 FPS
-
-    def timerEvent(self, event):
-        self.sweep_angle = (self.sweep_angle + np.pi / 60) % (2 * np.pi)
-
-        # Update simulation
-        for aircraft in self.aircraft_list:
-            aircraft.update_flight_profile()
-            aircraft.update_position()
-
-        # Render the updated frame
-        self.canvas.update_frame(self.sweep_angle, self.aircraft_list)
-
-
-"""
-class RadarDisplay(tk.Tk):
-    def __init__(self):
-        super().__init__()
-
-        self.title("ATC RADAR Display")
-        self.geometry("1200x900")
-
-        # Set up the radar display
-        self.radar_origin = {"lat": 42.3736, "lon": -122.872}  # MFR location
-        self.fig, self.ax = plt.subplots(subplot_kw={'projection': 'polar'})
-        self.canvas = FigureCanvasTkAgg(self.fig, master=self)
-        self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
-
-        self.fig.patch.set_facecolor('black')
-        self.ax.set_facecolor('black')
-        self.ax.set_theta_zero_location('N')  # 0 degrees at the top (North)
-        self.ax.set_theta_direction(-1)  # Clockwise direction
-
-        # Initialize data
+        # Initialize aircraft
         self.aircraft_list = [
             Aircraft(boeing_737, 170, boeing_737.cruise_speed, 'A1',
                      '1200', 10000, 'ASA1046',
@@ -144,142 +183,24 @@ class RadarDisplay(tk.Tk):
                      {"lat": 41.746, "lon": -122.631})  # Yreka
         ]
 
-        # Show decaying radar return for aircraft
-        self.aircraft_visuals = {a.id: {"ping_alpha": 0.0} for a in self.aircraft_list}
+        # Sweep and simulation timer
+        self.sweep_angle = 0
+        self.timer_id = self.startTimer(50)  # ~20 FPS
 
-        self.radar_sweep_angle = 0
-        self.sweep_lines = []
+    def timerEvent(self, event):
+        self.sweep_angle = (self.sweep_angle + np.pi / 60) % (2 * np.pi)
 
-        # Create control frame
-        self.control_frame = ttk.Frame(self)
-        self.control_frame.pack(fill=tk.X, side=tk.BOTTOM)
-
-        self.update_button = ttk.Button(self.control_frame, text="Update RADAR", command=self.update_radar)
-        self.update_button.pack(side=tk.LEFT, padx=5, pady=5)
-
-        self.quit_button = ttk.Button(self.control_frame, text="Quit", command=self.quit)
-        self.quit_button.pack(side=tk.RIGHT, padx=5, pady=5)
-
-        # Initial plot setup
-        self.setup_plot()
-
-        # Start radar sweep
-        self.after(50, self.update_sweep)
-
-    @staticmethod
-    def latlong_to_bearing_rad(dx, dy):
-        return np.radians((np.degrees(np.arctan2(dx, dy)) + 360) % 360)
-
-    def setup_plot(self):
-        """"""Setup the initial plot with tick positions and labels.""""""
-        self.ax.set_theta_zero_location('N')
-        self.ax.set_theta_direction(-1)
-        self.ax.set_ylim(0, 100)
-        self.ax.set_yticklabels([])
-
-        tick_positions = np.arange(0, 360, 15)  # Every 15 degrees
-        tick_labels = [f"{pos}" for pos in tick_positions]
-        tick_positions = np.deg2rad(tick_positions)
-        self.ax.xaxis.set_major_locator(FixedLocator(tick_positions))
-        self.ax.set_xticklabels(tick_labels, color='lightblue')
-
-        self.ax.spines['polar'].set_color('lightblue')
-        self.ax.xaxis.set_tick_params(color='lightblue')
-        self.ax.yaxis.set_tick_params(color='lightblue')
-        self.ax.grid(False)
-
-        for spine in self.ax.spines.values():
-            spine.set_edgecolor('lightblue')
-
-    def plot_aircraft(self):
-        """"""Plot the aircraft on the radar display.""""""
-        for aircraft in self.aircraft_list:
-            vis = self.aircraft_visuals[aircraft.id]
-
-            # Convert lat/lon to polar from radar origin
-            dy = aircraft.ads_b["lat"] - self.radar_origin["lat"]
-            dx = aircraft.ads_b["lon"] - self.radar_origin["lon"]
-            angle = self.latlong_to_bearing_rad(dx, dy)
-            distance_val = np.sqrt(dx ** 2 + dy ** 2) * 111  # Approx degrees -> km
-
-            if distance_val > 100:
-                continue
-
-            # Plot radar return
-            if vis["ping_alpha"] > 0:
-                self.ax.plot([angle, angle], [distance_val - 0.1, distance_val + 0.1],
-                             color='orange', alpha=vis["ping_alpha"], linewidth=2)
-
-            # Display transponder and ADS-B data
-            self.ax.text(angle, distance_val + 5,
-                         f"{aircraft.id}"
-                         f"\n{aircraft.mode_a}"
-                         f"\n{aircraft.mode_c}"
-                         f"\n{aircraft.mode_s}"
-                         f"\n{aircraft.ads_b['lat']:.2f}, {aircraft.ads_b['lon']:.2f}",
-                         color='lightblue', fontsize=8, ha='center', va='bottom')
-
-    @staticmethod
-    def polar_to_cartesian(angle, distance):
-        """"""Convert polar coordinates to cartesian for overlay placement.""""""
-        x = distance * np.cos(angle)
-        y = distance * np.sin(angle)
-        return x, y
-
-    def update_sweep(self):
-        """"""Update the radar sweep.""""""
-        self.ax.clear()
-        self.ax.set_facecolor('black')
-        self.setup_plot()
-
-        # Advance the radar sweep angle
-        self.radar_sweep_angle = (self.radar_sweep_angle + np.pi / 60) % (2 * np.pi)
-
-        # Update radar returns
-        for aircraft in self.aircraft_list:
-            dy = aircraft.ads_b["lat"] - self.radar_origin["lat"]
-            dx = aircraft.ads_b["lon"] - self.radar_origin["lon"]
-            angle = self.latlong_to_bearing_rad(dx, dy)
-            diff = abs((angle - self.radar_sweep_angle + np.pi) % (2 * np.pi) - np.pi)
-
-            vis = self.aircraft_visuals[aircraft.id]
-            if diff < np.pi / 60:
-                vis["ping_alpha"] = 1.0
-            elif vis["ping_alpha"] > 0:
-                vis["ping_alpha"] -= 0.005
-                if vis["ping_alpha"] < 0:
-                    vis["ping_alpha"] = 0
-
-        # Plot aircraft and data
-        self.update_radar()
-
-        # Draw the sweep line
-        self.ax.plot([self.radar_sweep_angle, self.radar_sweep_angle], [0, 100], color='orange', alpha=0.75)
-
-        # Fade out previous sweep lines
-        for line in self.sweep_lines:
-            line[1] -= 0.25
-            if line[1] <= 0:
-                self.sweep_lines.remove(line)
-            else:
-                self.ax.plot([line[0], line[0]], [0, 100], color='orange', alpha=line[1])
-
-        # Add the new sweep line
-        self.sweep_lines.append([self.radar_sweep_angle, 0.75])
-        self.canvas.draw()
-
-        # Schedule the next sweep update
-        self.after(50, self.update_sweep)
-
-    def update_radar(self):
-        """"""Update the RADAR display with new data.""""""
-        # Update positions and data for each aircraft
         for aircraft in self.aircraft_list:
             aircraft.update_flight_profile()
             aircraft.update_position()
 
-        self.plot_aircraft()
-"""
+        self.canvas.update_frame(self.sweep_angle, self.aircraft_list)
+
+
+    def on_brightness_change(self, value: int):
+        normalized = value / 100.0
+        self.canvas.set_brightness(normalized)
+
 
 if __name__ == "__main__":
     # app = RadarDisplay()

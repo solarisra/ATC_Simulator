@@ -2,6 +2,7 @@ from geopy.distance import distance
 from geopy.point import Point
 import numpy as np
 
+
 class Aircraft:
     def __init__(self, aircraft_type, bearing_deg, velocity, aircraft_id, mode_a, mode_c, mode_s, ads_b):
         self.aircraft_type = aircraft_type

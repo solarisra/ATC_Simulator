@@ -27,6 +27,10 @@ geometry files in `GIS_JSON`. Holding-pattern marks show their fixes, not
 the shape of the holding circuit. CSV records without coordinates and the
 nonspatial frequency table cannot be drawn.
 
+`GIS_JSON/Class_Airspace.geojson` and `GIS_JSON/Route_Airspace.geojson` are
+not distributed in the repository because of their size. Supply those files
+locally to use their overlays; otherwise the legend reports a loading error.
+
 Click an aircraft or its data block to select it. Use the numeric keypad
 directions to position the selected aircraft's data block. The STARS-style
 block shows the callsign, altitude in hundreds of feet with speed in tens of

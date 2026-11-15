@@ -3,3 +3,5 @@ venv/
 __pycache__/
 .ruff_cache/
 *.py[cod]
+Class_Airspace.geojson
+Route_Airspace.geojson

@@ -1,0 +1,900 @@
+<!DOCTYPE html
+  SYSTEM "about:legacy-compat">
+<html lang="en-us"><head><meta charset="UTF-8"><meta name="copyright" content="(C) Copyright 2026"><meta name="generator" content="DITA-OT"><meta name="keywords" content="Beacon/ADS-B Systems"><meta name="prodname" content="JO 7110.65BB"><meta name="prodname" content="JO 7110.65BB"><meta name="component" content=""><title>Chapter 5. Radar</title><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta http-equiv="X-UA-Compatible" content="ie=edge"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous"><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,700&amp;family=Roboto+Condensed:ital,wght@0,400;0,700;1,400;1,700&amp;display=swap" rel="stylesheet"><link rel="stylesheet" type="text/css" href="../css/atc-main.css"><link rel="stylesheet" type="text/css" href="../commonltr.css"></head><body id="atc-body"><header class="header"><nav class="navbar" role="navigation" aria-label="Main navigation"><div class="navbar-brand"><a class="navbar-item publication_name" href="../index.html"><span>7110.65BB</span></a><div class="navbar-search"><form id="search_form" action="https://search.usa.gov/search" method="get" accept-charset="UTF-8"><input name="utf8" type="hidden" value="✓"><input name="affiliate" id="affiliate" type="hidden" value="atc__content"><input id="search-input" name="query" type="search" placeholder="Search the 7110.65" aria-label="Search" title="Search field"><button type="submit" class="search-submit" aria-label="Submit search"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button></form></div><button class="navbar-burger" aria-label="Menu" aria-expanded="false" data-target="atc-navbar-menu"><span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span></button></div><div id="atc-navbar-menu" class="navbar-menu"><div class="navbar-end"><div class="navbar-item has-dropdown is-hoverable"><a class="navbar-link">7110.65 by Chapter Number</a><div class="navbar-dropdown is-right"><a class="navbar-item atc-chap-number-dropdown" href="../chapter_0/chap_0.html">Chapter 0. General Information</a><a class="navbar-item atc-chap-number-dropdown" href="../chapter_1/chap_1.html">Chapter 1. General</a><a class="navbar-item atc-chap-number-dropdown" href="../chapter_2/chap_2.html">Chapter 2. General Control</a><a class="navbar-item atc-chap-number-dropdown" href="../chapter_3/chap_3.html">Chapter 3. Airport Traffic Control - Terminal</a><a class="navbar-item atc-chap-number-dropdown" href="../chapter_4/chap_4.html">Chapter 4. IFR</a><a class="navbar-item atc-chap-number-dropdown" href="chap_5.html">Chapter 5. Radar</a><a class="navbar-item atc-chap-number-dropdown" href="../chapter_6/chap_6.html">Chapter 6. Nonradar</a><a class="navbar-item atc-chap-number-dropdown" href="../chapter_7/chap_7.html">Chapter 7. Visual</a><a class="navbar-item atc-chap-number-dropdown" href="../chapter_8/chap_8.html">Chapter 8. Offshore/Oceanic Procedures</a><a class="navbar-item atc-chap-number-dropdown" href="../chapter_9/chap_9.html">Chapter 9. Special Flights</a><a class="navbar-item atc-chap-number-dropdown" href="../chapter_10/chap_10.html">Chapter 10. Emergencies</a><a class="navbar-item atc-chap-number-dropdown" href="../chapter_11/chap_11.html">Chapter 11. Traffic Management Procedures</a><a class="navbar-item atc-chap-number-dropdown" href="../chapter_12/chap_12.html">Chapter 12. Canadian Airspace Procedures</a><a class="navbar-item atc-chap-number-dropdown" href="../chapter_13/chap_13.html">Chapter 13. Decision Support Tools</a><a class="navbar-item atc-chap-number-dropdown" href="../chapter_14/chap_14.html">Chapter 14. Data Link Communications</a><a class="navbar-item atc-chap-number-dropdown" href="../appendix_a.html">Appendix A</a><a class="navbar-item atc-chap-number-dropdown" href="../appendix_b.html">Appendix B</a></div></div><a class="navbar-item" href="http://www.faa.gov/air_traffic/publications/" target="_blank" rel="noopener">ATPUBS</a></div></div></nav></header><div class="main-wrapper" id="main-wrapper"><div class="navigation-container">
+      <aside class="navigation">
+        <div class="panels">
+          <div class="navigation-menu is-active" data-panel="menu">
+            <nav role="navigation" class="nav-menu">
+              <h3 class="title"><a href="../index.html" aria-label="FAA Order JO 7110.65BB - Air Traffic Control home page">JO 7110.65BB by Topic</a></h3>
+              <ul class="nav-list">
+          <li class="nav-item" data-depth="0" data-id="menu-0-0">
+            <ul class="nav-list">
+              <li class="nav-item" data-depth="1" data-id="menu-1-/chap_0">
+                <button class="nav-toggle" aria-label="Navigation toggler"></button>
+                <span class="nav-text"></span>
+                <a class="nav-link" href="../chapter_0/chap_0.html">General Information</a>
+                <ul class="nav-list">
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap0_section_0">
+                    <a class="nav-link" href="../chapter_0/chap0_section_0.html">Explanation of Changes</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item" data-depth="0" data-id="menu-0-1">
+            <ul class="nav-list">
+              <li class="nav-item" data-depth="1" data-id="menu-1-/chap_1">
+                <button class="nav-toggle" aria-label="Navigation toggler"></button>
+                <span class="nav-text"></span>
+                <a class="nav-link" href="../chapter_1/chap_1.html">General</a>
+                <ul class="nav-list">
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap1_section_1">
+                    <a class="nav-link" href="../chapter_1/chap1_section_1.html">Introduction</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap1_section_2">
+                    <a class="nav-link" href="../chapter_1/chap1_section_2.html">Terms of Reference</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item" data-depth="0" data-id="menu-0-2">
+            <ul class="nav-list">
+              <li class="nav-item" data-depth="1" data-id="menu-1-/chap_2">
+                <button class="nav-toggle" aria-label="Navigation toggler"></button>
+                <span class="nav-text"></span>
+                <a class="nav-link" href="../chapter_2/chap_2.html">General Control</a>
+                <ul class="nav-list">
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap2_section_1">
+                    <a class="nav-link" href="../chapter_2/chap2_section_1.html">General</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap2_section_2">
+                    <a class="nav-link" href="../chapter_2/chap2_section_2.html">Flight Plans and Control Information</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap2_section_3">
+                    <a class="nav-link" href="../chapter_2/chap2_section_3.html">Flight Progress Strips</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap2_section_4">
+                    <a class="nav-link" href="../chapter_2/chap2_section_4.html">Radio and Interphone Communications</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap2_section_5">
+                    <a class="nav-link" href="../chapter_2/chap2_section_5.html">Route and NAVAID Description</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap2_section_6">
+                    <a class="nav-link" href="../chapter_2/chap2_section_6.html">Weather Information</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap2_section_7">
+                    <a class="nav-link" href="../chapter_2/chap2_section_7.html">Altimeter Settings</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap2_section_8">
+                    <a class="nav-link" href="../chapter_2/chap2_section_8.html">Runway Visibility Reporting- Terminal</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap2_section_9">
+                    <a class="nav-link" href="../chapter_2/chap2_section_9.html">Automatic Terminal Information Service Procedures</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap2_section_10">
+                    <a class="nav-link" href="../chapter_2/chap2_section_10.html">Team Position Responsibilities</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item" data-depth="0" data-id="menu-0-3">
+            <ul class="nav-list">
+              <li class="nav-item" data-depth="1" data-id="menu-1-/chap_3">
+                <button class="nav-toggle" aria-label="Navigation toggler"></button>
+                <span class="nav-text"></span>
+                <a class="nav-link" href="../chapter_3/chap_3.html">Airport Traffic Control - Terminal</a>
+                <ul class="nav-list">
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap3_section_1">
+                    <a class="nav-link" href="../chapter_3/chap3_section_1.html">General</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap3_section_2">
+                    <a class="nav-link" href="../chapter_3/chap3_section_2.html">Visual Signals</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap3_section_3">
+                    <a class="nav-link" href="../chapter_3/chap3_section_3.html">Airport Conditions</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap3_section_4">
+                    <a class="nav-link" href="../chapter_3/chap3_section_4.html">Airport Lighting</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap3_section_5">
+                    <a class="nav-link" href="../chapter_3/chap3_section_5.html">Runway Selection</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap3_section_6">
+                    <a class="nav-link" href="../chapter_3/chap3_section_6.html">Airport Surface Detection Procedures</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap3_section_7">
+                    <a class="nav-link" href="../chapter_3/chap3_section_7.html">Taxi and Ground Movement Procedures</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap3_section_8">
+                    <a class="nav-link" href="../chapter_3/chap3_section_8.html">Spacing and Sequencing</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap3_section_9">
+                    <a class="nav-link" href="../chapter_3/chap3_section_9.html">Departure Procedures and Separation</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap3_section_10">
+                    <a class="nav-link" href="../chapter_3/chap3_section_10.html">Arrival Procedures and Separation</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap3_section_11">
+                    <a class="nav-link" href="../chapter_3/chap3_section_11.html">Helicopter Operations</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap3_section_12">
+                    <a class="nav-link" href="../chapter_3/chap3_section_12.html">Sea Lane Operations</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item" data-depth="0" data-id="menu-0-4">
+            <ul class="nav-list">
+              <li class="nav-item" data-depth="1" data-id="menu-1-/chap_4">
+                <button class="nav-toggle" aria-label="Navigation toggler"></button>
+                <span class="nav-text"></span>
+                <a class="nav-link" href="../chapter_4/chap_4.html">IFR</a>
+                <ul class="nav-list">
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap4_section_1">
+                    <a class="nav-link" href="../chapter_4/chap4_section_1.html">NAVAID Use Limitations</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap4_section_2">
+                    <a class="nav-link" href="../chapter_4/chap4_section_2.html">Clearances</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap4_section_3">
+                    <a class="nav-link" href="../chapter_4/chap4_section_3.html">Departure Procedures</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap4_section_4">
+                    <a class="nav-link" href="../chapter_4/chap4_section_4.html">Route Assignment</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap4_section_5">
+                    <a class="nav-link" href="../chapter_4/chap4_section_5.html">Altitude Assignment and Verification</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap4_section_6">
+                    <a class="nav-link" href="../chapter_4/chap4_section_6.html">Holding Aircraft</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap4_section_7">
+                    <a class="nav-link" href="../chapter_4/chap4_section_7.html">Arrival Procedures</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap4_section_8">
+                    <a class="nav-link" href="../chapter_4/chap4_section_8.html">Approach Clearance Procedures</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item is-active" data-depth="0" data-id="menu-0-5">
+            <ul class="nav-list">
+              <li class="nav-item" data-depth="1" data-id="menu-1-/chap_5">
+                <button class="nav-toggle" aria-label="Navigation toggler"></button>
+                <span class="nav-text"></span>
+                <a class="nav-link" href="chap_5.html">Radar</a>
+                <ul class="nav-list">
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap5_section_1">
+                    <a class="nav-link" href="chap5_section_1.html">General</a>
+                  </li>
+                  <li class="nav-item is-active" data-depth="2" data-id="menu-2-/chap5_section_2">
+                    <a class="nav-link" href="chap5_section_2.html">Beacon/ADS-B Systems</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap5_section_3">
+                    <a class="nav-link" href="chap5_section_3.html">Radar Identification</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap5_section_4">
+                    <a class="nav-link" href="chap5_section_4.html">Transfer of Radar Identification</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap5_section_5">
+                    <a class="nav-link" href="chap5_section_5.html">Radar Separation</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap5_section_6">
+                    <a class="nav-link" href="chap5_section_6.html">Vectoring</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap5_section_7">
+                    <a class="nav-link" href="chap5_section_7.html">Speed Adjustment</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap5_section_8">
+                    <a class="nav-link" href="chap5_section_8.html">Radar Departures</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap5_section_9">
+                    <a class="nav-link" href="chap5_section_9.html">Radar Arrivals</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap5_section_10">
+                    <a class="nav-link" href="chap5_section_10.html">Radar Approaches- Terminal</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap5_section_11">
+                    <a class="nav-link" href="chap5_section_11.html">Surveillance Approaches- Terminal</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap5_section_12">
+                    <a class="nav-link" href="chap5_section_12.html">PAR Approaches- Terminal</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap5_section_13">
+                    <a class="nav-link" href="chap5_section_13.html">Automation- En Route</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap5_section_14">
+                    <a class="nav-link" href="chap5_section_14.html">Standard Terminal Automation Replacement System (STARS)-Terminal</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item" data-depth="0" data-id="menu-0-6">
+            <ul class="nav-list">
+              <li class="nav-item" data-depth="1" data-id="menu-1-/chap_6">
+                <button class="nav-toggle" aria-label="Navigation toggler"></button>
+                <span class="nav-text"></span>
+                <a class="nav-link" href="../chapter_6/chap_6.html">Nonradar</a>
+                <ul class="nav-list">
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap6_section_1">
+                    <a class="nav-link" href="../chapter_6/chap6_section_1.html">General</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap6_section_2">
+                    <a class="nav-link" href="../chapter_6/chap6_section_2.html">Initial Separation of Successive Departing Aircraft</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap6_section_3">
+                    <a class="nav-link" href="../chapter_6/chap6_section_3.html">Initial Separation of Departing and Arriving Aircraft</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap6_section_4">
+                    <a class="nav-link" href="../chapter_6/chap6_section_4.html">Longitudinal Separation</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap6_section_5">
+                    <a class="nav-link" href="../chapter_6/chap6_section_5.html">Lateral Separation</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap6_section_6">
+                    <a class="nav-link" href="../chapter_6/chap6_section_6.html">Vertical Separation</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap6_section_7">
+                    <a class="nav-link" href="../chapter_6/chap6_section_7.html">Timed Approaches</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item" data-depth="0" data-id="menu-0-7">
+            <ul class="nav-list">
+              <li class="nav-item" data-depth="1" data-id="menu-1-/chap_7">
+                <button class="nav-toggle" aria-label="Navigation toggler"></button>
+                <span class="nav-text"></span>
+                <a class="nav-link" href="../chapter_7/chap_7.html">Visual</a>
+                <ul class="nav-list">
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap7_section_1">
+                    <a class="nav-link" href="../chapter_7/chap7_section_1.html">General</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap7_section_2">
+                    <a class="nav-link" href="../chapter_7/chap7_section_2.html">Visual Separation</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap7_section_3">
+                    <a class="nav-link" href="../chapter_7/chap7_section_3.html">VFR‐On‐Top</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap7_section_4">
+                    <a class="nav-link" href="../chapter_7/chap7_section_4.html">Approaches</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap7_section_5">
+                    <a class="nav-link" href="../chapter_7/chap7_section_5.html">Special VFR (SVFR)</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap7_section_6">
+                    <a class="nav-link" href="../chapter_7/chap7_section_6.html">Basic Radar Service to VFR Aircraft- Terminal</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap7_section_7">
+                    <a class="nav-link" href="../chapter_7/chap7_section_7.html">Terminal Radar Service Area (TRSA)-Terminal</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap7_section_8">
+                    <a class="nav-link" href="../chapter_7/chap7_section_8.html">Class C Service- Terminal</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap7_section_9">
+                    <a class="nav-link" href="../chapter_7/chap7_section_9.html">Class B Service Area- Terminal</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item" data-depth="0" data-id="menu-0-8">
+            <ul class="nav-list">
+              <li class="nav-item" data-depth="1" data-id="menu-1-/chap_8">
+                <button class="nav-toggle" aria-label="Navigation toggler"></button>
+                <span class="nav-text"></span>
+                <a class="nav-link" href="../chapter_8/chap_8.html">Offshore/Oceanic Procedures</a>
+                <ul class="nav-list">
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap8_section_1">
+                    <a class="nav-link" href="../chapter_8/chap8_section_1.html">General</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap8_section_2">
+                    <a class="nav-link" href="../chapter_8/chap8_section_2.html">Coordination</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap8_section_3">
+                    <a class="nav-link" href="../chapter_8/chap8_section_3.html">Longitudinal Separation</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap8_section_4">
+                    <a class="nav-link" href="../chapter_8/chap8_section_4.html">Lateral Separation</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap8_section_5">
+                    <a class="nav-link" href="../chapter_8/chap8_section_5.html">Offshore/Oceanic Transition Procedures</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap8_section_6">
+                    <a class="nav-link" href="../chapter_8/chap8_section_6.html">Separation from Airspace Reservations</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap8_section_7">
+                    <a class="nav-link" href="../chapter_8/chap8_section_7.html">North Atlantic ICAO Region</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap8_section_8">
+                    <a class="nav-link" href="../chapter_8/chap8_section_8.html">Caribbean ICAO Region</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap8_section_9">
+                    <a class="nav-link" href="../chapter_8/chap8_section_9.html">Pacific ICAO Region</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap8_section_10">
+                    <a class="nav-link" href="../chapter_8/chap8_section_10.html">North American ICAO Region</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item" data-depth="0" data-id="menu-0-9">
+            <ul class="nav-list">
+              <li class="nav-item" data-depth="1" data-id="menu-1-/chap_9">
+                <button class="nav-toggle" aria-label="Navigation toggler"></button>
+                <span class="nav-text"></span>
+                <a class="nav-link" href="../chapter_9/chap_9.html">Special Flights</a>
+                <ul class="nav-list">
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap9_section_1">
+                    <a class="nav-link" href="../chapter_9/chap9_section_1.html">General</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap9_section_2">
+                    <a class="nav-link" href="../chapter_9/chap9_section_2.html">Special Operations</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap9_section_3">
+                    <a class="nav-link" href="../chapter_9/chap9_section_3.html">Special Use, ATC-Assigned Airspace, and Stationary ALTRVs</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap9_section_4">
+                    <a class="nav-link" href="../chapter_9/chap9_section_4.html">Fuel Dumping</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap9_section_5">
+                    <a class="nav-link" href="../chapter_9/chap9_section_5.html">Jettisoning of External Stores</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap9_section_6">
+                    <a class="nav-link" href="../chapter_9/chap9_section_6.html">Unmanned Free Balloons</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap9_section_7">
+                    <a class="nav-link" href="../chapter_9/chap9_section_7.html">Parachute Operations</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap9_section_8">
+                    <a class="nav-link" href="../chapter_9/chap9_section_8.html">Unidentified Anomalous Phenomena (UAP) Reports</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item" data-depth="0" data-id="menu-0-10">
+            <ul class="nav-list">
+              <li class="nav-item" data-depth="1" data-id="menu-1-/chap_10">
+                <button class="nav-toggle" aria-label="Navigation toggler"></button>
+                <span class="nav-text"></span>
+                <a class="nav-link" href="../chapter_10/chap_10.html">Emergencies</a>
+                <ul class="nav-list">
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap10_section_1">
+                    <a class="nav-link" href="../chapter_10/chap10_section_1.html">General</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap10_section_2">
+                    <a class="nav-link" href="../chapter_10/chap10_section_2.html">Emergency Assistance</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap10_section_3">
+                    <a class="nav-link" href="../chapter_10/chap10_section_3.html">Overdue Aircraft</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap10_section_4">
+                    <a class="nav-link" href="../chapter_10/chap10_section_4.html">Control Actions</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap10_section_5">
+                    <a class="nav-link" href="../chapter_10/chap10_section_5.html">Miscellaneous Operations</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap10_section_6">
+                    <a class="nav-link" href="../chapter_10/chap10_section_6.html">Oceanic Emergency Procedures</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap10_section_7">
+                    <a class="nav-link" href="../chapter_10/chap10_section_7.html">Ground Missile Emergencies</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item" data-depth="0" data-id="menu-0-11">
+            <ul class="nav-list">
+              <li class="nav-item" data-depth="1" data-id="menu-1-/chap_11">
+                <button class="nav-toggle" aria-label="Navigation toggler"></button>
+                <span class="nav-text"></span>
+                <a class="nav-link" href="../chapter_11/chap_11.html">Traffic Management Procedures</a>
+                <ul class="nav-list">
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap11_section_1">
+                    <a class="nav-link" href="../chapter_11/chap11_section_1.html">General</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item" data-depth="0" data-id="menu-0-12">
+            <ul class="nav-list">
+              <li class="nav-item" data-depth="1" data-id="menu-1-/chap_12">
+                <button class="nav-toggle" aria-label="Navigation toggler"></button>
+                <span class="nav-text"></span>
+                <a class="nav-link" href="../chapter_12/chap_12.html">Canadian Airspace Procedures</a>
+                <ul class="nav-list">
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap12_section_1">
+                    <a class="nav-link" href="../chapter_12/chap12_section_1.html">General Control</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item" data-depth="0" data-id="menu-0-13">
+            <ul class="nav-list">
+              <li class="nav-item" data-depth="1" data-id="menu-1-/chap_13">
+                <button class="nav-toggle" aria-label="Navigation toggler"></button>
+                <span class="nav-text"></span>
+                <a class="nav-link" href="../chapter_13/chap_13.html">Decision Support Tools</a>
+                <ul class="nav-list">
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap13_section_1">
+                    <a class="nav-link" href="../chapter_13/chap13_section_1.html">ERAM - En Route</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap13_section_2">
+                    <a class="nav-link" href="../chapter_13/chap13_section_2.html">ATOP - Oceanic</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item" data-depth="0" data-id="menu-0-14">
+            <ul class="nav-list">
+              <li class="nav-item" data-depth="1" data-id="menu-1-/chap_14">
+                <button class="nav-toggle" aria-label="Navigation toggler"></button>
+                <span class="nav-text"></span>
+                <a class="nav-link" href="../chapter_14/chap_14.html">Data Link Communications</a>
+                <ul class="nav-list">
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap14_section_1">
+                    <a class="nav-link" href="../chapter_14/chap14_section_1.html">Terminal Procedures for Issuing Automated Clearances</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap14_section_2">
+                    <a class="nav-link" href="../chapter_14/chap14_section_2.html">En Route Controller Pilot Data Link Communications (CPDLC) - Domestic</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap14_section_3">
+                    <a class="nav-link" href="../chapter_14/chap14_section_3.html">Advanced Technologies and Oceanic Procedures (ATOP) - Oceanic Controller Pilot Data Link Communications (CPDLC)</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item" data-depth="0">
+            <a class="nav-link" href="../appendix_a.html">Appendix A</a>
+          </li>
+          <li class="nav-item" data-depth="0">
+            <a class="nav-link" href="../appendix_b.html">Appendix B</a>
+          </li>
+              </ul>
+            </nav>
+          </div>
+        </div>
+      </aside>
+    </div><div class="main-content usa-content" id="main"><div class="toolbar" role="navigation"><button title="navigation-toggle" class="navigation-toggle" aria-label="Toggle navigation"> </button><nav class="crumbs" aria-label="breadcrumbs"><ul><li class="crumb"><a aria-label="Chapter title" class="chapter-link-title" href="chap_5.html">Radar</a></li><li class="crumb">Beacon/ADS-B Systems</li></ul></nav></div><main role="main"><article role="article" aria-labelledby="ariaid-title1"><article class="nested0" aria-labelledby="ariaid-title1" id="chap5_section_2">
+<h1 class="chapter-title text-center">Chapter 5. Radar</h1>
+<h2 class="section-title text-center">Section 2. Beacon/ADS-B Systems</h2>
+
+<div class="body conbody">
+
+<h4 class="paragraph-title" id="5-2-1">5-2-1. ASSIGNMENT CRITERIA</h4>
+<ol class="ol level-one">
+<li class="li" id="chap5_section_2__c_assignment_criteria-li_1">General.
+
+<ol class="ol level-two" type="a">
+<li class="li" id="chap5_section_2__c_assignment_criteria-li_2">Mode 3/A is designated as the common military/civil mode for air traffic control use.</li>
+<li class="li" id="chap5_section_2__c_assignment_criteria-li_3">Make beacon code assignments to only ADS-B and/or transponder-equipped aircraft.
+
+<aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<p class="p">Aircraft equipped with ADS-B are also still required to have an operable transponder. The ATC-assigned beacon code is one of the required message elements of ADS-B Out.</p></div></aside></li></ol></li>
+<li class="li" id="chap5_section_2__c_assignment_criteria-li_4">Unless otherwise specified in this section, a facility directive, or a letter of agreement, issue beacon codes assigned by the computer. Computer-assigned codes may be modified as required.
+
+<aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<p class="p">The computer will assign only discrete beacon codes unless all the discrete codes allocated to a facility are in use.</p></div></aside><ol class="ol level-two" type="a">
+<li class="li" id="chap5_section_2__c_assignment_criteria-li_5"><em class="ph i">TERMINAL.</em> Aircraft that will remain within the terminal facility's delegated airspace must be assigned a code from the code subset allocated to the terminal facility.</li>
+<li class="li" id="chap5_section_2__c_assignment_criteria-li_6"><em class="ph i">TERMINAL.</em> Unless otherwise specified in a facility directive or a letter of agreement, aircraft that will enter an adjacent facility's delegated airspace must be assigned a beacon code assigned by the ARTCC computer.
+
+<aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<p class="p">This will provide the adjacent facility advance information on the aircraft and will cause auto-acquisition of the aircraft prior to handoff. When an airborne aircraft that has been assigned a beacon code by the ARTCC computer and whose flight plan will terminate in another facility's area cancels ATC service, appropriate action should be taken to remove flight plan information on that aircraft.</p></div></aside><aside class="phraseology-box" role="note"><p class="block-title">PHRASEOLOGY-</p><div class="block-content">
+<p class="p">SQUAWK THREE/ALFA (code),<br>
+
+ or<br>
+
+SQUAWK (code).</p></div></aside><aside class="reference-box" role="doc-tip"><p class="block-title">REFERENCE-</p><div class="block-content">
+<p class="p">FAA Order JO 7110.65, Para <a class="xref" href="chap5_section_3.html#5-3-3">5-3-3</a>, Beacon/ADS-B Identification Methods.<br>
+
+FAA Order JO 7110.65, Para <a class="xref" href="chap5_section_3.html#5-3-4">5-3-4</a>, Terminal Automation Systems Identification Methods.</p></div></aside></li></ol></li>
+<li class="li" id="chap5_section_2__c_assignment_criteria-li_7">Code 4000 should be assigned when aircraft are operating on a flight plan specifying frequent or rapid changes in assigned altitude in more than one stratum or other category of flight not compatible with a discrete code assignment.
+
+<aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<ol class="ol level-two" type="a">
+<li class="li" id="chap5_section_2__c_assignment_criteria-li_8">Categories of flight that can be assigned Code 4000 include certain flight test aircraft, MTR missions, aerial refueling operation requiring descent involving more than one stratum, ALTRVs where continuous monitoring of ATC frequencies is not required and frequent altitude changes are approved, and other flights requiring special handling by ATC.</li>
+<li class="li" id="chap5_section_2__c_assignment_criteria-li_9">Military aircraft operating in restricted/warning areas or on VR routes will squawk 4000 unless another code has been assigned or coordinated with ATC.</li></ol></div></aside></li></ol>
+
+<h4 class="paragraph-title" id="5-2-2">5-2-2. RADAR BEACON CODE CHANGES</h4>
+<p class="p">Unless otherwise specified in a directive or a letter of agreement or coordinated at the time of handoff, do not request an aircraft to change from the code it was squawking in the transferring facility's area until the aircraft is within your area of responsibility.</p><aside class="reference-box" role="doc-tip"><p class="block-title">REFERENCE-</p><div class="block-content">
+<p class="p">FAA Order JO 7110.65, Para <a class="xref" href="../chapter_4/chap4_section_2.html#4-2-8">4-2-8</a>, IFR‐VFR and VFR‐IFR Flights.<br>
+
+FAA Order JO 7110.65, Para <a class="xref" href="chap5_section_3.html#5-3-3">5-3-3</a>, Beacon/ADS-B Identification Methods.</p></div></aside>
+
+<h4 class="paragraph-title" id="5-2-3">5-2-3. EMERGENCY CODE ASSIGNMENT</h4>
+<p class="p">Assign codes to emergency aircraft as follows:</p><ol class="ol level-one">
+<li class="li" id="chap5_section_2__c_emergency_code_assignment-li_1"><strong class="ph b">Code 7700</strong> when the pilot declares an emergency and the aircraft is not radar identified.
+
+<aside class="phraseology-box" role="note"><p class="block-title">PHRASEOLOGY-</p><div class="block-content">
+<p class="p">SQUAWK MAYDAY ON 7700.</p></div></aside><aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<p class="p">Instead of displaying “7700" in the data block, ERAM will display “EMRG,” and STARS/MEARTS will display “EM.”</p></div></aside></li>
+<li class="li" id="chap5_section_2__c_emergency_code_assignment-li_2">After radio and radar contact have been established, you may request other than single-piloted helicopters and single-piloted turbojet aircraft to change from <strong class="ph b">Code 7700</strong> to a computer-assigned discrete code.
+
+<aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<ol class="ol level-two" type="a">
+<li class="li" id="chap5_section_2__c_emergency_code_assignment-li_3">The code change, based on pilot concurrence, the nature of the emergency, and current flight conditions, will signify to other ATC facilities that the aircraft in distress is identified and under ATC control.</li>
+<li class="li" id="chap5_section_2__c_emergency_code_assignment-li_4">Pilots of single-piloted helicopters and single-piloted turbojet aircraft may be unable to change transponder settings during an emergency.</li></ol></div></aside><aside class="phraseology-box" role="note"><p class="block-title">PHRASEOLOGY-</p><div class="block-content">
+<p class="p">RADAR CONTACT (position). IF FEASIBLE, SQUAWK (code).</p></div></aside><aside class="reference-box" role="doc-tip"><p class="block-title">REFERENCE-</p><div class="block-content">
+<p class="p">FAA Order JO 7110.65, Para <a class="xref" href="chap5_section_3.html#5-3-3">5-3-3</a>, Beacon/ADS-B Identification Methods.</p></div></aside></li>
+<li class="li" id="chap5_section_2__c_emergency_code_assignment-li_5">The following must be accomplished on a Mode C equipped VFR aircraft which is in emergency but no longer requires the assignment of <strong class="ph b">Code 7700</strong>:
+
+<ol class="ol level-two" type="a">
+<li class="li" id="chap5_section_2__c_emergency_code_assignment-li_6"><em class="ph i">TERMINAL.</em> Assign a beacon code that will permit terminal minimum safe altitude warning (MSAW) alarm processing.</li>
+<li class="li" id="chap5_section_2__c_emergency_code_assignment-li_7"><em class="ph i">EN ROUTE.</em> An appropriate keyboard entry must be made to ensure en route MSAW (EMSAW) alarm processing.</li></ol></li></ol>
+
+<h4 class="paragraph-title" id="5-2-4">5-2-4. RADIO FAILURE</h4>
+<p class="p">When you observe a <strong class="ph b">Code 7600</strong> display, apply the procedures in paragraph <a class="xref" href="../chapter_10/chap10_section_4.html#10-4-4">10-4-4</a>, Communications Failure.</p><aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<ol class="ol level-two">
+<li class="li" id="chap5_section_2__c_radio_failure-li_1"><em class="ph i">An aircraft experiencing a loss of two-way radio communications capability can be expected to squawk <strong class="ph b">Code 7600</strong>.</em></li>
+<li class="li" id="chap5_section_2__c_radio_failure-li_2"><em class="ph i">Instead of displaying “7600” in the data block, ERAM will display “RDOF,” and STARS/MEARTS will display “RF.”</em></li></ol></div></aside><aside class="reference-box" role="doc-tip"><p class="block-title">REFERENCE-</p><div class="block-content">
+<p class="p">FAA Order JO 7110.65, Para <a class="xref" href="chap5_section_3.html#5-3-3">5-3-3</a>, Beacon/ADS-B Identification Methods.</p></div></aside>
+
+<h4 class="paragraph-title" id="5-2-5">5-2-5. HIJACK/UNLAWFUL INTERFERENCE</h4>
+<p class="p">When you observe a Code 7500 display, apply the procedures in paragraph <a class="xref" href="../chapter_10/chap10_section_2.html#10-2-6">10-2-6</a>, Hijacked Aircraft.</p><aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<p class="p">Instead of displaying “7500” in the data block, ERAM will display “HIJK,” and STARS/MEARTS will display “HJ.”</p></div></aside><aside class="reference-box" role="doc-tip"><p class="block-title">REFERENCE-</p><div class="block-content">
+<p class="p">FAA Order JO 7110.65, Para <a class="xref" href="chap5_section_3.html#5-3-3">5-3-3</a>, Beacon/ADS-B Identification Methods.</p></div></aside>
+
+<h4 class="paragraph-title" id="5-2-6">5-2-6. UNMANNED AIRCRAFT SYSTEMS (UAS) LOST LINK</h4>
+<p class="p"><strong class="ph b">Code 7400</strong> may be transmitted by unmanned aircraft systems (UAS) when the control link between the aircraft and the pilot is lost. Lost link procedures are programmed into the flight management system and associated with the flight plan being flown.</p><p class="p">When you observe a <strong class="ph b">Code 7400</strong> display, do the following:</p><aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<p class="p">Instead of displaying “7400” in the data block, ERAM will display “LLNK,” and STARS/MEARTS will display “LL.”</p></div></aside><ol class="ol level-one">
+<li class="li" id="chap5_section_2__c_unmanned_aircraft_systems_uas_lost_link-li_1">Determine the lost link procedure, as outlined in the Special Airworthiness Certificate or Certificate of Waiver or Authorization (COA).</li>
+<li class="li" id="chap5_section_2__c_unmanned_aircraft_systems_uas_lost_link-li_2">Coordinate, as required, to allow UAS to execute the lost link procedure.</li>
+<li class="li" id="chap5_section_2__c_unmanned_aircraft_systems_uas_lost_link-li_3">Advise the OS/CIC, when feasible, so the event can be documented.</li>
+<li class="li" id="chap5_section_2__c_unmanned_aircraft_systems_uas_lost_link-li_4">If you observe or are informed by the PIC that the UAS is deviating from the programmed Lost Link procedure, or is encountering another anomaly, treat the situation in accordance with FAA Order JO 7110.65 <a class="xref" href="../chapter_10/chap10_section_1.html#chap10_section_1">Chapter 10</a>, <a class="xref" href="../chapter_10/chap10_section_1.html#chap10_section_1">Section 1</a>, paragraph <a class="xref" href="../chapter_10/chap10_section_1.html#10-1-1">10-1-1</a><a class="xref" href="../chapter_10/chap10_section_1.html#10-1-1">c</a>.
+
+<aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<ol class="ol level-two" type="a">
+<li class="li" id="chap5_section_2__c_unmanned_aircraft_systems_uas_lost_link-li_5">The available lost link procedure should, at a minimum, include lost link route of flight, lost link orbit points, lost link altitudes, communications procedures and preplanned flight termination points if the event recovery of the UAS is deemed unfeasible.</li>
+<li class="li" id="chap5_section_2__c_unmanned_aircraft_systems_uas_lost_link-li_6">Each lost link procedure may differ and is dependent upon airframe and operation. These items are contained in the flight's Certificate of Authorization or Waiver (COA) and must be made available to ATC personnel in their simplest form at positions responsible for Unmanned Aircraft (UAs).</li>
+<li class="li" id="chap5_section_2__c_unmanned_aircraft_systems_uas_lost_link-li_7">Some UA airframes (Global Hawk) will not be programmed upon the NAS Automation roll out to squawk</li>
+<li class="li" id="chap5_section_2__c_unmanned_aircraft_systems_uas_lost_link-li_8">These airframes will continue to squawk</li>
+<li class="li" id="chap5_section_2__c_unmanned_aircraft_systems_uas_lost_link-li_9">should a lost link occur. The ATC Specialist must apply the same procedures described above.</li></ol></div></aside></li></ol>
+
+<h4 class="paragraph-title" id="5-2-7">5-2-7. VFR CODE ASSIGNMENTS</h4>
+<ol class="ol level-one">
+<li class="li" id="chap5_section_2__c_vfr_code_assignments-li_1">For VFR aircraft receiving radar advisories, issue a computer-assigned beacon code.
+
+<ol class="ol level-two" type="a">
+<li class="li" id="chap5_section_2__c_vfr_code_assignments-li_2">If the aircraft is outside of your area of responsibility and an operational benefit will be gained by retaining the aircraft on your frequency for the purpose of providing services, ensure that coordination has been effected:
+
+<ol class="ol level-three" type="i">
+<li class="li" id="chap5_section_2__c_vfr_code_assignments-li_3">As soon as possible after positive identification, and</li>
+<li class="li" id="chap5_section_2__c_vfr_code_assignments-li_4">Prior to issuing a control instruction or providing a service other than a safety alert/traffic advisory.
+
+<aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<p class="p">Safety alerts/traffic advisories may be issued to an aircraft prior to coordination if an imminent situation may be averted by such action. Coordination should be effected as soon as possible thereafter.</p></div></aside></li></ol></li></ol></li>
+<li class="li" id="chap5_section_2__c_vfr_code_assignments-li_5">Instruct an IFR aircraft that cancels its IFR flight plan and is not requesting radar advisory service, or a VFR aircraft for which radar advisory service is being terminated, to squawk VFR.
+
+<aside class="phraseology-box" role="note"><p class="block-title">PHRASEOLOGY-</p><div class="block-content">
+<p class="p">SQUAWK VFR.<br>
+
+ or<br>
+
+SQUAWK 1200.</p></div></aside><aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<ol class="ol level-two" type="a">
+<li class="li" id="chap5_section_2__c_vfr_code_assignments-li_6">Aircraft not in contact with ATC may squawk</li>
+<li class="li" id="chap5_section_2__c_vfr_code_assignments-li_7">in lieu of</li>
+<li class="li" id="chap5_section_2__c_vfr_code_assignments-li_8">while en route to/from or within designated firefighting areas.</li>
+<li class="li" id="chap5_section_2__c_vfr_code_assignments-li_9">VFR aircraft that fly authorized SAR missions for the USAF or USCG may be advised to squawk</li>
+<li class="li" id="chap5_section_2__c_vfr_code_assignments-li_10">in lieu of</li>
+<li class="li" id="chap5_section_2__c_vfr_code_assignments-li_11">while en route to/from or within the designated search area.</li>
+<li class="li" id="chap5_section_2__c_vfr_code_assignments-li_12">VFR gliders should squawk</li>
+<li class="li" id="chap5_section_2__c_vfr_code_assignments-li_13">in lieu of</li>
+<li class="li" id="chap5_section_2__c_vfr_code_assignments-li_14">Gliders operate under some flight and maneuvering limitations. They may go from essentially stationary targets while climbing and thermaling to moving targets very quickly. They can be expected to make radical changes in flight direction to find lift and cannot hold altitude in a response to an ATC request. Gliders may congregate together for short periods of time to climb together in thermals and may cruise together in loose formations while traveling between thermals.</li>
+<li class="li" id="chap5_section_2__c_vfr_code_assignments-li_15">The lead aircraft in a standard VFR formation flight not in contact with ATC should squawk 1203 in lieu of 1200. All other aircraft in the formation should squawk standby.</li></ol></div></aside><aside class="reference-box" role="doc-tip"><p class="block-title">REFERENCE-</p><div class="block-content">
+<p class="p">FAA Order JO 7110.66, National Beacon Code Allocation Plan.</p></div></aside></li>
+<li class="li" id="chap5_section_2__c_vfr_code_assignments-li_16">When an aircraft changes from VFR to IFR, assign a beacon code to Mode C equipped aircraft that will allow MSAW alarms.
+
+<aside class="reference-box" role="doc-tip"><p class="block-title">REFERENCE-</p><div class="block-content">
+<p class="p">FAA Order JO 7110.65, Para <a class="xref" href="chap5_section_3.html#5-3-3">5-3-3</a>, Beacon/ADS-B Identification Methods.</p></div></aside></li></ol>
+
+<h4 class="paragraph-title" id="5-2-8">5-2-8. BEACON CODES FOR PRESSURE SUIT FLIGHTS AND FLIGHTS ABOVE FL 600</h4>
+<p class="p">Special use Mode 3/A codes are reserved for certain pressure suit flights and aircraft operations above FL 600 in accordance with FAA Order JO 7610.4, Sensitive Procedures and Requirements for Special Operations, Appendix 4, Document 2.</p><ol class="ol level-one">
+<li class="li" id="chap5_section_2__c_beacon_codes_for_pressure_suit_flights_and_flights_above_fl_600-li_1">Ensure that these flights remain on one of the special use codes if filed in the flight plan, except:</li>
+<li class="li" id="chap5_section_2__c_beacon_codes_for_pressure_suit_flights_and_flights_above_fl_600-li_2">When unforeseen events cause more than one aircraft to be in the same or adjacent ARTCC's airspace at the same time on the same special use discrete code, if necessary, you may request the pilot to make a code change, squawk standby, or stop squawk as appropriate.
+
+<aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<ol class="ol level-two" type="a">
+<li class="li" id="chap5_section_2__c_beacon_codes_for_pressure_suit_flights_and_flights_above_fl_600-li_3">Current FAA automation systems track multiple targets on the same beacon code with much greater reliability than their predecessors, and a code change may not be necessary for such flights.</li>
+<li class="li" id="chap5_section_2__c_beacon_codes_for_pressure_suit_flights_and_flights_above_fl_600-li_4">The beacon code is often preset on the ground for such flights and is used throughout the flight profile, including operations below FL 600. Due to equipment inaccessibility, the flight crew may not be able to accept transponder changes identified in this subparagraph.</li>
+<li class="li" id="chap5_section_2__c_beacon_codes_for_pressure_suit_flights_and_flights_above_fl_600-li_5">In case of emergency, Code 7700 can still be activated. Instead of displaying “7700” in the data block, ERAM will display “EMRG,” and STARS/MEARTS will display “EM.”</li></ol></div></aside><aside class="reference-box" role="doc-tip"><p class="block-title">REFERENCE-</p><div class="block-content">
+<p class="p">FAA Order JO 7110.65, Para <a class="xref" href="chap5_section_3.html#5-3-3">5-3-3</a>, Beacon/ADS-B Identification Methods.</p></div></aside></li></ol>
+
+<h4 class="paragraph-title" id="5-2-9">5-2-9. AIR DEFENSE EXERCISE BEACON CODE ASSIGNMENT</h4>
+<p class="p"><em class="ph i">EN ROUTE</em></p><p class="p">Ensure exercise FAKER aircraft remain on the exercise flight plan filed discrete beacon code.</p><aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<ol class="ol level-two">
+<li class="li" id="chap5_section_2__c_air_defense_exercise_beacon_code_assignment-li_1"><em class="ph i">NORAD will ensure exercise FAKER aircraft flight plans are filed containing discrete beacon codes from the Department of Defense code allocation specified in FAA Order JO 7610.4, Sensitive Procedures and Requirements for Special Operations, Appendix 6.</em></li>
+<li class="li" id="chap5_section_2__c_air_defense_exercise_beacon_code_assignment-li_2"><em class="ph i">NORAD will ensure that those FAKER aircraft assigned the same discrete beacon code are not flight planned in the same or any adjacent ARTCC's airspace at the same time. (Simultaneous assignment of codes will only occur when operational requirements necessitate.)</em></li></ol></div></aside><aside class="reference-box" role="doc-tip"><p class="block-title">REFERENCE-</p><div class="block-content">
+<p class="p">FAA Order JO 7110.65, Para <a class="xref" href="chap5_section_3.html#5-3-3">5-3-3</a>, Beacon/ADS-B Identification Methods.</p></div></aside>
+
+<h4 class="paragraph-title" id="5-2-10">5-2-10. STANDBY OPERATION</h4>
+<p class="p">You may instruct an aircraft operating on an assigned code to change the transponder/ADS-B to “standby” position:</p><ol class="ol level-one">
+<li class="li" id="chap5_section_2__c_standby_operation-li_1">When approximately 15 miles from its destination and you no longer desire operation of the transponder/ADS-B; or</li>
+<li class="li" id="chap5_section_2__c_standby_operation-li_2">When necessary to reduce clutter in a multi-target area, provided you instruct the pilot to return the transponder/ADS-B to “normal” position as soon as possible thereafter.
+
+<aside class="phraseology-box" role="note"><p class="block-title">PHRASEOLOGY-</p><div class="block-content">
+<p class="p">SQUAWK STANDBY,<br>
+
+ or<br>
+
+SQUAWK NORMAL.</p></div></aside><aside class="reference-box" role="doc-tip"><p class="block-title">REFERENCE-</p><div class="block-content">
+<p class="p">FAA Order JO 7110.65, Para <a class="xref" href="chap5_section_3.html#5-3-3">5-3-3</a>, Beacon/ADS-B Identification Methods.</p></div></aside></li></ol>
+
+<h4 class="paragraph-title" id="5-2-11">5-2-11. CODE MONITOR</h4>
+<ol class="ol level-one">
+<li class="li" id="chap5_section_2__c_code_monitor-li_1">Continuously monitor the codes assigned to aircraft operating within your area of responsibility. Additionally, monitor Code 1200, Code 1202, Code 1203, Code 1255, and Code 1277 unless your area of responsibility includes only Class A airspace. During periods when excessive VFR target presentations derogate the separation of IFR traffic, monitoring of the aforementioned codes may be temporarily discontinued.</li>
+<li class="li" id="chap5_section_2__c_code_monitor-li_2">When your area of responsibility contains or is immediately adjacent to a restricted area, warning area, VR route, or other category where Code 4000 is appropriate, monitor Code 4000 and any other code used in lieu of 4000.
+
+<aside class="reference-box" role="doc-tip"><p class="block-title">REFERENCE-</p><div class="block-content">
+<p class="p">FAA Order JO 7210.3, Para 3-6-3, Monitoring of Mode 3/A Radar Beacon Codes.</p></div></aside></li></ol>
+
+<h4 class="paragraph-title" id="5-2-12">5-2-12. FAILURE TO DISPLAY ASSIGNED BEACON CODE OR INOPERATIVE/MALFUNCTIONING TRANSPONDER</h4>
+<ol class="ol level-one">
+<li class="li" id="chap5_section_2__c_failure_to_display_assigned_beacon_code_or_inoperative_malfunctioning_transponder-li_1">Inform an aircraft with an operable transponder that the assigned beacon code is not being displayed.
+
+<aside class="phraseology-box" role="note"><p class="block-title">PHRASEOLOGY-</p><div class="block-content">
+<p class="p">(Identification) RESET TRANSPONDER, SQUAWK (appropriate code).</p></div></aside></li>
+<li class="li" id="chap5_section_2__c_failure_to_display_assigned_beacon_code_or_inoperative_malfunctioning_transponder-li_2">Inform an aircraft when its transponder appears to be inoperative or malfunctioning.
+
+<aside class="phraseology-box" role="note"><p class="block-title">PHRASEOLOGY-</p><div class="block-content">
+<p class="p">(Identification) YOUR TRANSPONDER APPEARS INOPERATIVE/MALFUNCTIONING, RESET, SQUAWK (appropriate code).</p></div></aside></li>
+<li class="li" id="chap5_section_2__c_failure_to_display_assigned_beacon_code_or_inoperative_malfunctioning_transponder-li_3">Ensure that the subsequent control position in the facility or the next facility, as applicable, is notified when an aircraft transponder is malfunctioning/inoperative.
+
+<aside class="reference-box" role="doc-tip"><p class="block-title">REFERENCE-</p><div class="block-content">
+<p class="p">FAA Order JO 7110.65, Para <a class="xref" href="chap5_section_3.html#5-3-3">5-3-3</a>, Beacon/ADS-B Identification Methods.</p></div></aside></li></ol>
+
+<h4 class="paragraph-title" id="5-2-13">5-2-13. INOPERATIVE OR MALFUNCTIONING INTERROGATOR</h4>
+<p class="p">Inform aircraft concerned when the ground interrogator appears to be inoperative or malfunctioning.</p><aside class="phraseology-box" role="note"><p class="block-title">PHRASEOLOGY-</p><div class="block-content">
+<p class="p">(Name of facility or control function) BEACON INTERROGATOR INOPERATIVE/MALFUNCTIONING.</p></div></aside><aside class="reference-box" role="doc-tip"><p class="block-title">REFERENCE-</p><div class="block-content">
+<p class="p">FAA Order JO 7110.65, Para <a class="xref" href="chap5_section_1.html#5-1-2">5-1-2</a>, ATC Surveillance Source Use.<br>
+
+FAA Order JO 7110.65, Para <a class="xref" href="chap5_section_3.html#5-3-3">5-3-3</a>, Beacon/ADS-B Identification Methods.</p></div></aside>
+
+<h4 class="paragraph-title" id="5-2-14">5-2-14. FAILED TRANSPONDER OR ADS-B OUT TRANSMITTER</h4>
+<p class="p">Disapprove a request or withdraw a previously issued approval to operate with a failed transponder or ADS-B Out solely on the basis of traffic conditions or other operational factors.</p><aside class="reference-box" role="doc-tip"><p class="block-title">REFERENCE-</p><div class="block-content">
+<p class="p">FAA Order JO 7110.65, Para <a class="xref" href="chap5_section_1.html#5-1-2">5-1-2</a>, ATC Surveillance Source Use.<br>
+
+FAA Order JO 7110.65, Para <a class="xref" href="chap5_section_3.html#5-3-3">5-3-3</a>, Beacon/ADS-B Identification Methods.</p></div></aside>
+
+<h4 class="paragraph-title" id="5-2-15">5-2-15. VALIDATION OF MODE C ALTITUDE READOUT</h4>
+<ol class="ol level-one">
+<li class="li" id="chap5_section_2__c_validation_of_mode_c_altitude_readout-li_1">Ensure that Mode C altitude readouts are valid after:
+
+<ol class="ol level-two" type="a">
+<li class="li" id="chap5_section_2__c_validation_of_mode_c_altitude_readout-li_2">Initial track start.</li>
+<li class="li" id="chap5_section_2__c_validation_of_mode_c_altitude_readout-li_3">Track start from coast/frozen status.</li>
+<li class="li" id="chap5_section_2__c_validation_of_mode_c_altitude_readout-li_4">During and after an unreliable Mode C readout.</li>
+<li class="li" id="chap5_section_2__c_validation_of_mode_c_altitude_readout-li_5">Accepting an interfacility handoff, except:
+
+<ol class="ol level-three" type="i">
+<li class="li" id="chap5_section_2__c_validation_of_mode_c_altitude_readout-li_6">CTRD‐equipped tower cabs are not required to validate Mode C altitude readouts after accepting interfacility handoffs from TRACONs according to the procedures in paragraph <a class="xref" href="chap5_section_4.html#5-4-3">5-4-3</a>, Methods, subparagraph a4.</li>
+<li class="li" id="chap5_section_2__c_validation_of_mode_c_altitude_readout-li_7">ERAM facilities are not required to validate Mode C altitude readouts after accepting interfacility handoffs from other ERAM facilities, except:
+
+<ol class="ol level-four">
+<li class="li" id="chap5_section_2__c_validation_of_mode_c_altitude_readout-li_8">After initial track start or track start from coast is required, or</li>
+<li class="li" id="chap5_section_2__c_validation_of_mode_c_altitude_readout-li_9">During and after the display of a missing, unreasonable, exceptional, or otherwise unreliable Mode C readout indicator.
+
+<aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<p class="p">Consider a Mode C readout unreliable when any condition exists that indicates the Mode C may be in error, not just those that display an indicator in the Data Block.</p></div></aside></li></ol></li></ol></li></ol></li>
+<li class="li" id="chap5_section_2__c_validation_of_mode_c_altitude_readout-li_10">Consider an altitude readout valid when:
+
+<ol class="ol level-two" type="a">
+<li class="li" id="chap5_section_2__c_validation_of_mode_c_altitude_readout-li_11">It varies less than 300 feet from the pilot reported altitude, or
+
+<aside class="phraseology-box" role="note"><p class="block-title">PHRASEOLOGY-</p><div class="block-content">
+<p class="p">(If aircraft is known to be operating below the lowest useable flight level),<br>
+
+SAY ALTITUDE.<br>
+
+ or<br>
+
+(If aircraft is known to be operating at or above the lowest useable flight level),<br>
+
+SAY FLIGHT LEVEL.</p></div></aside></li>
+<li class="li" id="chap5_section_2__c_validation_of_mode_c_altitude_readout-li_12">You receive a continuous readout from an aircraft on the airport and the readout varies by less than 300 feet from the field elevation, or
+
+<aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<p class="p">A continuous readout exists only when the altitude filter limits are set to include the field elevation.</p></div></aside><aside class="reference-box" role="doc-tip"><p class="block-title">REFERENCE-</p><div class="block-content">
+<p class="p">FAA Order JO 7110.65, Para <a class="xref" href="chap5_section_2.html#5-2-21">5-2-21</a>, Altitude Filters.<br>
+
+FAA Order JO 7110.65, Para <a class="xref" href="chap5_section_13.html#5-13-5">5-13-5</a>, Selected Altitude Limits.</p></div></aside></li>
+<li class="li" id="chap5_section_2__c_validation_of_mode_c_altitude_readout-li_13">You have correlated the altitude information in your data block with the validated information in a data block generated in another facility (by verbally coordinating with the other controller) and your readout is exactly the same as the readout in the other data block.</li></ol></li>
+<li class="li" id="chap5_section_2__c_validation_of_mode_c_altitude_readout-li_14">When unable to validate the readout, do not use the Mode C altitude information for separation.</li>
+<li class="li" id="chap5_section_2__c_validation_of_mode_c_altitude_readout-li_15">Whenever you observe an aircraft below FL 180 with an invalid Mode C readout:
+
+<ol class="ol level-two" type="a">
+<li class="li" id="chap5_section_2__c_validation_of_mode_c_altitude_readout-li_16">Issue the correct altimeter setting and confirm the pilot has accurately reported the altitude.
+
+<aside class="phraseology-box" role="note"><p class="block-title">PHRASEOLOGY-</p><div class="block-content">
+<p class="p">(Location) ALTIMETER (appropriate altimeter), VERIFY ALTITUDE.</p></div></aside></li>
+<li class="li" id="chap5_section_2__c_validation_of_mode_c_altitude_readout-li_17">If the altitude readout continues to be invalid:
+
+<ol class="ol level-three" type="i">
+<li class="li" id="chap5_section_2__c_validation_of_mode_c_altitude_readout-li_18">Instruct the pilot to turn off the altitude‐ reporting part of his/her transponder and include the reason; and</li>
+<li class="li" id="chap5_section_2__c_validation_of_mode_c_altitude_readout-li_19">Notify the operations supervisor‐in‐charge of the aircraft call sign.
+
+<aside class="phraseology-box" role="note"><p class="block-title">PHRASEOLOGY-</p><div class="block-content">
+<p class="p">STOP ALTITUDE SQUAWK. ALTITUDE DIFFERS BY (number of feet) FEET.</p></div></aside></li></ol></li></ol></li>
+<li class="li" id="chap5_section_2__c_validation_of_mode_c_altitude_readout-li_20">Whenever you observe an aircraft at or above FL 180 with an invalid Mode C readout, unless the aircraft is descending below Class A airspace:
+
+<ol class="ol level-two" type="a">
+<li class="li" id="chap5_section_2__c_validation_of_mode_c_altitude_readout-li_21">Verify that the pilot is using 29.92 inches of mercury as the altimeter setting and has accurately reported the altitude.
+
+<aside class="phraseology-box" role="note"><p class="block-title">PHRASEOLOGY-</p><div class="block-content">
+<p class="p">VERIFY USING TWO NINER NINER TWO AS YOUR ALTIMETER SETTING.<br>
+
+(If aircraft is known to be operating at or above the lowest useable flight level),VERIFY FLIGHT LEVEL.</p></div></aside></li>
+<li class="li" id="chap5_section_2__c_validation_of_mode_c_altitude_readout-li_22">If the Mode C readout continues to be invalid:
+
+<ol class="ol level-three" type="i">
+<li class="li" id="chap5_section_2__c_validation_of_mode_c_altitude_readout-li_23">Instruct the pilot to turn off the altitude‐ reporting part of his/her transponder and include the reason; and</li>
+<li class="li" id="chap5_section_2__c_validation_of_mode_c_altitude_readout-li_24">Notify the operations supervisor‐in‐charge of the aircraft call sign.
+
+<aside class="phraseology-box" role="note"><p class="block-title">PHRASEOLOGY-</p><div class="block-content">
+<p class="p">STOP ALTITUDE SQUAWK. ALTITUDE DIFFERS BY (number of feet) FEET.</p></div></aside></li></ol></li></ol></li>
+<li class="li" id="chap5_section_2__c_validation_of_mode_c_altitude_readout-li_25">Whenever possible, inhibit altitude readouts on all consoles when a malfunction of the ground equipment causes repeated invalid readouts.</li></ol>
+
+<h4 class="paragraph-title" id="5-2-16">5-2-16. ALTITUDE CONFIRMATION- MODE C</h4>
+<p class="p">Request a pilot to confirm assigned altitude on initial contact unless:</p><aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<p class="p">For the purpose of this paragraph, “initial contact” means a pilot's first radio contact with each sector/position.</p></div></aside><ol class="ol level-one">
+<li class="li" id="chap5_section_2__c_altitude_confirmation_mode_c-li_1">The pilot states the assigned altitude, or</li>
+<li class="li" id="chap5_section_2__c_altitude_confirmation_mode_c-li_2">You assign a new altitude to a climbing or a descending aircraft, or</li>
+<li class="li" id="chap5_section_2__c_altitude_confirmation_mode_c-li_3">The Mode C readout is valid and indicates that the aircraft is established at the assigned altitude, or</li>
+<li class="li" id="chap5_section_2__c_altitude_confirmation_mode_c-li_4"><em class="ph i">TERMINAL.</em> The aircraft was transferred to you from another sector/position within your facility (intrafacility).
+
+<aside class="phraseology-box" role="note"><p class="block-title">PHRASEOLOGY-</p><div class="block-content">
+<p class="p">(In level flight situations),VERIFY AT (altitude/flight level).<br>
+
+(In climbing/descending situations),<br>
+
+(if aircraft has been assigned an altitude below the lowest useable flight level),VERIFY ASSIGNED ALTITUDE (altitude).<br>
+
+ or<br>
+
+(If aircraft has been assigned a flight level at or above the lowest useable flight level),<br>
+
+VERIFY ASSIGNED FLIGHT LEVEL (flight level).</p></div></aside><aside class="reference-box" role="doc-tip"><p class="block-title">REFERENCE-</p><div class="block-content">
+<p class="p">FAA Order JO 7110.65, Para <a class="xref" href="chap5_section_3.html#5-3-3">5-3-3</a>, Beacon/ADS-B Identification Methods.</p></div></aside></li></ol>
+
+<h4 class="paragraph-title" id="5-2-17">5-2-17. ALTITUDE CONFIRMATION- NON-MODE C</h4>
+<ol class="ol level-one">
+<li class="li" id="chap5_section_2__c_altitude_confirmation_non_mode_c-li_1">Request a pilot to confirm assigned altitude on initial contact unless:
+
+<aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<p class="p">For the purpose of this paragraph, “initial contact” means a pilot's first radio contact with each sector/position.</p></div></aside><ol class="ol level-two" type="a">
+<li class="li" id="chap5_section_2__c_altitude_confirmation_non_mode_c-li_2">The pilot states the assigned altitude, or</li>
+<li class="li" id="chap5_section_2__c_altitude_confirmation_non_mode_c-li_3">You assign a new altitude to a climbing or a descending aircraft, or</li>
+<li class="li" id="chap5_section_2__c_altitude_confirmation_non_mode_c-li_4"><em class="ph i">TERMINAL.</em> The aircraft was transferred to you from another sector/position within your facility (intrafacility).
+
+<aside class="phraseology-box" role="note"><p class="block-title">PHRASEOLOGY-</p><div class="block-content">
+<p class="p">(In level flight situations),VERIFY AT (altitude/flight level).<br>
+
+(In climbing/descending situations),VERIFY ASSIGNED ALTITUDE/FLIGHT LEVEL (altitude/flight level).</p></div></aside></li></ol></li>
+<li class="li" id="chap5_section_2__c_altitude_confirmation_non_mode_c-li_5"><strong class="ph b">USA. </strong>Reconfirm all pilot altitude read backs.
+
+<aside class="phraseology-box" role="note"><p class="block-title">PHRASEOLOGY-</p><div class="block-content">
+<p class="p">(If the altitude read back is correct),<br>
+
+AFFIRMATIVE (altitude).<br>
+
+(If the altitude read back is not correct),<br>
+
+NEGATIVE. CLIMB/DESCEND AND MAINTAIN (altitude),<br>
+
+ or<br>
+
+NEGATIVE. MAINTAIN (altitude).</p></div></aside><aside class="reference-box" role="doc-tip"><p class="block-title">REFERENCE-</p><div class="block-content">
+<p class="p">FAA Order JO 7110.65, Para <a class="xref" href="chap5_section_3.html#5-3-3">5-3-3</a>, Beacon/ADS-B Identification Methods.</p></div></aside></li></ol>
+
+<h4 class="paragraph-title" id="5-2-18">5-2-18. AUTOMATIC ALTITUDE REPORTING</h4>
+<p class="p">Inform an aircraft when you want it to turn on/off the automatic altitude reporting feature of its transponder.</p><aside class="phraseology-box" role="note"><p class="block-title">PHRASEOLOGY-</p><div class="block-content">
+<p class="p">SQUAWK ALTITUDE,<br>
+
+ or<br>
+
+STOP ALTITUDE SQUAWK.</p></div></aside><aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<p class="p">Controllers should be aware that not all aircraft have a capability to disengage the altitude squawk independently from the beacon code squawk. On some aircraft both functions are controlled by the same switch.</p></div></aside><aside class="reference-box" role="doc-tip"><p class="block-title">REFERENCE-</p><div class="block-content">
+<p class="p">FAA Order JO 7110.65, Para <a class="xref" href="chap5_section_2.html#5-2-15">5-2-15</a>, Validation of Mode C Altitude Readout.<br>
+
+FAA Order JO 7110.65, Para <a class="xref" href="chap5_section_3.html#5-3-3">5-3-3</a>, Beacon/ADS-B Identification Methods.<br>
+
+P/CG Term - Automatic Altitude Report.</p></div></aside>
+
+<h4 class="paragraph-title" id="5-2-19">5-2-19. INFLIGHT DEVIATIONS FROM TRANSPONDER/MODE C REQUIREMENTS BETWEEN 10,000 FEET AND 18,000 FEET</h4>
+<p class="p">Apply the following procedures to requests to deviate from the Mode C transponder requirement by aircraft operating in the airspace of the 48 contiguous states and the District of Columbia at and above 10,000 feet MSL and below 18,000 feet MSL, excluding the airspace at and below 2,500 feet AGL.</p><aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<ol class="ol level-two">
+<li class="li" id="chap5_section_2__c_inflight_deviations_from_transponder_mode_c_requirements_between_10_000_feet_and_18_000_feet-li_1"><em class="ph i">14 CFR section 91.215(b) provides, in part, that all U.S. registered civil aircraft must be equipped with an operable, coded radar beacon transponder when operating in the altitude stratum listed above. Such transponders must have a Mode 3/A 4096 code capability, replying to Mode 3/A interrogation with the code specified by ATC, or a Mode S capability, replying to Mode 3/A interrogations with the code specified by ATC. The aircraft must also be equipped with automatic pressure altitude reporting equipment having a Mode C capability that automatically replies to Mode C interrogations by transmitting pressure altitude information in 100‐foot increments.</em></li>
+<li class="li" id="chap5_section_2__c_inflight_deviations_from_transponder_mode_c_requirements_between_10_000_feet_and_18_000_feet-li_2"><em class="ph i">The exception to 14 CFR section 91.215 (b) is 14 CFR section 91.215(b)(5) which states: except balloons, gliders, and aircraft without engine‐driven electrical systems.</em></li></ol></div></aside><aside class="reference-box" role="doc-tip"><p class="block-title">REFERENCE-</p><div class="block-content">
+<p class="p">FAA Order JO 7210.3, Chapter 20, Temporary Flight Restrictions.</p></div></aside><ol class="ol level-one">
+<li class="li" id="chap5_section_2__c_inflight_deviations_from_transponder_mode_c_requirements_between_10_000_feet_and_18_000_feet-li_3">Except in an emergency, do not approve inflight requests for authorization to deviate from 14 CFR section 91.215(b)(5)(i) requirements originated by aircraft without transponder equipment installed.</li>
+<li class="li" id="chap5_section_2__c_inflight_deviations_from_transponder_mode_c_requirements_between_10_000_feet_and_18_000_feet-li_4">Approve or disapprove other inflight deviation requests, or withdraw approval previously issued to such flights, solely on the basis of traffic conditions and other operational factors.</li>
+<li class="li" id="chap5_section_2__c_inflight_deviations_from_transponder_mode_c_requirements_between_10_000_feet_and_18_000_feet-li_5">Adhere to the following sequence of action when an inflight VFR deviation request is received from an aircraft with an inoperative transponder or Mode C, or is not Mode C equipped:
+
+<ol class="ol level-two" type="a">
+<li class="li" id="chap5_section_2__c_inflight_deviations_from_transponder_mode_c_requirements_between_10_000_feet_and_18_000_feet-li_6">Suggest that the aircraft conduct its flight in airspace unaffected by the CFRs.</li>
+<li class="li" id="chap5_section_2__c_inflight_deviations_from_transponder_mode_c_requirements_between_10_000_feet_and_18_000_feet-li_7">Suggest that the aircraft file an IFR flight plan.</li>
+<li class="li" id="chap5_section_2__c_inflight_deviations_from_transponder_mode_c_requirements_between_10_000_feet_and_18_000_feet-li_8">Suggest that the aircraft provide a VFR route of flight and maintain radio contact with ATC.</li></ol></li>
+<li class="li" id="chap5_section_2__c_inflight_deviations_from_transponder_mode_c_requirements_between_10_000_feet_and_18_000_feet-li_9">Do not approve an inflight deviation unless the aircraft has filed an IFR flight plan or a VFR route of flight is provided and radio contact with ATC is maintained.</li>
+<li class="li" id="chap5_section_2__c_inflight_deviations_from_transponder_mode_c_requirements_between_10_000_feet_and_18_000_feet-li_10">You may approve an inflight deviation request which includes airspace outside your jurisdiction without the prior approval of the adjacent ATC sector/facility providing a transponder/Mode C status report is forwarded prior to control transfer.</li>
+<li class="li" id="chap5_section_2__c_inflight_deviations_from_transponder_mode_c_requirements_between_10_000_feet_and_18_000_feet-li_11">Approve or disapprove inflight deviation requests within a reasonable period of time or advise when approval/disapproval can be expected.
+
+<aside class="reference-box" role="doc-tip"><p class="block-title">REFERENCE-</p><div class="block-content">
+<p class="p">FAA Order JO 7110.65, Para <a class="xref" href="chap5_section_3.html#5-3-3">5-3-3</a>, Beacon/ADS-B Identification Methods.</p></div></aside></li></ol>
+
+<h4 class="paragraph-title" id="5-2-20">5-2-20. BEACON TERMINATION</h4>
+<p class="p">Inform the pilot when you want their aircraft's transponder and ADS-B Out turned off.</p><aside class="phraseology-box" role="note"><p class="block-title">PHRASEOLOGY-</p><div class="block-content">
+<p class="p">STOP SQUAWK.<br>
+
+(For a military aircraft when you do not know if the military service requires that it continue operating on another mode),<br>
+
+STOP SQUAWK (mode in use).</p></div></aside><aside class="reference-box" role="doc-tip"><p class="block-title">REFERENCE-</p><div class="block-content">
+<p class="p">FAA Order JO 7110.65, Para <a class="xref" href="chap5_section_3.html#5-3-3">5-3-3</a>, Beacon/ADS-B Identification Methods.</p></div></aside>
+
+<h4 class="paragraph-title" id="5-2-21">5-2-21. ALTITUDE FILTERS</h4>
+<p class="p"><em class="ph i">TERMINAL</em></p><p class="p">Set altitude filters to display Mode C altitude readouts to encompass all altitudes within the controller's jurisdiction. Set the upper limits no lower than 1,000 feet above the highest altitude for which the controller is responsible. In those stratified positions, set the lower limit to 1,000 feet or more below the lowest altitude for which the controller is responsible. When the position's area of responsibility includes down to an airport field elevation, the facility will normally set the lower altitude filter limit to encompass the field elevation so that provisions of paragraph <a class="xref" href="../chapter_2/chap2_section_1.html#2-1-6">2-1-6</a>, Safety Alert, and paragraph <a class="xref" href="chap5_section_2.html#5-2-15">5-2-15</a>, Validation of Mode C Altitude Readout, subparagraph <a class="xref" href="chap5_section_2.html#5-2-15">b</a><a class="xref" href="chap5_section_2.html#5-2-15">2</a> may be applied. Air traffic managers may authorize temporary suspension of this requirement when target clutter is excessive.</p>
+
+<h4 class="paragraph-title" id="5-2-22">5-2-22. INOPERATIVE OR MALFUNCTIONING ADS-B TRANSMITTER</h4>
+<ol class="ol level-one">
+<li class="li" id="chap5_section_2__c_inoperative_or_malfunctioning_ads_b_transmitter-li_1">When an aircraft's ADS-B transmitter appears to be inoperative or malfunctioning, notify the OS/CIC of the aircraft call sign, location, and time of the occurrence (UTC). Except for DoD aircraft or those provided for in paragraph <a class="xref" href="chap5_section_2.html#5-2-24">5-2-24</a>, inform the pilot.
+
+<aside class="phraseology-box" role="note"><p class="block-title">PHRASEOLOGY-</p><div class="block-content">
+<p class="p">YOUR ADS-B TRANSMITTER APPEARS TO BE INOPERATIVE / MALFUNCTIONING.</p></div></aside><aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<p class="p">FAA Flight Standards Service, Safety Standards Division (AFS) is responsible for working with aircraft operators to correct ADS-B malfunctions. The intent of this paragraph is to capture ADS-B anomalies observed by ATC, such as errors in the data (other than Call Sign Mis‐Match events, which are detected and reported to AFS automatically) or instances when civil ADS-B transmissions would normally be expected but are not received (e.g., ADS-B transmissions were observed on a previous flight leg).</p></div></aside></li>
+<li class="li" id="chap5_section_2__c_inoperative_or_malfunctioning_ads_b_transmitter-li_2">If a malfunctioning ADS-B transmitter is jeopardizing the safe execution of air traffic control functions, instruct the aircraft to stop ADS-B transmissions, and notify the OS/CIC.
+
+<aside class="phraseology-box" role="note"><p class="block-title">PHRASEOLOGY-</p><div class="block-content">
+<p class="p">STOP ADS-B TRANSMISSIONS, AND IF ABLE, SQUAWK THREE/ALFA (code).</p></div></aside><aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<p class="p">Not all aircraft have a capability to disengage the ADS-B transmitter independently from the beacon code squawk.</p></div></aside><aside class="reference-box" role="doc-tip"><p class="block-title">REFERENCE-</p><div class="block-content">
+<p class="p">FAA Order JO 7110.65, Para <a class="xref" href="chap5_section_2.html#5-2-23">5-2-23</a>, ADS-B Alerts.<br>
+
+FAA Order JO 7210.3, Para 2–1–33, Reporting Inoperative or Malfunctioning ADS-B Transmitters.<br>
+
+FAA Order JO 7210.3, Para 5–4–9, ADS-B Out OFF Operations.<br>
+
+FAA Order JO 7110.67, Para 19, ATC Security Procedures for ADS-B Out OFF Operations.</p></div></aside></li></ol>
+
+<h4 class="paragraph-title" id="5-2-23">5-2-23. ADS-B ALERTS</h4>
+<ol class="ol level-one">
+<li class="li" id="chap5_section_2__c_ads_b_alerts-li_1">Call Sign Mis-Match (CSMM). A CSMM alert will occur when the transmitted ADS-B Flight Identification (FLT ID) does not match the flight plan aircraft identification. Inform the aircraft of the CSMM.
+
+<aside class="phraseology-box" role="note"><p class="block-title">PHRASEOLOGY-</p><div class="block-content">
+<p class="p">YOUR ADS-B FLIGHT ID DOES NOT MATCH YOUR FLIGHT PLAN AIRCRAFT IDENTIFICATION.</p></div></aside></li>
+<li class="li" id="chap5_section_2__c_ads_b_alerts-li_2">Duplicate ICAO Address. If the broadcast ICAO address is shared with one or more flights in the same ADS-B Service Area (regardless of altitude), and radar reinforcement is not available, target resolution may be lost on one or both targets.
+
+<aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<p class="p">Duplicate ICAO Address Alerts appear as “DA” and are associated with the Data Block (DB) on STARS systems. Duplicate ICAO Address Alerts appear as “DUP” and are associated with the DB on MEARTS systems. Duplicate ICAO Address Alerts appear as “Duplicate 24-bit Address” at the AT Specialist Workstation on ERAM systems.</p></div></aside></li>
+<li class="li" id="chap5_section_2__c_ads_b_alerts-li_3">If a CSMM or Duplicate ICAO address is jeopardizing the safe execution of air traffic control functions, instruct the aircraft to stop ADS-B transmissions, and notify the OS/CIC.
+
+<aside class="phraseology-box" role="note"><p class="block-title">PHRASEOLOGY-</p><div class="block-content">
+<p class="p">STOP ADS-B TRANSMISSIONS, AND IF ABLE, SQUAWK THREE/ALFA (code).</p></div></aside><aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<p class="p">Not all aircraft are capable of disengaging the ADS-B transmitter independently from the transponder.</p></div></aside></li></ol>
+
+<h4 class="paragraph-title" id="5-2-24">5-2-24. ADS-B OUT OFF OPERATIONS</h4>
+<p class="p">Operators of aircraft with functional ADS-B Out avionics installed and requesting an exception from the requirement to transmit at all times must obtain authorization from FAA System Operations Security. The OS/CIC should inform you of any ADS-B Out OFF operations in your area of jurisdiction.</p><ol class="ol level-one">
+<li class="li" id="chap5_section_2__c_ads_b_out_off_operations-li_1">Do not inform such aircraft that their ADS-B transmitter appears to be inoperative.</li>
+<li class="li" id="chap5_section_2__c_ads_b_out_off_operations-li_2">Do not approve any pilot request for ADS-B Out OFF operations. Notify the OS/CIC of the request, including the aircraft call sign and location.
+
+<aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<p class="p">14 CFR section 91.225(f) requires, in part, that “each person operating an aircraft equipped with ADS–B Out must operate this equipment in the transmit mode at all times unless otherwise authorized by the FAA when that aircraft is performing a sensitive government mission for national defense, homeland security, intelligence or law enforcement purposes, and transmitting would compromise the operations security of the mission or pose a safety risk to the aircraft, crew, or people and property in the air or on the ground.”</p></div></aside><aside class="reference-box" role="doc-tip"><p class="block-title">REFERENCE-</p><div class="block-content">
+<p class="p">FAA Order JO 7110.65, Para <a class="xref" href="chap5_section_2.html#5-2-22">5-2-22</a>, Inoperative or Malfunctioning ADS-B Transmitter.<br>
+
+FAA Order JO 7210.3, Para 5–4–9, ADS-B Out OFF Operations.<br>
+
+FAA Order JO 7110.67, Para 19, ATC Security Procedures for ADS-B Out Off Operations.</p></div></aside></li></ol></div></article></article></main></div></div><footer class="main-footer">
+<nav id="paginator__nav" class="usa-pagination" role="navigation" aria-label="Pagination"><a class="page__nav" aria-label="Previous Page" href="chap5_section_1.html">Previous</a> | <a class="page__nav" aria-label="Top of the Page" href="#atc-body">Top</a> | <a class="page__nav" aria-label="Next Page" href="chap5_section_3.html">Next</a></nav>
+<div class="center footer-details"><ul class="footer-items"><li class="footer-item"><a href="../index.html" aria-label="FAA Order 7110.65" rel="noopener">7110.65</a> | </li><li class="footer-item"><a href="http://www.faa.gov/air_traffic/publications/" target="_blank" rel="noopener">ATPUBS</a> | </li><li class="footer-item"><a href="http://www.faa.gov" target="_blank" rel="noopener">FAA</a> | </li><li><a class="suggestion-contact" href="mailto:9-AJV-P-HQ-Correspondence@faa.gov">
+              Send your comments regarding this website.
+            </a></li></ul></div></footer><script src="../atc-nav.js"></script></body></html>

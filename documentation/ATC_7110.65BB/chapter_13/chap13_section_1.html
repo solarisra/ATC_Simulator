@@ -1,0 +1,998 @@
+<!DOCTYPE html
+  SYSTEM "about:legacy-compat">
+<html lang="en-us"><head><meta charset="UTF-8"><meta name="copyright" content="(C) Copyright 2026"><meta name="generator" content="DITA-OT"><meta name="keywords" content="ERAM - En Route"><meta name="prodname" content="JO 7110.65BB"><meta name="prodname" content="JO 7110.65BB"><meta name="component" content=""><title>Chapter 13. Decision Support Tools</title><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta http-equiv="X-UA-Compatible" content="ie=edge"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous"><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,700&amp;family=Roboto+Condensed:ital,wght@0,400;0,700;1,400;1,700&amp;display=swap" rel="stylesheet"><link rel="stylesheet" type="text/css" href="../css/atc-main.css"><link rel="stylesheet" type="text/css" href="../commonltr.css"></head><body id="atc-body"><header class="header"><nav class="navbar" role="navigation" aria-label="Main navigation"><div class="navbar-brand"><a class="navbar-item publication_name" href="../index.html"><span>7110.65BB</span></a><div class="navbar-search"><form id="search_form" action="https://search.usa.gov/search" method="get" accept-charset="UTF-8"><input name="utf8" type="hidden" value="✓"><input name="affiliate" id="affiliate" type="hidden" value="atc__content"><input id="search-input" name="query" type="search" placeholder="Search the 7110.65" aria-label="Search" title="Search field"><button type="submit" class="search-submit" aria-label="Submit search"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button></form></div><button class="navbar-burger" aria-label="Menu" aria-expanded="false" data-target="atc-navbar-menu"><span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span></button></div><div id="atc-navbar-menu" class="navbar-menu"><div class="navbar-end"><div class="navbar-item has-dropdown is-hoverable"><a class="navbar-link">7110.65 by Chapter Number</a><div class="navbar-dropdown is-right"><a class="navbar-item atc-chap-number-dropdown" href="../chapter_0/chap_0.html">Chapter 0. General Information</a><a class="navbar-item atc-chap-number-dropdown" href="../chapter_1/chap_1.html">Chapter 1. General</a><a class="navbar-item atc-chap-number-dropdown" href="../chapter_2/chap_2.html">Chapter 2. General Control</a><a class="navbar-item atc-chap-number-dropdown" href="../chapter_3/chap_3.html">Chapter 3. Airport Traffic Control - Terminal</a><a class="navbar-item atc-chap-number-dropdown" href="../chapter_4/chap_4.html">Chapter 4. IFR</a><a class="navbar-item atc-chap-number-dropdown" href="../chapter_5/chap_5.html">Chapter 5. Radar</a><a class="navbar-item atc-chap-number-dropdown" href="../chapter_6/chap_6.html">Chapter 6. Nonradar</a><a class="navbar-item atc-chap-number-dropdown" href="../chapter_7/chap_7.html">Chapter 7. Visual</a><a class="navbar-item atc-chap-number-dropdown" href="../chapter_8/chap_8.html">Chapter 8. Offshore/Oceanic Procedures</a><a class="navbar-item atc-chap-number-dropdown" href="../chapter_9/chap_9.html">Chapter 9. Special Flights</a><a class="navbar-item atc-chap-number-dropdown" href="../chapter_10/chap_10.html">Chapter 10. Emergencies</a><a class="navbar-item atc-chap-number-dropdown" href="../chapter_11/chap_11.html">Chapter 11. Traffic Management Procedures</a><a class="navbar-item atc-chap-number-dropdown" href="../chapter_12/chap_12.html">Chapter 12. Canadian Airspace Procedures</a><a class="navbar-item atc-chap-number-dropdown" href="chap_13.html">Chapter 13. Decision Support Tools</a><a class="navbar-item atc-chap-number-dropdown" href="../chapter_14/chap_14.html">Chapter 14. Data Link Communications</a><a class="navbar-item atc-chap-number-dropdown" href="../appendix_a.html">Appendix A</a><a class="navbar-item atc-chap-number-dropdown" href="../appendix_b.html">Appendix B</a></div></div><a class="navbar-item" href="http://www.faa.gov/air_traffic/publications/" target="_blank" rel="noopener">ATPUBS</a></div></div></nav></header><div class="main-wrapper" id="main-wrapper"><div class="navigation-container">
+      <aside class="navigation">
+        <div class="panels">
+          <div class="navigation-menu is-active" data-panel="menu">
+            <nav role="navigation" class="nav-menu">
+              <h3 class="title"><a href="../index.html" aria-label="FAA Order JO 7110.65BB - Air Traffic Control home page">JO 7110.65BB by Topic</a></h3>
+              <ul class="nav-list">
+          <li class="nav-item" data-depth="0" data-id="menu-0-0">
+            <ul class="nav-list">
+              <li class="nav-item" data-depth="1" data-id="menu-1-/chap_0">
+                <button class="nav-toggle" aria-label="Navigation toggler"></button>
+                <span class="nav-text"></span>
+                <a class="nav-link" href="../chapter_0/chap_0.html">General Information</a>
+                <ul class="nav-list">
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap0_section_0">
+                    <a class="nav-link" href="../chapter_0/chap0_section_0.html">Explanation of Changes</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item" data-depth="0" data-id="menu-0-1">
+            <ul class="nav-list">
+              <li class="nav-item" data-depth="1" data-id="menu-1-/chap_1">
+                <button class="nav-toggle" aria-label="Navigation toggler"></button>
+                <span class="nav-text"></span>
+                <a class="nav-link" href="../chapter_1/chap_1.html">General</a>
+                <ul class="nav-list">
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap1_section_1">
+                    <a class="nav-link" href="../chapter_1/chap1_section_1.html">Introduction</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap1_section_2">
+                    <a class="nav-link" href="../chapter_1/chap1_section_2.html">Terms of Reference</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item" data-depth="0" data-id="menu-0-2">
+            <ul class="nav-list">
+              <li class="nav-item" data-depth="1" data-id="menu-1-/chap_2">
+                <button class="nav-toggle" aria-label="Navigation toggler"></button>
+                <span class="nav-text"></span>
+                <a class="nav-link" href="../chapter_2/chap_2.html">General Control</a>
+                <ul class="nav-list">
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap2_section_1">
+                    <a class="nav-link" href="../chapter_2/chap2_section_1.html">General</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap2_section_2">
+                    <a class="nav-link" href="../chapter_2/chap2_section_2.html">Flight Plans and Control Information</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap2_section_3">
+                    <a class="nav-link" href="../chapter_2/chap2_section_3.html">Flight Progress Strips</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap2_section_4">
+                    <a class="nav-link" href="../chapter_2/chap2_section_4.html">Radio and Interphone Communications</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap2_section_5">
+                    <a class="nav-link" href="../chapter_2/chap2_section_5.html">Route and NAVAID Description</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap2_section_6">
+                    <a class="nav-link" href="../chapter_2/chap2_section_6.html">Weather Information</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap2_section_7">
+                    <a class="nav-link" href="../chapter_2/chap2_section_7.html">Altimeter Settings</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap2_section_8">
+                    <a class="nav-link" href="../chapter_2/chap2_section_8.html">Runway Visibility Reporting- Terminal</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap2_section_9">
+                    <a class="nav-link" href="../chapter_2/chap2_section_9.html">Automatic Terminal Information Service Procedures</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap2_section_10">
+                    <a class="nav-link" href="../chapter_2/chap2_section_10.html">Team Position Responsibilities</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item" data-depth="0" data-id="menu-0-3">
+            <ul class="nav-list">
+              <li class="nav-item" data-depth="1" data-id="menu-1-/chap_3">
+                <button class="nav-toggle" aria-label="Navigation toggler"></button>
+                <span class="nav-text"></span>
+                <a class="nav-link" href="../chapter_3/chap_3.html">Airport Traffic Control - Terminal</a>
+                <ul class="nav-list">
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap3_section_1">
+                    <a class="nav-link" href="../chapter_3/chap3_section_1.html">General</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap3_section_2">
+                    <a class="nav-link" href="../chapter_3/chap3_section_2.html">Visual Signals</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap3_section_3">
+                    <a class="nav-link" href="../chapter_3/chap3_section_3.html">Airport Conditions</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap3_section_4">
+                    <a class="nav-link" href="../chapter_3/chap3_section_4.html">Airport Lighting</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap3_section_5">
+                    <a class="nav-link" href="../chapter_3/chap3_section_5.html">Runway Selection</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap3_section_6">
+                    <a class="nav-link" href="../chapter_3/chap3_section_6.html">Airport Surface Detection Procedures</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap3_section_7">
+                    <a class="nav-link" href="../chapter_3/chap3_section_7.html">Taxi and Ground Movement Procedures</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap3_section_8">
+                    <a class="nav-link" href="../chapter_3/chap3_section_8.html">Spacing and Sequencing</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap3_section_9">
+                    <a class="nav-link" href="../chapter_3/chap3_section_9.html">Departure Procedures and Separation</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap3_section_10">
+                    <a class="nav-link" href="../chapter_3/chap3_section_10.html">Arrival Procedures and Separation</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap3_section_11">
+                    <a class="nav-link" href="../chapter_3/chap3_section_11.html">Helicopter Operations</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap3_section_12">
+                    <a class="nav-link" href="../chapter_3/chap3_section_12.html">Sea Lane Operations</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item" data-depth="0" data-id="menu-0-4">
+            <ul class="nav-list">
+              <li class="nav-item" data-depth="1" data-id="menu-1-/chap_4">
+                <button class="nav-toggle" aria-label="Navigation toggler"></button>
+                <span class="nav-text"></span>
+                <a class="nav-link" href="../chapter_4/chap_4.html">IFR</a>
+                <ul class="nav-list">
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap4_section_1">
+                    <a class="nav-link" href="../chapter_4/chap4_section_1.html">NAVAID Use Limitations</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap4_section_2">
+                    <a class="nav-link" href="../chapter_4/chap4_section_2.html">Clearances</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap4_section_3">
+                    <a class="nav-link" href="../chapter_4/chap4_section_3.html">Departure Procedures</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap4_section_4">
+                    <a class="nav-link" href="../chapter_4/chap4_section_4.html">Route Assignment</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap4_section_5">
+                    <a class="nav-link" href="../chapter_4/chap4_section_5.html">Altitude Assignment and Verification</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap4_section_6">
+                    <a class="nav-link" href="../chapter_4/chap4_section_6.html">Holding Aircraft</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap4_section_7">
+                    <a class="nav-link" href="../chapter_4/chap4_section_7.html">Arrival Procedures</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap4_section_8">
+                    <a class="nav-link" href="../chapter_4/chap4_section_8.html">Approach Clearance Procedures</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item" data-depth="0" data-id="menu-0-5">
+            <ul class="nav-list">
+              <li class="nav-item" data-depth="1" data-id="menu-1-/chap_5">
+                <button class="nav-toggle" aria-label="Navigation toggler"></button>
+                <span class="nav-text"></span>
+                <a class="nav-link" href="../chapter_5/chap_5.html">Radar</a>
+                <ul class="nav-list">
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap5_section_1">
+                    <a class="nav-link" href="../chapter_5/chap5_section_1.html">General</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap5_section_2">
+                    <a class="nav-link" href="../chapter_5/chap5_section_2.html">Beacon/ADS-B Systems</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap5_section_3">
+                    <a class="nav-link" href="../chapter_5/chap5_section_3.html">Radar Identification</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap5_section_4">
+                    <a class="nav-link" href="../chapter_5/chap5_section_4.html">Transfer of Radar Identification</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap5_section_5">
+                    <a class="nav-link" href="../chapter_5/chap5_section_5.html">Radar Separation</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap5_section_6">
+                    <a class="nav-link" href="../chapter_5/chap5_section_6.html">Vectoring</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap5_section_7">
+                    <a class="nav-link" href="../chapter_5/chap5_section_7.html">Speed Adjustment</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap5_section_8">
+                    <a class="nav-link" href="../chapter_5/chap5_section_8.html">Radar Departures</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap5_section_9">
+                    <a class="nav-link" href="../chapter_5/chap5_section_9.html">Radar Arrivals</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap5_section_10">
+                    <a class="nav-link" href="../chapter_5/chap5_section_10.html">Radar Approaches- Terminal</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap5_section_11">
+                    <a class="nav-link" href="../chapter_5/chap5_section_11.html">Surveillance Approaches- Terminal</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap5_section_12">
+                    <a class="nav-link" href="../chapter_5/chap5_section_12.html">PAR Approaches- Terminal</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap5_section_13">
+                    <a class="nav-link" href="../chapter_5/chap5_section_13.html">Automation- En Route</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap5_section_14">
+                    <a class="nav-link" href="../chapter_5/chap5_section_14.html">Standard Terminal Automation Replacement System (STARS)-Terminal</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item" data-depth="0" data-id="menu-0-6">
+            <ul class="nav-list">
+              <li class="nav-item" data-depth="1" data-id="menu-1-/chap_6">
+                <button class="nav-toggle" aria-label="Navigation toggler"></button>
+                <span class="nav-text"></span>
+                <a class="nav-link" href="../chapter_6/chap_6.html">Nonradar</a>
+                <ul class="nav-list">
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap6_section_1">
+                    <a class="nav-link" href="../chapter_6/chap6_section_1.html">General</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap6_section_2">
+                    <a class="nav-link" href="../chapter_6/chap6_section_2.html">Initial Separation of Successive Departing Aircraft</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap6_section_3">
+                    <a class="nav-link" href="../chapter_6/chap6_section_3.html">Initial Separation of Departing and Arriving Aircraft</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap6_section_4">
+                    <a class="nav-link" href="../chapter_6/chap6_section_4.html">Longitudinal Separation</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap6_section_5">
+                    <a class="nav-link" href="../chapter_6/chap6_section_5.html">Lateral Separation</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap6_section_6">
+                    <a class="nav-link" href="../chapter_6/chap6_section_6.html">Vertical Separation</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap6_section_7">
+                    <a class="nav-link" href="../chapter_6/chap6_section_7.html">Timed Approaches</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item" data-depth="0" data-id="menu-0-7">
+            <ul class="nav-list">
+              <li class="nav-item" data-depth="1" data-id="menu-1-/chap_7">
+                <button class="nav-toggle" aria-label="Navigation toggler"></button>
+                <span class="nav-text"></span>
+                <a class="nav-link" href="../chapter_7/chap_7.html">Visual</a>
+                <ul class="nav-list">
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap7_section_1">
+                    <a class="nav-link" href="../chapter_7/chap7_section_1.html">General</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap7_section_2">
+                    <a class="nav-link" href="../chapter_7/chap7_section_2.html">Visual Separation</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap7_section_3">
+                    <a class="nav-link" href="../chapter_7/chap7_section_3.html">VFR‐On‐Top</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap7_section_4">
+                    <a class="nav-link" href="../chapter_7/chap7_section_4.html">Approaches</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap7_section_5">
+                    <a class="nav-link" href="../chapter_7/chap7_section_5.html">Special VFR (SVFR)</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap7_section_6">
+                    <a class="nav-link" href="../chapter_7/chap7_section_6.html">Basic Radar Service to VFR Aircraft- Terminal</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap7_section_7">
+                    <a class="nav-link" href="../chapter_7/chap7_section_7.html">Terminal Radar Service Area (TRSA)-Terminal</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap7_section_8">
+                    <a class="nav-link" href="../chapter_7/chap7_section_8.html">Class C Service- Terminal</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap7_section_9">
+                    <a class="nav-link" href="../chapter_7/chap7_section_9.html">Class B Service Area- Terminal</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item" data-depth="0" data-id="menu-0-8">
+            <ul class="nav-list">
+              <li class="nav-item" data-depth="1" data-id="menu-1-/chap_8">
+                <button class="nav-toggle" aria-label="Navigation toggler"></button>
+                <span class="nav-text"></span>
+                <a class="nav-link" href="../chapter_8/chap_8.html">Offshore/Oceanic Procedures</a>
+                <ul class="nav-list">
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap8_section_1">
+                    <a class="nav-link" href="../chapter_8/chap8_section_1.html">General</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap8_section_2">
+                    <a class="nav-link" href="../chapter_8/chap8_section_2.html">Coordination</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap8_section_3">
+                    <a class="nav-link" href="../chapter_8/chap8_section_3.html">Longitudinal Separation</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap8_section_4">
+                    <a class="nav-link" href="../chapter_8/chap8_section_4.html">Lateral Separation</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap8_section_5">
+                    <a class="nav-link" href="../chapter_8/chap8_section_5.html">Offshore/Oceanic Transition Procedures</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap8_section_6">
+                    <a class="nav-link" href="../chapter_8/chap8_section_6.html">Separation from Airspace Reservations</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap8_section_7">
+                    <a class="nav-link" href="../chapter_8/chap8_section_7.html">North Atlantic ICAO Region</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap8_section_8">
+                    <a class="nav-link" href="../chapter_8/chap8_section_8.html">Caribbean ICAO Region</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap8_section_9">
+                    <a class="nav-link" href="../chapter_8/chap8_section_9.html">Pacific ICAO Region</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap8_section_10">
+                    <a class="nav-link" href="../chapter_8/chap8_section_10.html">North American ICAO Region</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item" data-depth="0" data-id="menu-0-9">
+            <ul class="nav-list">
+              <li class="nav-item" data-depth="1" data-id="menu-1-/chap_9">
+                <button class="nav-toggle" aria-label="Navigation toggler"></button>
+                <span class="nav-text"></span>
+                <a class="nav-link" href="../chapter_9/chap_9.html">Special Flights</a>
+                <ul class="nav-list">
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap9_section_1">
+                    <a class="nav-link" href="../chapter_9/chap9_section_1.html">General</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap9_section_2">
+                    <a class="nav-link" href="../chapter_9/chap9_section_2.html">Special Operations</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap9_section_3">
+                    <a class="nav-link" href="../chapter_9/chap9_section_3.html">Special Use, ATC-Assigned Airspace, and Stationary ALTRVs</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap9_section_4">
+                    <a class="nav-link" href="../chapter_9/chap9_section_4.html">Fuel Dumping</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap9_section_5">
+                    <a class="nav-link" href="../chapter_9/chap9_section_5.html">Jettisoning of External Stores</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap9_section_6">
+                    <a class="nav-link" href="../chapter_9/chap9_section_6.html">Unmanned Free Balloons</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap9_section_7">
+                    <a class="nav-link" href="../chapter_9/chap9_section_7.html">Parachute Operations</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap9_section_8">
+                    <a class="nav-link" href="../chapter_9/chap9_section_8.html">Unidentified Anomalous Phenomena (UAP) Reports</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item" data-depth="0" data-id="menu-0-10">
+            <ul class="nav-list">
+              <li class="nav-item" data-depth="1" data-id="menu-1-/chap_10">
+                <button class="nav-toggle" aria-label="Navigation toggler"></button>
+                <span class="nav-text"></span>
+                <a class="nav-link" href="../chapter_10/chap_10.html">Emergencies</a>
+                <ul class="nav-list">
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap10_section_1">
+                    <a class="nav-link" href="../chapter_10/chap10_section_1.html">General</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap10_section_2">
+                    <a class="nav-link" href="../chapter_10/chap10_section_2.html">Emergency Assistance</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap10_section_3">
+                    <a class="nav-link" href="../chapter_10/chap10_section_3.html">Overdue Aircraft</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap10_section_4">
+                    <a class="nav-link" href="../chapter_10/chap10_section_4.html">Control Actions</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap10_section_5">
+                    <a class="nav-link" href="../chapter_10/chap10_section_5.html">Miscellaneous Operations</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap10_section_6">
+                    <a class="nav-link" href="../chapter_10/chap10_section_6.html">Oceanic Emergency Procedures</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap10_section_7">
+                    <a class="nav-link" href="../chapter_10/chap10_section_7.html">Ground Missile Emergencies</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item" data-depth="0" data-id="menu-0-11">
+            <ul class="nav-list">
+              <li class="nav-item" data-depth="1" data-id="menu-1-/chap_11">
+                <button class="nav-toggle" aria-label="Navigation toggler"></button>
+                <span class="nav-text"></span>
+                <a class="nav-link" href="../chapter_11/chap_11.html">Traffic Management Procedures</a>
+                <ul class="nav-list">
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap11_section_1">
+                    <a class="nav-link" href="../chapter_11/chap11_section_1.html">General</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item" data-depth="0" data-id="menu-0-12">
+            <ul class="nav-list">
+              <li class="nav-item" data-depth="1" data-id="menu-1-/chap_12">
+                <button class="nav-toggle" aria-label="Navigation toggler"></button>
+                <span class="nav-text"></span>
+                <a class="nav-link" href="../chapter_12/chap_12.html">Canadian Airspace Procedures</a>
+                <ul class="nav-list">
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap12_section_1">
+                    <a class="nav-link" href="../chapter_12/chap12_section_1.html">General Control</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item is-active" data-depth="0" data-id="menu-0-13">
+            <ul class="nav-list">
+              <li class="nav-item" data-depth="1" data-id="menu-1-/chap_13">
+                <button class="nav-toggle" aria-label="Navigation toggler"></button>
+                <span class="nav-text"></span>
+                <a class="nav-link" href="chap_13.html">Decision Support Tools</a>
+                <ul class="nav-list">
+                  <li class="nav-item is-active" data-depth="2" data-id="menu-2-/chap13_section_1">
+                    <a class="nav-link" href="chap13_section_1.html">ERAM - En Route</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap13_section_2">
+                    <a class="nav-link" href="chap13_section_2.html">ATOP - Oceanic</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item" data-depth="0" data-id="menu-0-14">
+            <ul class="nav-list">
+              <li class="nav-item" data-depth="1" data-id="menu-1-/chap_14">
+                <button class="nav-toggle" aria-label="Navigation toggler"></button>
+                <span class="nav-text"></span>
+                <a class="nav-link" href="../chapter_14/chap_14.html">Data Link Communications</a>
+                <ul class="nav-list">
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap14_section_1">
+                    <a class="nav-link" href="../chapter_14/chap14_section_1.html">Terminal Procedures for Issuing Automated Clearances</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap14_section_2">
+                    <a class="nav-link" href="../chapter_14/chap14_section_2.html">En Route Controller Pilot Data Link Communications (CPDLC) - Domestic</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap14_section_3">
+                    <a class="nav-link" href="../chapter_14/chap14_section_3.html">Advanced Technologies and Oceanic Procedures (ATOP) - Oceanic Controller Pilot Data Link Communications (CPDLC)</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item" data-depth="0">
+            <a class="nav-link" href="../appendix_a.html">Appendix A</a>
+          </li>
+          <li class="nav-item" data-depth="0">
+            <a class="nav-link" href="../appendix_b.html">Appendix B</a>
+          </li>
+              </ul>
+            </nav>
+          </div>
+        </div>
+      </aside>
+    </div><div class="main-content usa-content" id="main"><div class="toolbar" role="navigation"><button title="navigation-toggle" class="navigation-toggle" aria-label="Toggle navigation"> </button><nav class="crumbs" aria-label="breadcrumbs"><ul><li class="crumb"><a aria-label="Chapter title" class="chapter-link-title" href="chap_13.html">Decision Support Tools</a></li><li class="crumb">ERAM - En Route</li></ul></nav></div><main role="main"><article role="article" aria-labelledby="ariaid-title1"><article class="nested0" aria-labelledby="ariaid-title1" id="chap13_section_1">
+<h1 class="chapter-title text-center">Chapter 13. Decision Support Tools</h1>
+<h2 class="section-title text-center">Section 1. ERAM - En Route</h2>
+
+<div class="body conbody">
+
+<h4 class="paragraph-title" id="13-1-1">13-1-1. DESCRIPTION</h4>
+<p class="p">En Route Decision Support Tool (EDST) is an integrated function of ERAM that is used by the sector team in performing its strategic planning responsibilities. EDST uses current plan data, forecast winds, aircraft performance characteristics, and track data to derive expected aircraft trajectories, and to predict conflicts between aircraft and between aircraft and special use or designated airspace. It also provides trial planning and enhanced flight data management capabilities.</p><aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<p class="p">For use by the EDST, the current plan is what the En Route Automation System (EAS) predicts an aircraft will fly. This may include clearances that have not yet been issued to the aircraft. Current plans are used to model a flight trajectory and, when applicable, for detecting conflicts.</p></div></aside>
+
+<h4 class="paragraph-title" id="13-1-2">13-1-2. CONFLICT DETECTION AND RESOLUTION</h4>
+<ol class="ol level-one">
+<li class="li" id="chap13_section_1__c_conflict_detection_and_resolution-li_1">Actively scan EDST information for predicted aircraft-to-aircraft and aircraft-to-airspace alerts.</li>
+<li class="li" id="chap13_section_1__c_conflict_detection_and_resolution-li_2">When a conflict probe alert is displayed, evaluate the alert and take appropriate action as early as practical, in accordance with duty priorities.</li>
+<li class="li" id="chap13_section_1__c_conflict_detection_and_resolution-li_3">Prioritize the evaluation and resolution of conflict probe alerts to ensure the safe, expeditious, and efficient flow of air traffic.
+
+<aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<p class="p">Conflict probe alerts are based on approved radar separation. Conflict probe does not account for instances in which greater separation may be needed (e.g., non-standard formations, A380) or where reduced separation is permitted (e.g., 3 mile airspace).</p></div></aside></li>
+<li class="li" id="chap13_section_1__c_conflict_detection_and_resolution-li_4">When a conflict probe alert is displayed and when sector priorities permit, give consideration to the following in determining a solution:
+
+<ol class="ol level-two" type="a">
+<li class="li" id="chap13_section_1__c_conflict_detection_and_resolution-li_5">Solutions that involve direct routing, altitude changes, removal of a flight direction constraint (i.e., inappropriate altitude for direction of flight), and/or removal of a static restriction for one or more pertinent aircraft.</li>
+<li class="li" id="chap13_section_1__c_conflict_detection_and_resolution-li_6">Impact on surrounding sector traffic and complexity levels, flight efficiencies, and user preferences.</li></ol></li>
+<li class="li" id="chap13_section_1__c_conflict_detection_and_resolution-li_7">When the Stop Probe feature is activated for an aircraft, conflict probe for that aircraft must be restarted before transfer of control, unless otherwise coordinated.
+
+<aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<p class="p">The requirement in subparagraph <a class="xref" href="chap13_section_1.html#13-1-2">13-1-2</a><a class="xref" href="chap13_section_1.html#13-1-2">e</a> does not apply to aircraft entering a non EDST facility.</p></div></aside></li></ol>
+
+<h4 class="paragraph-title" id="13-1-3">13-1-3. TRIAL PLANNING</h4>
+<p class="p">When EDST is operational at the sector and when sector priorities permit, use the trial plan capability to evaluate:</p><ol class="ol level-one">
+<li class="li" id="chap13_section_1__c_trial_planning-li_1">Solutions to predicted conflicts.</li>
+<li class="li" id="chap13_section_1__c_trial_planning-li_2">The feasibility of granting user requests.</li>
+<li class="li" id="chap13_section_1__c_trial_planning-li_3">The feasibility of removing a flight direction constraint (i.e., inappropriate altitude for direction of flight) for an aircraft.</li>
+<li class="li" id="chap13_section_1__c_trial_planning-li_4">The feasibility of removing a static restriction for an aircraft.</li></ol>
+
+<h4 class="paragraph-title" id="13-1-4">13-1-4. CONFLICT PROBE-BASED CLEARANCES</h4>
+<p class="p">When the results of a trial plan based upon a user request indicate the absence of alerts, every effort should be made to grant the user request, unless the change is likely to adversely affect operations at another sector.</p>
+
+<h4 class="paragraph-title" id="13-1-5">13-1-5. THE AIRCRAFT LIST (ACL), DEPARTURE LIST (DL) AND FLIGHT DATA MANAGEMENT</h4>
+<ol class="ol level-one">
+<li class="li" id="chap13_section_1__c_the_aircraft_list_acl_departure_list_dl_and_flight_data_management-li_1">The ACL must be used as the sector team's primary source of flight data.</li>
+<li class="li" id="chap13_section_1__c_the_aircraft_list_acl_departure_list_dl_and_flight_data_management-li_2">Actively scan EDST to identify automated notifications that require sector team action.</li>
+<li class="li" id="chap13_section_1__c_the_aircraft_list_acl_departure_list_dl_and_flight_data_management-li_3">When an ACL or DL entry has a Remarks indication, the Remarks field of the flight plan must be reviewed. Changes to the Remarks field must also be reviewed.</li>
+<li class="li" id="chap13_section_1__c_the_aircraft_list_acl_departure_list_dl_and_flight_data_management-li_4">Highlighting an entry on the ACL or DL must be used to indicate the flight requires an action or special attention.</li>
+<li class="li" id="chap13_section_1__c_the_aircraft_list_acl_departure_list_dl_and_flight_data_management-li_5">The Special Posting Area (SPA) should be used to group aircraft that have special significance (e.g., aircraft to be sequenced, air refueling missions, formations).</li>
+<li class="li" id="chap13_section_1__c_the_aircraft_list_acl_departure_list_dl_and_flight_data_management-li_6">Sector teams must post flight progress strips for any nonradar flights.</li>
+<li class="li" id="chap13_section_1__c_the_aircraft_list_acl_departure_list_dl_and_flight_data_management-li_7">A flight progress strip must be posted for any flight plan not contained in the EAS.</li>
+<li class="li" id="chap13_section_1__c_the_aircraft_list_acl_departure_list_dl_and_flight_data_management-li_8">Sector teams must post any flight progress strip(s) that are deemed necessary for safe or efficient operations. The sector team must comply with all applicable facility directives to maintain posted flight progress strips.</li>
+<li class="li" id="chap13_section_1__c_the_aircraft_list_acl_departure_list_dl_and_flight_data_management-li_9">The Drop Track Delete option must be used in accordance with facility directives.</li></ol>
+
+<h4 class="paragraph-title" id="13-1-6">13-1-6. MANUAL COORDINATION AND THE COORDINATION MENU</h4>
+<ol class="ol level-one">
+<li class="li" id="chap13_section_1__c_manual_coordination_and_the_coordination_menu-li_1">Where automated coordination with a facility is not available (e.g., an international facility, a VFR tower), use the Coordination Menu or a flight progress strip to annotate manual coordination status, in accordance with facility directives.</li>
+<li class="li" id="chap13_section_1__c_manual_coordination_and_the_coordination_menu-li_2">When the Coordination Menu is used and the flight plan is subsequently changed, remove the yellow coding from the Coordination Indicator after any appropriate action has been taken.</li></ol>
+
+<h4 class="paragraph-title" id="13-1-7">13-1-7. HOLDING</h4>
+<p class="p">For flights in hold, use the Hold View, Hold DataMenu, hold message, a flight progress strip, or a facility approved worksheet, to annotate holding instructions, in accordance with facility directives.</p>
+
+<h4 class="paragraph-title" id="13-1-8">13-1-8. RECORDING OF CONTROL DATA</h4>
+<ol class="ol level-one">
+<li class="li" id="chap13_section_1__c_recording_of_control_data-li_1">All control information not otherwise recorded via automation recordings or voice recordings must be manually recorded using approved methods.</li>
+<li class="li" id="chap13_section_1__c_recording_of_control_data-li_2">When a verbal point out has been approved, remove the yellow color coding on the ACL.</li>
+<li class="li" id="chap13_section_1__c_recording_of_control_data-li_3">When the ACL or DL Free Text Area is used to enter control information, authorized abbreviations must be used. You may use:
+
+<ol class="ol level-two" type="a">
+<li class="li" id="chap13_section_1__c_recording_of_control_data-li_4">The clearance abbreviations authorized in <a class="xref" href="chap13_section_1.html#13-1-8">TBL 13-1-1</a>.
+
+<table class="table"><caption><span class="tbl-number">TBL 13-1-1</span><span class="tbl-title">Clearance Abbreviations</span></caption><colgroup><col><col></colgroup><thead class="thead">
+<tr class="row">
+<th class="entry" id="chap13_section_1__c_recording_of_control_data-li_4__entry__1"><p class="p"><strong class="ph b">Abbreviation</strong></p></th>
+<th class="entry align-center" id="chap13_section_1__c_recording_of_control_data-li_4__entry__2"><p class="p"><strong class="ph b">Meaning</strong></p></th></tr>
+</thead><tbody class="tbody">
+<tr class="row">
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_4__entry__1"><p class="p">A</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_4__entry__2"><p class="p">Cleared to airport (point of intended landing)</p></td></tr>
+
+<tr class="row">
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_4__entry__1"><p class="p">B</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_4__entry__2"><p class="p">Center clearance delivered</p></td></tr>
+
+<tr class="row">
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_4__entry__1"><p class="p">C</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_4__entry__2"><p class="p">ATC clears (when clearance relayed through non-ATC facility)</p></td></tr>
+
+<tr class="row">
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_4__entry__1"><p class="p">CAF</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_4__entry__2"><p class="p">Cleared as filed</p></td></tr>
+
+<tr class="row">
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_4__entry__1"><p class="p">D</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_4__entry__2"><p class="p">Cleared to depart from the fix</p></td></tr>
+
+<tr class="row">
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_4__entry__1"><p class="p">F</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_4__entry__2"><p class="p">Cleared to the fix</p></td></tr>
+
+<tr class="row">
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_4__entry__1"><p class="p">H</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_4__entry__2"><p class="p">Cleared to hold and instructions issued</p></td></tr>
+
+<tr class="row">
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_4__entry__1"><p class="p">N</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_4__entry__2"><p class="p">Clearance not delivered</p></td></tr>
+
+<tr class="row">
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_4__entry__1"><p class="p">O</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_4__entry__2"><p class="p">Cleared to the outer marker</p></td></tr>
+
+<tr class="row">
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_4__entry__1"><p class="p">PD</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_4__entry__2"><p class="p">Cleared to climb/descend at pilot's discretion</p></td></tr>
+
+<tr class="row">
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_4__entry__1"><p class="p">Q</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_4__entry__2"><p class="p">Cleared to fly specified sectors of a NAVAID defined in terms of courses, bearings, radials, or quadrants within a designated radius</p></td></tr>
+
+<tr class="row">
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_4__entry__1"><p class="p">T</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_4__entry__2"><p class="p">Cleared through (for landing and takeoff through intermediate point)</p></td></tr>
+
+<tr class="row">
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_4__entry__1"><p class="p">V</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_4__entry__2"><p class="p">Cleared over the fix</p></td></tr>
+
+<tr class="row">
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_4__entry__1"><p class="p">X</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_4__entry__2"><p class="p">Cleared to cross (airway, route, radial) at (point)</p></td></tr>
+
+<tr class="row">
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_4__entry__1"><p class="p">Z</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_4__entry__2"><p class="p">Tower jurisdiction</p></td></tr>
+</tbody></table></li>
+<li class="li" id="chap13_section_1__c_recording_of_control_data-li_5">The miscellaneous abbreviations authorized in <a class="xref" href="chap13_section_1.html#13-1-8">TBL 13-1-2</a>.</li>
+<li class="li" id="chap13_section_1__c_recording_of_control_data-li_6">The EDST equivalents for control information symbols authorized in <a class="xref" href="chap13_section_1.html#13-1-8">TBL 13-1-3</a>.</li>
+<li class="li" id="chap13_section_1__c_recording_of_control_data-li_7">Plain language markings when it will aid in understanding information.</li>
+<li class="li" id="chap13_section_1__c_recording_of_control_data-li_8">Locally approved abbreviations.</li></ol></li>
+<li class="li" id="chap13_section_1__c_recording_of_control_data-li_9">When the ACL or DL Free Text Area is used to enter control information, the Free Text Area must remain open and visible. When no longer relevant, the information entered into the Free Text Area must be updated or deleted.</li>
+<li class="li" id="chap13_section_1__c_recording_of_control_data-li_10">Control information entered in the Free Text Area must be used for reference purposes only.
+
+<aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<p class="p">Information entered into the Free Text Area does not pass on handoff and, if necessary, must be coordinated.</p></div></aside><table class="table"><caption><span class="tbl-number">TBL 13-1-2</span><span class="tbl-title">Miscellaneous Abbreviations</span></caption><colgroup><col><col></colgroup><thead class="thead">
+<tr class="row">
+<th class="entry" id="chap13_section_1__c_recording_of_control_data-li_10__entry__1"><p class="p"><strong class="ph b">Abbreviation</strong></p></th>
+<th class="entry align-center" id="chap13_section_1__c_recording_of_control_data-li_10__entry__2"><p class="p"><strong class="ph b">Meaning</strong></p></th></tr>
+</thead><tbody class="tbody">
+<tr class="row">
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__1"><p class="p">BC</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__2"><p class="p">Back course approach</p></td></tr>
+
+<tr class="row">
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__1"><p class="p">CT</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__2"><p class="p">Contact approach</p></td></tr>
+
+<tr class="row">
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__1"><p class="p">FA</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__2"><p class="p">Final approach</p></td></tr>
+
+<tr class="row">
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__1"><p class="p">FMS</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__2"><p class="p">Flight management system approach</p></td></tr>
+
+<tr class="row">
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__1"><p class="p">GPS</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__2"><p class="p">GPS approach</p></td></tr>
+
+<tr class="row">
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__1"><p class="p">I</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__2"><p class="p">Initial approach</p></td></tr>
+
+<tr class="row">
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__1"><p class="p">ILS</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__2"><p class="p">ILS approach</p></td></tr>
+
+<tr class="row">
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__1"><p class="p">MA</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__2"><p class="p">Missed approach</p></td></tr>
+
+<tr class="row">
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__1"><p class="p">NDB</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__2"><p class="p">Nondirectional radio beacon approach</p></td></tr>
+
+<tr class="row">
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__1"><p class="p">OTP</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__2"><p class="p">VFR conditions‐on‐top</p></td></tr>
+
+<tr class="row">
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__1"><p class="p">PA</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__2"><p class="p">Precision approach</p></td></tr>
+
+<tr class="row">
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__1"><p class="p">PT</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__2"><p class="p">Procedure turn</p></td></tr>
+
+<tr class="row">
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__1"><p class="p">RA</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__2"><p class="p">Resolution advisory (Pilot‐reported TCAS event)</p></td></tr>
+
+<tr class="row">
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__1"><p class="p">RH</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__2"><p class="p">Runway heading</p></td></tr>
+
+<tr class="row">
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__1"><p class="p">RNAV</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__2"><p class="p">Area navigation approach</p></td></tr>
+
+<tr class="row">
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__1"><p class="p">RP</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__2"><p class="p">Report immediately upon passing (fix/altitude)</p></td></tr>
+
+<tr class="row">
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__1"><p class="p">RX</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__2"><p class="p">Report crossing</p></td></tr>
+
+<tr class="row">
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__1"><p class="p">SA</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__2"><p class="p">Surveillance approach</p></td></tr>
+
+<tr class="row">
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__1"><p class="p">SI</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__2"><p class="p">Straight-in approach</p></td></tr>
+
+<tr class="row">
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__1"><p class="p">TA</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__2"><p class="p">TACAN approach</p></td></tr>
+
+<tr class="row">
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__1"><p class="p">TL</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__2"><p class="p">Turn left</p></td></tr>
+
+<tr class="row">
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__1"><p class="p">TR</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__2"><p class="p">Turn right</p></td></tr>
+
+<tr class="row">
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__1"><p class="p">VA</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__2"><p class="p">Visual approach</p></td></tr>
+
+<tr class="row">
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__1"><p class="p">VR</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__2"><p class="p">VOR approach</p></td></tr>
+</tbody></table><table class="table"><caption><span class="tbl-number">TBL 13-1-3</span><span class="tbl-title">EDST Equivalents for Control Information Symbols</span></caption><colgroup><col><col></colgroup><thead class="thead">
+<tr class="row">
+<th class="entry align-center" id="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p"><strong class="ph b">Abbreviation</strong></p></th>
+<th class="entry align-center" id="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p"><strong class="ph b">Meaning</strong></p></th></tr>
+</thead><tbody class="tbody">
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">dir</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">Depart (direction if specified)</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">↑</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">Climb and maintain</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">↓</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">Descend and maintain</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">CR</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">Cruise</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">AT</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">At</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">X</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">Cross</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">M</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">Maintain</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">airway</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">Join or intercept (airway, jet route, track, or course)</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">=</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">While in controlled airspace</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">WICA</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">While in control area</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">dir</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">Enter control area</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">dir</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">Out of control area</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">dir</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">Cleared to enter surface area. Indicated direction of flight by appropriate compass letter(s)</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">alt</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">Through surface area and altitude indicated direction of flight by appropriate compass letter(s). Maintain special VFR conditions (altitude if appropriate) while in surface area</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">250 K</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">Aircraft requested to adjust speed to 250&nbsp; knots</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">-20 K</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">Aircraft requested to reduce speed 20&nbsp;knots</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">+30 K</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">Aircraft requested to increase speed 30&nbsp; knots</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">SVFR</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">Local Special VFR operations in the vicinity of (name) airport are authorized until (time). Maintain special VFR conditions (altitude if appropriate)</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">B4</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">Before</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">AF</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">After or Past</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">/</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">Until</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">instructions</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">Alternate instructions</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">REST</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">Restriction</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">AOB</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">At or Below</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">AOA</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">At or Above</p></td></tr>
+
+
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">-</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">From-to (route, time, etc.)</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">(Alt)B(Alt)</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">Indicates a block altitude assignment. Altitudes are inclusive, and the first altitude must be lower than the second  (Example 310B370)</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">time</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">time</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">CL</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">Pilot canceled flight plan</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">info</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">Information or revised information forwarded</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">alt</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">Other than assigned altitude reported Example:&nbsp;**50**</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">mi. dir.</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">DME arc of VORTAC or TACAN</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">freq.</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">Contact (facility) or (freq.), (time, fix, or altitude if appropriate). Insert frequency only when it is other than standard</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">R</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">Radar contact</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">alt</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">Requested altitude</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">R/</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">Radar service terminated</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">RX</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">Radar Contact Lost</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">RV</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">Radar vector</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">RVX</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">Pilot resumed own navigation</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">HO</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">Handoff completed</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">E</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">Emergency</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">W</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">Warning</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">P</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">Point out initiated. Indicate the appropriate facility, sector, or position.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">FUEL</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">Minimum fuel</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">time</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">Expect further clearance at (time)</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">fix</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">Direct to fix</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">FRC</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">Full route clearance</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">IAF</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">Initial approach fix</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">NORDO</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">No Radio</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">PT</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">Procedure turn</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">RLS</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">Release</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">REQ</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">Request</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__51"><p class="p">SI</p></td>
+<td class="entry" headers="chap13_section_1__c_recording_of_control_data-li_10__entry__52"><p class="p">Straight in</p></td></tr>
+</tbody></table></li></ol>
+
+<h4 class="paragraph-title" id="13-1-9">13-1-9. ACKNOWLEDGEMENT OF AUTOMATED NOTIFICATION</h4>
+<ol class="ol level-one">
+<li class="li" id="chap13_section_1__c_acknowledgement_of_automated_notification-li_1">The EDST Inappropriate Altitude for Direction of Flight (IAFDOF) feature must be used in the automatic mode (i.e., IAFDOF Manual must remain deselected) unless otherwise authorized in a facility directive.</li>
+<li class="li" id="chap13_section_1__c_acknowledgement_of_automated_notification-li_2">Completion of any required coordination for IAFDOF must be acknowledged on the ACL by removing the IAFDOF coding.</li>
+<li class="li" id="chap13_section_1__c_acknowledgement_of_automated_notification-li_3">Completion of appropriate coordination for an Unsuccessful Transmission Message (UTM) must be acknowledged on the ACL by removing the UTM coding.</li>
+<li class="li" id="chap13_section_1__c_acknowledgement_of_automated_notification-li_4">Issuance of the Expect Departure Clearance Time (EDCT) to the pilot or other control facility must be acknowledged on the DL by removing the EDCT coding.</li>
+<li class="li" id="chap13_section_1__c_acknowledgement_of_automated_notification-li_5">IAFDOF, UTM, or EDCT coding must be acknowledged only after the appropriate action has been completed.</li>
+<li class="li" id="chap13_section_1__c_acknowledgement_of_automated_notification-li_6">The first sector which displays Embedded Route Text (ERT) coding must issue and send/acknowledge the route prior to initiating a hand-off unless verbally coordinated or as specified in appropriate facility directives. Do not send/acknowledge ERT coding unless the sector has track control for the flight or it has been otherwise coordinated.</li>
+<li class="li" id="chap13_section_1__c_acknowledgement_of_automated_notification-li_7">Route Action Notifications (RAN) such as ATC preferred routes or route processing errors must be amended at the first control position that displays the RAN unless verbally coordinated or as specified in appropriate facility directives. Do not remove RAN coding unless the sector has track control or it has been otherwise coordinated.</li></ol>
+
+<h4 class="paragraph-title" id="13-1-10">13-1-10. CURRENCY OF TRAJECTORY INFORMATION</h4>
+<ol class="ol level-one">
+<li class="li" id="chap13_section_1__c_currency_of_trajectory_information-li_1">The sector team must perform automation entries in a timely manner.
+
+<aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<ol class="ol level-two" type="a">
+<li class="li" id="chap13_section_1__c_currency_of_trajectory_information-li_2">Conflict probe accuracy requires timely updates of data used to model each flight's trajectory. If this data is not current, the aircraft entries and notification of probe results for surrounding sectors and facilities, as well as the subject sector, may be misleading.</li>
+<li class="li" id="chap13_section_1__c_currency_of_trajectory_information-li_3">Data used to model an individual aircraft's trajectory includes route of flight, assigned and interim altitudes, application/removal of an adapted restriction for that flight, and aircraft type.</li></ol></div></aside></li>
+<li class="li" id="chap13_section_1__c_currency_of_trajectory_information-li_4">An exception to the requirement to enter or update interim altitudes may be authorized for certain ARTCC sectors if explicitly defined in an appropriate facility directive.
+
+<aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<p class="p">Conflict probe accuracy in assigning alert notification is dependent upon entry/update of a flight's interim altitude.</p></div></aside></li></ol>
+
+<h4 class="paragraph-title" id="13-1-11">13-1-11. DELAY REPORTING</h4>
+<ol class="ol level-one">
+<li class="li" id="chap13_section_1__c_delay_reporting-li_1">Adhere to all applicable delay reporting directives.</li>
+<li class="li" id="chap13_section_1__c_delay_reporting-li_2">Delay information must be recorded. Delay information may be automatically recorded via use of the ERAM Hold Data Menu, ERAM Hold View, a hold message, or manually on flight progress strips or facility-approved worksheets, in accordance with the facility-defined standard.
+
+<aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<p class="p">When using the ERAM Hold Data Menu or Hold View, delays are automatically recorded when the aircraft is cleared out of hold.</p></div></aside></li></ol>
+
+<h4 class="paragraph-title" id="13-1-12">13-1-12. OVERDUE AIRCRAFT</h4>
+<p class="p">Upon receipt of the overdue aircraft notification take appropriate actions set forth in Chapter 10, Section 3, Overdue aircraft.</p><aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<p class="p">ESDT overdue aircraft notification is based on radar track data. Updating an aircraft's route of fight will remove the overdue aircraft notification.</p></div></aside>
+
+<h4 class="paragraph-title" id="13-1-13">13-1-13. USE OF GRAPHICS PLAN DISPLAY (GPD)</h4>
+<ol class="ol level-one">
+<li class="li" id="chap13_section_1__c_use_of_graphics_plan_display_gpd-li_1">Graphic depictions of flight trajectories may be used only to aid in situational awareness and strategic planning.</li>
+<li class="li" id="chap13_section_1__c_use_of_graphics_plan_display_gpd-li_2">Do not use trajectory-based positions as a substitute for radar track position.</li>
+<li class="li" id="chap13_section_1__c_use_of_graphics_plan_display_gpd-li_3">Do not use trajectory-based altitude in lieu of Mode C for altitude confirmation.</li>
+<li class="li" id="chap13_section_1__c_use_of_graphics_plan_display_gpd-li_4">Do not use the GPD for radar identification, position information, transfer of radar identification, radar separation, correlation, or point outs.</li></ol>
+
+<h4 class="paragraph-title" id="13-1-14">13-1-14. FORECAST WINDS</h4>
+<p class="p">In the event that current forecast wind data are not available, continue use of conflict probe and trial planning with appropriate recognition that alert and trajectory data may be affected.</p>
+
+<h4 class="paragraph-title" id="13-1-15">13-1-15. INTERFACILITY CONNECTIVITY</h4>
+<p class="p">In the event of a loss of connectivity to an adjacent ERAM facility, continue use of EDST with appropriate recognition that alert data may be affected.</p>
+
+<h4 class="paragraph-title" id="13-1-16">13-1-16. SURVEILLANCE AND FLIGHT DATA OUTAGES</h4>
+<p class="p">In the event of a surveillance or flight data outage, electronic flight data may be used to support situational awareness while the facility transitions to alternate automation capabilities or non radar procedures.</p>
+
+<h4 class="paragraph-title" id="13-1-17">13-1-17. AIRSPACE CONFIGURATION ELEMENTS</h4>
+<ol class="ol level-one">
+<li class="li" id="chap13_section_1__c_airspace_configuration_elements-li_1">Airspace Configuration Elements are:
+
+<ol class="ol level-two" type="a">
+<li class="li" id="chap13_section_1__c_airspace_configuration_elements-li_2">Special Activity Airspace (SAA).</li>
+<li class="li" id="chap13_section_1__c_airspace_configuration_elements-li_3">Airport Stream Filters (ASF).</li>
+<li class="li" id="chap13_section_1__c_airspace_configuration_elements-li_4">Adapted restrictions.</li></ol></li>
+<li class="li" id="chap13_section_1__c_airspace_configuration_elements-li_5">Where assigned as a sector responsibility by facility directive, the sector team must update Airspace Configuration Elements to reflect current status.
+
+<aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<p class="p">Unless otherwise covered in an LOA or facility directive, activating or scheduling the SAA in the Airspace Status View does NOT constitute coordination for activation of airspace.</p></div></aside></li>
+<li class="li" id="chap13_section_1__c_airspace_configuration_elements-li_6">For Airspace Configuration Elements designated as a sector responsibility, notify the operations supervisor when the status of an Airspace Configuration Element has been modified.</li></ol></div></article></article></main></div></div><footer class="main-footer">
+<nav id="paginator__nav" class="usa-pagination" role="navigation" aria-label="Pagination"><a class="page__nav" aria-label="Previous Page" href="chap_13.html">Previous</a> | <a class="page__nav" aria-label="Top of the Page" href="#atc-body">Top</a> | <a class="page__nav" aria-label="Next Page" href="chap13_section_2.html">Next</a></nav>
+<div class="center footer-details"><ul class="footer-items"><li class="footer-item"><a href="../index.html" aria-label="FAA Order 7110.65" rel="noopener">7110.65</a> | </li><li class="footer-item"><a href="http://www.faa.gov/air_traffic/publications/" target="_blank" rel="noopener">ATPUBS</a> | </li><li class="footer-item"><a href="http://www.faa.gov" target="_blank" rel="noopener">FAA</a> | </li><li><a class="suggestion-contact" href="mailto:9-AJV-P-HQ-Correspondence@faa.gov">
+              Send your comments regarding this website.
+            </a></li></ul></div></footer><script src="../atc-nav.js"></script></body></html>

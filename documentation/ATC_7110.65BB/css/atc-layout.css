@@ -1,0 +1,906 @@
+/**
+ * FAA ATC HTML5 - Layout System
+ * Navbar, sidebar, toolbar, main content wrapper, footer.
+ * Responsive: mobile-first with desktop breakpoint at 1024px.
+ */
+
+/* ================================================================
+   Overflow Clipping (mobile nav/menu open)
+   ================================================================ */
+html.is-clipped--nav {
+  overflow-y: hidden;
+}
+
+html.is-clipped--navbar {
+  overflow-y: hidden;
+}
+
+/* ================================================================
+   Main Wrapper (flex layout on desktop)
+   ================================================================ */
+@media screen and (min-width: 1024px) {
+  .main-wrapper {
+    display: flex;
+  }
+  .main-content {
+    flex: auto;
+    min-width: 0;
+  }
+}
+
+#main {
+  margin-left: 0.75rem;
+  margin-right: 0.75rem;
+}
+
+.usa-content {
+  margin-bottom: 22px;
+}
+
+/* ================================================================
+   Navbar (fixed top)
+   ================================================================ */
+.navbar {
+  background-color: var(--color-navbar-bg);
+  color: var(--color-navbar-text);
+  font-size: 1.025rem;
+  height: var(--navbar-height);
+  position: fixed;
+  top: 0;
+  width: 100%;
+  word-wrap: break-word;
+  z-index: 3;
+  font-family: 'Roboto Condensed', sans-serif;
+}
+
+.navbar a {
+  text-decoration: none;
+}
+
+/* Navbar brand */
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  height: var(--navbar-height);
+  padding: 0;
+  gap: 1.5rem;
+}
+
+.navbar-brand .navbar-item {
+  padding: 0;
+  margin-left: 1rem;
+}
+
+@media screen and (min-width: 1024px) {
+  .navbar-brand {
+    flex: none;
+  }
+}
+
+/* Publication name link */
+.publication_name {
+  padding-left: 1rem;
+  margin-top: 0;
+  flex-shrink: 0;
+}
+
+.publication_name a,
+.publication_name span {
+  color: #fff;
+}
+
+a.publication_name {
+  color: #fff;
+  display: flex;
+  align-items: center;
+}
+
+/* Navbar items */
+.navbar-item,
+.navbar-link {
+  color: var(--color-text);
+  display: block;
+  line-height: 1.5;
+  padding: 0.5rem 1rem;
+  position: relative;
+}
+
+.navbar-item {
+  flex: none;
+}
+
+.navbar-item.has-dropdown {
+  padding: 0;
+}
+
+/* Navbar link (with dropdown arrow) */
+.navbar-link {
+  padding-right: 2.5em;
+}
+
+/* Dropdown — scrollable so publications with many chapters (e.g. 33 + 13
+   appendices) remain reachable on small screens */
+.navbar-dropdown {
+  font-size: 0.875rem;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.navbar-dropdown .navbar-item {
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+
+/* Navbar divider */
+.navbar-divider {
+  background-color: var(--color-border);
+  border: none;
+  height: 1px;
+  margin: 0.25rem 0;
+}
+
+/* Chapter dropdown item */
+.atc-chap-number-dropdown {
+  font-family: 'Roboto Condensed', sans-serif;
+  font-size: 1.1rem;
+  line-height: 0.9;
+}
+
+/* Burger menu (mobile) */
+.navbar-burger {
+  color: var(--color-navbar-text);
+  background: none;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  display: block;
+  height: var(--navbar-height);
+  position: relative;
+  width: 2.75rem;
+  margin-left: auto;
+  padding: 0;
+}
+
+.navbar-burger::-moz-focus-inner {
+  border: none;
+}
+
+.navbar-burger span {
+  background-color: var(--color-navbar-text);
+  display: block;
+  height: 2.2px;
+  left: 50%;
+  margin-left: -7px;
+  position: absolute;
+  top: 50%;
+  width: 20px;
+}
+
+.navbar-burger span:first-child { margin-top: -6px; }
+.navbar-burger span:nth-child(2) { margin-top: -1px; }
+.navbar-burger span:nth-child(3) { margin-top: 7px; }
+
+.navbar-burger.is-active span:first-child {
+  margin-left: -5px;
+  transform: rotate(45deg);
+  transform-origin: left top;
+}
+
+.navbar-burger.is-active span:nth-child(2) {
+  opacity: 0;
+}
+
+.navbar-burger.is-active span:nth-child(3) {
+  margin-left: -5px;
+  transform: rotate(-45deg);
+  transform-origin: left bottom;
+}
+
+/* Navbar menu (hidden on mobile) */
+.navbar-menu {
+  display: none;
+}
+
+/* Mobile menu */
+@media screen and (max-width: 1023px) {
+  .navbar-brand .navbar-item {
+    align-items: center;
+    display: flex;
+  }
+  .navbar-menu {
+    background-color: #fff;
+    padding: 0.5rem 0;
+  }
+  .navbar-menu.is-active {
+    display: block;
+    box-shadow: 0 8px 16px rgba(10, 10, 10, 0.1);
+    max-height: calc(100vh - var(--navbar-height));
+    overflow-y: auto;
+  }
+  .navbar-menu .navbar-link:hover,
+  .navbar-menu a.navbar-item:hover {
+    background-color: var(--color-bg-light);
+  }
+}
+
+/* Desktop menu */
+@media screen and (min-width: 1024px) {
+  .navbar,
+  .navbar-end,
+  .navbar-menu,
+  .navbar-start {
+    align-items: stretch;
+    display: flex;
+  }
+  .navbar-burger {
+    display: none;
+  }
+  .navbar-item,
+  .navbar-link {
+    align-items: center;
+    display: flex;
+  }
+  .navbar-item.has-dropdown {
+    align-items: stretch;
+  }
+  .navbar-item.is-hoverable:hover .navbar-dropdown {
+    display: block;
+  }
+  .navbar-link::after {
+    border-width: 0 0 1px 1px;
+    border-style: solid;
+    content: " ";
+    display: block;
+    height: 0.5em;
+    pointer-events: none;
+    position: absolute;
+    transform: rotate(-45deg);
+    width: 0.5em;
+    margin-top: -0.375em;
+    right: 1.125em;
+    top: 50%;
+  }
+  .navbar-menu {
+    flex-grow: 1;
+  }
+  .navbar-start {
+    justify-content: flex-start;
+    margin-right: auto;
+  }
+  .navbar-end {
+    justify-content: flex-end;
+    margin-left: auto;
+  }
+  .navbar-dropdown {
+    background-color: #fff;
+    border: 1px solid var(--color-border);
+    display: none;
+    font-size: 0.875rem;
+    top: 100%;
+    left: 0;
+    min-width: 100%;
+    position: absolute;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+  .navbar-dropdown .navbar-item {
+    padding: 0.5rem 2rem 0.5rem 1rem;
+    white-space: nowrap;
+  }
+  .navbar-dropdown.is-right {
+    left: auto;
+    right: 0;
+  }
+  .navbar-dropdown a.navbar-item:hover {
+    background-color: var(--color-bg-light);
+  }
+  .navbar-end .navbar-link,
+  .navbar-end > .navbar-item,
+  .navbar-start .navbar-link,
+  .navbar-start > .navbar-item {
+    color: var(--color-navbar-text);
+  }
+  .navbar-end .navbar-link:hover,
+  .navbar-end > a.navbar-item:hover,
+  .navbar-start .navbar-link:hover,
+  .navbar-start > a.navbar-item:hover {
+    background-color: var(--color-navbar-bg-focus);
+    color: var(--color-navbar-text);
+  }
+  .navbar-end .navbar-link::after,
+  .navbar-start .navbar-link::after {
+    border-color: var(--color-navbar-text);
+  }
+  .navbar-item.has-dropdown:hover .navbar-link {
+    background-color: var(--color-navbar-bg-focus);
+    color: var(--color-navbar-text);
+  }
+}
+
+/* Search */
+.navbar-search {
+  margin-top: 0;
+  margin-right: 0;
+  flex-shrink: 0;
+}
+
+.navbar-search form {
+  display: flex;
+  align-items: center;
+}
+
+#search-input {
+  width: 200px;
+  padding: 4px 8px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px 0 0 4px;
+}
+
+.search-submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #005ea2;
+  border: 1px solid #005ea2;
+  border-left: none;
+  border-radius: 0 4px 4px 0;
+  padding: 4px 8px;
+  cursor: pointer;
+  height: 28px;
+  color: #fff;
+}
+
+.search-submit:hover {
+  background-color: #1a4480;
+  border-color: #1a4480;
+}
+
+.search-submit svg {
+  display: block;
+}
+
+/* ================================================================
+   Sidebar Navigation Container
+   ================================================================ */
+.navigation-container {
+  display: none;
+  position: fixed;
+  top: var(--navbar-height);
+  left: 0;
+  width: 100%;
+  font-size: 0.9375rem;
+  z-index: 1;
+}
+
+.navigation-container.is-active {
+  display: block;
+}
+
+@media screen and (min-width: 769px) {
+  .navigation-container {
+    width: 16rem;
+    font-size: 0.975rem;
+  }
+}
+
+@media screen and (min-width: 1024px) {
+  .navigation-container {
+    font-size: 1.03rem;
+    flex: none;
+    display: block;
+    position: static;
+    top: 0;
+  }
+}
+
+/* Sidebar inner */
+.navigation {
+  background-color: var(--color-bg-light);
+  position: relative;
+  top: var(--toolbar-height);
+  height: calc(100vh - var(--navbar-height) - var(--toolbar-height));
+}
+
+@media screen and (min-width: 769px) {
+  .navigation {
+    box-shadow: 0.5px 0 3px #c1c1c1;
+  }
+}
+
+@media screen and (min-width: 1024px) {
+  .navigation {
+    top: var(--navbar-height);
+    box-shadow: none;
+    position: sticky;
+    height: calc(100vh - var(--navbar-height));
+  }
+}
+
+/* Panels */
+.navigation .panels {
+  font-family: 'Roboto Condensed', 'IBM Plex Serif', "Times New Roman", serif;
+  display: flex;
+  flex-direction: column;
+  height: inherit;
+}
+
+.panels h3 {
+  font-weight: 700;
+}
+
+/* Navigation menu */
+.navigation-menu {
+  flex-grow: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - var(--navbar-height) - var(--toolbar-height) - var(--drawer-height));
+  font-family: 'Roboto Condensed', sans-serif;
+}
+
+@media screen and (min-width: 1024px) {
+  .navigation-menu {
+    height: calc(100vh - var(--navbar-height) - var(--drawer-height));
+  }
+}
+
+.navigation-menu:not(.is-active) {
+  display: none;
+}
+
+.navigation-menu::-webkit-scrollbar {
+  width: 0.25rem;
+}
+
+.navigation-menu::-webkit-scrollbar-thumb {
+  background-color: #c1c1c1;
+}
+
+/* Nav menu */
+.nav-menu {
+  flex-grow: 1;
+  min-height: 0;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  line-height: 1.35;
+  position: relative;
+}
+
+.nav-menu h3.title {
+  margin: 0;
+  font-weight: 700;
+  color: var(--color-text);
+  font-size: 1em;
+  padding: 0.25em 0 0.125em;
+}
+
+.nav-menu a,
+.nav-menu a:visited {
+  color: inherit;
+}
+
+/* Nav list */
+.nav-list {
+  margin: 0 0 0 0.8em;
+  padding: 0;
+}
+
+.nav-menu > .nav-list {
+  margin-bottom: 0.5rem;
+}
+
+/* Nav items */
+.nav-item {
+  list-style: none;
+  margin-top: 0.5em;
+}
+
+.nav-toggle ~ .nav-list {
+  padding-bottom: 0.125rem;
+}
+
+.nav-item[data-depth="0"] > .nav-list:first-child {
+  display: block;
+  margin: 0;
+}
+
+.nav-item:not(.is-active) > .nav-list {
+  display: none;
+}
+
+/* Nav toggle button (caret) */
+.nav-toggle {
+  background: transparent no-repeat 50%;
+  background-size: 55%;
+  border: none;
+  cursor: pointer;
+  outline: none;
+  position: absolute;
+  height: 1.4em;
+  width: 1.5em;
+  margin-left: -1.5em;
+}
+
+.nav-toggle::before {
+  content: "\25B6";
+  font-size: 0.6em;
+  color: #666;
+}
+
+.nav-toggle::-moz-focus-inner {
+  border: none;
+}
+
+.nav-item.is-active > .nav-toggle {
+  transform: rotate(90deg);
+}
+
+/* Current page highlight */
+.is-current-page > .nav-link,
+.is-current-page > .nav-text {
+  font-weight: 500;
+}
+
+/* ================================================================
+   Toolbar (sticky below navbar)
+   ================================================================ */
+.toolbar {
+  color: #5d5d5d;
+  align-items: center;
+  background-color: var(--color-bg-light);
+  box-shadow: 0 1px 0 var(--color-border);
+  display: flex;
+  font-size: 0.95rem;
+  height: var(--toolbar-height);
+  justify-content: flex-start;
+  position: sticky;
+  top: var(--navbar-height);
+  z-index: 1;
+}
+
+.toolbar a,
+.toolbar a:visited {
+  color: inherit;
+}
+
+/* Navigation toggle button (mobile sidebar) */
+.navigation-toggle {
+  background: no-repeat 50% 47.5%;
+  background-size: 49%;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  display: block;
+  height: 2.5rem;
+  padding: 0;
+  width: 2.5rem;
+  margin-right: -0.25rem;
+}
+
+.navigation-toggle::before {
+  content: "\2630";
+  font-size: 1.2em;
+  color: #5d5d5d;
+}
+
+.navigation-toggle::-moz-focus-inner {
+  border: none;
+}
+
+@media screen and (min-width: 1024px) {
+  .navigation-toggle {
+    display: none;
+  }
+}
+
+.navigation-toggle.is-active::before {
+  content: "\2190";
+}
+
+/* ================================================================
+   Breadcrumbs
+   ================================================================ */
+.crumbs {
+  display: none;
+  flex: 1 1;
+  padding: 0 0.5rem 0 0.75rem;
+  line-height: 1.35;
+  hyphens: none;
+}
+
+@media screen and (min-width: 1024px) {
+  .crumbs {
+    display: block;
+  }
+}
+
+a + .crumbs {
+  padding-left: 0.05rem;
+}
+
+.crumbs ul {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.crumbs li {
+  display: inline;
+  margin: 0;
+  font-family: 'Roboto Condensed', sans-serif;
+  color: var(--color-text);
+}
+
+.crumbs .chapter-link-title {
+  text-decoration: underline;
+}
+
+.crumbs .chapter-link-title:hover {
+  font-weight: 700;
+  color: var(--color-link-hover);
+}
+
+.crumbs li::after {
+  content: "/";
+  padding: 0 0.3rem;
+}
+
+.crumbs li:last-of-type::after {
+  content: none;
+}
+
+/* ================================================================
+   Footer (full-width, outside main-wrapper)
+   ================================================================ */
+.main-footer {
+  color: var(--color-footer-text);
+  background-color: var(--color-footer-bg);
+  padding: 1rem;
+  width: 100%;
+  text-align: center;
+}
+
+.main-footer a {
+  color: var(--color-footer-text);
+}
+
+.footer-details {
+  display: flex;
+  justify-content: center;
+}
+
+.footer-items {
+  font-family: 'Roboto Condensed', sans-serif;
+  color: var(--color-footer-text);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 0.9rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+.footer-item {
+  display: inline;
+}
+
+/* Separator is the literal " | " kept inside each footer item (matches
+   production markup; dita-post-build fixFooterPipes normalizes it) — do NOT
+   also add a CSS separator here or it renders doubled. */
+
+/* ================================================================
+   Pagination
+   ================================================================ */
+.usa-pagination {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.usa-pagination a {
+  padding: 3px 10px;
+  text-decoration: none;
+}
+
+.usa-pagination a.is-active {
+  background-color: var(--color-link-hover);
+  border-radius: 100%;
+  color: #fff;
+}
+
+.page__nav {
+  color: var(--color-footer-text);
+}
+
+.page__nav:hover {
+  text-decoration: underline;
+}
+
+/* ================================================================
+   Responsive
+   ================================================================ */
+@media screen and (min-width: 951px) {
+  .main-content {
+    width: 100vw;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ================================================================
+   Chapter Summary Pages
+   ================================================================ */
+.chapter-sections {
+  margin-top: 1.5rem;
+}
+
+.book-chapter {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.collapsible-section {
+  padding: 0.25rem 0;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  font-family: 'Roboto Condensed', sans-serif;
+  font-size: 1.05rem;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.section-header:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.section-header a {
+  color: var(--color-link);
+  text-decoration: underline;
+}
+
+.section-header a:hover {
+  color: var(--color-link-hover);
+}
+
+.section-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem 0.25rem 0;
+  color: #333;
+  font-size: 1rem;
+  line-height: 1;
+  min-width: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.section-toggle:hover {
+  color: var(--color-link);
+}
+
+.section-toggle:focus-visible {
+  outline: 2px solid var(--color-link);
+  outline-offset: 2px;
+}
+
+.toggle-icon {
+  transition: transform 0.15s ease-out;
+  display: inline-block;
+  font-size: 0.65em;
+}
+
+.section-toggle[aria-expanded="true"] .toggle-icon {
+  transform: rotate(90deg);
+}
+
+.section-number {
+  font-weight: 600;
+  white-space: nowrap;
+  margin-right: 0.25rem;
+}
+
+.section-content {
+  padding: 0.5rem 0 0.25rem 2rem;
+}
+
+.paragraph-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.paragraph-list li {
+  padding: 0.2rem 0;
+  font-family: 'Roboto Condensed', sans-serif;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.paragraph-list a {
+  color: var(--color-link);
+  text-decoration: none;
+}
+
+.paragraph-list a:hover {
+  text-decoration: underline;
+  color: var(--color-link-hover);
+}
+
+/* ================================================================
+   Home Page Styling
+   ================================================================ */
+.publication-description {
+  font-family: 'IBM Plex Serif', 'Noto Serif', serif;
+  font-size: 1rem;
+  line-height: 1.6;
+  margin: 0.5rem 0 1rem 0;
+  color: #1b1b1b;
+}
+
+.publication-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  background-color: #e6f2fa;
+  padding: 0.75rem 1rem;
+  margin: 0.5rem 0;
+  border-left: 4px solid #005ea2;
+  border-top: 1px solid #005ea2;
+  border-bottom: 1px solid #005ea2;
+}
+
+.publication-info-left,
+.publication-info-right {
+  flex: 1;
+  min-width: 250px;
+}
+
+.publication-info-left p,
+.publication-info-right p {
+  margin: 0.15rem 0;
+  font-family: 'Roboto Condensed', sans-serif;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  color: #1b1b1b;
+}
+
+.publication-info-right {
+  text-align: right;
+}
+
+.publication-info-right p {
+  font-weight: 700;
+  color: #005ea2;
+}
+
+/* Disabled pagination link */
+.page__nav-disabled {
+  color: #888;
+  padding: 3px 10px;
+}
+
+@media screen and (max-width: 768px) {
+  .publication-summary {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .publication-info-right {
+    text-align: left;
+  }
+}

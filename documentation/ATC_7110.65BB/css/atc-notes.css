@@ -1,0 +1,218 @@
+/**
+ * FAA ATC HTML5 - Note/Callout Box Styling
+ * Matches production site styling for NOTE-, PHRASEOLOGY-,
+ * REFERENCE-, EXAMPLE-, INTERPRETATION- blocks.
+ */
+
+/* ================================================================
+   Base styles for all semantic blocks
+   ================================================================ */
+.note-box,
+.reference-box,
+.caution-box,
+.example-box,
+.phraseology-box,
+.warning-box,
+.interpretation-box,
+.footnote-box {
+  margin: 1rem 0;
+  margin-left: 0 !important;
+  margin-right: 0;
+  padding: 0.75rem 1rem;
+  border-radius: 0 4px 4px 0;
+  line-height: 1.5;
+  position: relative;
+  left: 0;
+  clear: both;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Block title (label) styling */
+.block-title {
+  display: block;
+  font-weight: 700;
+  font-style: italic;
+  margin: 0 0 0.25rem 0;
+  padding: 0;
+}
+
+/* Block content styling */
+.block-content {
+  font-style: italic;
+  margin: 0;
+  padding: 0;
+  line-height: 1.5;
+}
+
+/* Linked text within blocks */
+.linked-text {
+  color: inherit;
+  text-decoration: underline;
+}
+
+/* ================================================================
+   NOTE- (Blue theme)
+   ================================================================ */
+.note-box {
+  background-color: #e7f3ff;
+  border-left: 4px solid #0066cc;
+  font-size: 14.663px;
+  font-style: italic;
+}
+
+.note-box .block-title {
+  color: #0066cc;
+}
+
+/* ================================================================
+   FOOTNOTE- (Neutral theme) — source-document footnotes carried over
+   from the QuickSilver export (superscript anchor + note text)
+   ================================================================ */
+.footnote-box {
+  background-color: #f7f7f9;
+  border-left: 4px solid #555a5e;
+  font-size: 13px;
+  font-style: italic;
+}
+
+.footnote-box .block-title {
+  color: #43484c;
+}
+
+/* ================================================================
+   PHRASEOLOGY- (Amber theme)
+   ================================================================ */
+.phraseology-box {
+  background-color: #fff8e7;
+  border-left: 4px solid #cc8800;
+  font-size: 14.663px;
+  font-style: italic;
+  margin-top: 6px;
+}
+
+.phraseology-box .block-title {
+  /* Darkened amber for WCAG AA: #a15c00 on #fff8e7 ≈ 4.9:1 (was #996600). */
+  color: #a15c00;
+}
+
+/* ================================================================
+   REFERENCE- (Green theme)
+   ================================================================ */
+.reference-box {
+  background-color: #f0fff0;
+  border-left: 4px solid #228b22;
+  font-size: 11px;
+  font-style: italic;
+}
+
+.reference-box .block-title {
+  /* Darkened green for WCAG AA: #1d811d on #f0fff0 ≈ 4.8:1 at 11px bold
+     (was #228b22 = 4.23:1, failing 4.5:1). Border keeps the brighter green. */
+  color: #1d811d;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+/* ================================================================
+   EXAMPLE- (Gray theme)
+   ================================================================ */
+.example-box {
+  background-color: #f5f5f5;
+  border-left: 4px solid #666666;
+  font-size: 14.663px;
+  font-style: italic;
+}
+
+.example-box .block-title {
+  color: #333333;
+}
+
+/* ================================================================
+   INTERPRETATION- (Brown theme)
+   ================================================================ */
+.interpretation-box {
+  background-color: rgba(139, 90, 43, 0.08);
+  border-left: 4px solid #8b5a2b;
+  font-size: 11px;
+  font-style: italic;
+}
+
+.interpretation-box .block-title {
+  color: #8b5a2b;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+/* ================================================================
+   CAUTION- (Yellow/Warning theme)
+   ================================================================ */
+.caution-box {
+  background-color: #fff3cd;
+  border-left: 4px solid #ffc107;
+  font-size: 14.663px;
+}
+
+.caution-box .block-title {
+  color: #856404;
+}
+
+/* ================================================================
+   WARNING- (Red/Danger theme)
+   ================================================================ */
+.warning-box {
+  background-color: #f8d7da;
+  border-left: 4px solid #dc3545;
+  font-size: 14.663px;
+}
+
+.warning-box .block-title {
+  color: #721c24;
+}
+
+/* ================================================================
+   DITA-OT default note overrides
+   Ensures DITA-OT's default .note class gets styled too
+   ================================================================ */
+.note.note_note,
+div.note {
+  margin-bottom: 1em;
+  margin-top: 1em;
+}
+
+.note__title {
+  font-weight: 700;
+  font-style: italic;
+}
+
+/* ================================================================
+   Lists within note boxes
+   Numeric (1., 2.) with bold markers
+   ================================================================ */
+.note-box ol,
+.reference-box ol,
+.caution-box ol,
+.example-box ol,
+.phraseology-box ol,
+.interpretation-box ol {
+  list-style-type: decimal;
+  padding-left: 2em;
+}
+
+.note-box ol > li::marker,
+.reference-box ol > li::marker,
+.caution-box ol > li::marker,
+.example-box ol > li::marker,
+.phraseology-box ol > li::marker,
+.interpretation-box ol > li::marker {
+  font-weight: bold;
+}
+
+.note-box ol > li,
+.reference-box ol > li,
+.caution-box ol > li,
+.example-box ol > li,
+.phraseology-box ol > li,
+.interpretation-box ol > li {
+  font-style: italic;
+}

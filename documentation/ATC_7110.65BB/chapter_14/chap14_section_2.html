@@ -1,0 +1,1333 @@
+<!DOCTYPE html
+  SYSTEM "about:legacy-compat">
+<html lang="en-us"><head><meta charset="UTF-8"><meta name="copyright" content="(C) Copyright 2026"><meta name="generator" content="DITA-OT"><meta name="keywords" content="En Route Controller Pilot Data Link Communications (CPDLC) - Domestic"><meta name="prodname" content="JO 7110.65BB"><meta name="prodname" content="JO 7110.65BB"><meta name="component" content=""><title>Chapter 14. Data Link Communications</title><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta http-equiv="X-UA-Compatible" content="ie=edge"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous"><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,700&amp;family=Roboto+Condensed:ital,wght@0,400;0,700;1,400;1,700&amp;display=swap" rel="stylesheet"><link rel="stylesheet" type="text/css" href="../css/atc-main.css"><link rel="stylesheet" type="text/css" href="../commonltr.css"></head><body id="atc-body"><header class="header"><nav class="navbar" role="navigation" aria-label="Main navigation"><div class="navbar-brand"><a class="navbar-item publication_name" href="../index.html"><span>7110.65BB</span></a><div class="navbar-search"><form id="search_form" action="https://search.usa.gov/search" method="get" accept-charset="UTF-8"><input name="utf8" type="hidden" value="✓"><input name="affiliate" id="affiliate" type="hidden" value="atc__content"><input id="search-input" name="query" type="search" placeholder="Search the 7110.65" aria-label="Search" title="Search field"><button type="submit" class="search-submit" aria-label="Submit search"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button></form></div><button class="navbar-burger" aria-label="Menu" aria-expanded="false" data-target="atc-navbar-menu"><span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span></button></div><div id="atc-navbar-menu" class="navbar-menu"><div class="navbar-end"><div class="navbar-item has-dropdown is-hoverable"><a class="navbar-link">7110.65 by Chapter Number</a><div class="navbar-dropdown is-right"><a class="navbar-item atc-chap-number-dropdown" href="../chapter_0/chap_0.html">Chapter 0. General Information</a><a class="navbar-item atc-chap-number-dropdown" href="../chapter_1/chap_1.html">Chapter 1. General</a><a class="navbar-item atc-chap-number-dropdown" href="../chapter_2/chap_2.html">Chapter 2. General Control</a><a class="navbar-item atc-chap-number-dropdown" href="../chapter_3/chap_3.html">Chapter 3. Airport Traffic Control - Terminal</a><a class="navbar-item atc-chap-number-dropdown" href="../chapter_4/chap_4.html">Chapter 4. IFR</a><a class="navbar-item atc-chap-number-dropdown" href="../chapter_5/chap_5.html">Chapter 5. Radar</a><a class="navbar-item atc-chap-number-dropdown" href="../chapter_6/chap_6.html">Chapter 6. Nonradar</a><a class="navbar-item atc-chap-number-dropdown" href="../chapter_7/chap_7.html">Chapter 7. Visual</a><a class="navbar-item atc-chap-number-dropdown" href="../chapter_8/chap_8.html">Chapter 8. Offshore/Oceanic Procedures</a><a class="navbar-item atc-chap-number-dropdown" href="../chapter_9/chap_9.html">Chapter 9. Special Flights</a><a class="navbar-item atc-chap-number-dropdown" href="../chapter_10/chap_10.html">Chapter 10. Emergencies</a><a class="navbar-item atc-chap-number-dropdown" href="../chapter_11/chap_11.html">Chapter 11. Traffic Management Procedures</a><a class="navbar-item atc-chap-number-dropdown" href="../chapter_12/chap_12.html">Chapter 12. Canadian Airspace Procedures</a><a class="navbar-item atc-chap-number-dropdown" href="../chapter_13/chap_13.html">Chapter 13. Decision Support Tools</a><a class="navbar-item atc-chap-number-dropdown" href="chap_14.html">Chapter 14. Data Link Communications</a><a class="navbar-item atc-chap-number-dropdown" href="../appendix_a.html">Appendix A</a><a class="navbar-item atc-chap-number-dropdown" href="../appendix_b.html">Appendix B</a></div></div><a class="navbar-item" href="http://www.faa.gov/air_traffic/publications/" target="_blank" rel="noopener">ATPUBS</a></div></div></nav></header><div class="main-wrapper" id="main-wrapper"><div class="navigation-container">
+      <aside class="navigation">
+        <div class="panels">
+          <div class="navigation-menu is-active" data-panel="menu">
+            <nav role="navigation" class="nav-menu">
+              <h3 class="title"><a href="../index.html" aria-label="FAA Order JO 7110.65BB - Air Traffic Control home page">JO 7110.65BB by Topic</a></h3>
+              <ul class="nav-list">
+          <li class="nav-item" data-depth="0" data-id="menu-0-0">
+            <ul class="nav-list">
+              <li class="nav-item" data-depth="1" data-id="menu-1-/chap_0">
+                <button class="nav-toggle" aria-label="Navigation toggler"></button>
+                <span class="nav-text"></span>
+                <a class="nav-link" href="../chapter_0/chap_0.html">General Information</a>
+                <ul class="nav-list">
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap0_section_0">
+                    <a class="nav-link" href="../chapter_0/chap0_section_0.html">Explanation of Changes</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item" data-depth="0" data-id="menu-0-1">
+            <ul class="nav-list">
+              <li class="nav-item" data-depth="1" data-id="menu-1-/chap_1">
+                <button class="nav-toggle" aria-label="Navigation toggler"></button>
+                <span class="nav-text"></span>
+                <a class="nav-link" href="../chapter_1/chap_1.html">General</a>
+                <ul class="nav-list">
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap1_section_1">
+                    <a class="nav-link" href="../chapter_1/chap1_section_1.html">Introduction</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap1_section_2">
+                    <a class="nav-link" href="../chapter_1/chap1_section_2.html">Terms of Reference</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item" data-depth="0" data-id="menu-0-2">
+            <ul class="nav-list">
+              <li class="nav-item" data-depth="1" data-id="menu-1-/chap_2">
+                <button class="nav-toggle" aria-label="Navigation toggler"></button>
+                <span class="nav-text"></span>
+                <a class="nav-link" href="../chapter_2/chap_2.html">General Control</a>
+                <ul class="nav-list">
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap2_section_1">
+                    <a class="nav-link" href="../chapter_2/chap2_section_1.html">General</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap2_section_2">
+                    <a class="nav-link" href="../chapter_2/chap2_section_2.html">Flight Plans and Control Information</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap2_section_3">
+                    <a class="nav-link" href="../chapter_2/chap2_section_3.html">Flight Progress Strips</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap2_section_4">
+                    <a class="nav-link" href="../chapter_2/chap2_section_4.html">Radio and Interphone Communications</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap2_section_5">
+                    <a class="nav-link" href="../chapter_2/chap2_section_5.html">Route and NAVAID Description</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap2_section_6">
+                    <a class="nav-link" href="../chapter_2/chap2_section_6.html">Weather Information</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap2_section_7">
+                    <a class="nav-link" href="../chapter_2/chap2_section_7.html">Altimeter Settings</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap2_section_8">
+                    <a class="nav-link" href="../chapter_2/chap2_section_8.html">Runway Visibility Reporting- Terminal</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap2_section_9">
+                    <a class="nav-link" href="../chapter_2/chap2_section_9.html">Automatic Terminal Information Service Procedures</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap2_section_10">
+                    <a class="nav-link" href="../chapter_2/chap2_section_10.html">Team Position Responsibilities</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item" data-depth="0" data-id="menu-0-3">
+            <ul class="nav-list">
+              <li class="nav-item" data-depth="1" data-id="menu-1-/chap_3">
+                <button class="nav-toggle" aria-label="Navigation toggler"></button>
+                <span class="nav-text"></span>
+                <a class="nav-link" href="../chapter_3/chap_3.html">Airport Traffic Control - Terminal</a>
+                <ul class="nav-list">
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap3_section_1">
+                    <a class="nav-link" href="../chapter_3/chap3_section_1.html">General</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap3_section_2">
+                    <a class="nav-link" href="../chapter_3/chap3_section_2.html">Visual Signals</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap3_section_3">
+                    <a class="nav-link" href="../chapter_3/chap3_section_3.html">Airport Conditions</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap3_section_4">
+                    <a class="nav-link" href="../chapter_3/chap3_section_4.html">Airport Lighting</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap3_section_5">
+                    <a class="nav-link" href="../chapter_3/chap3_section_5.html">Runway Selection</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap3_section_6">
+                    <a class="nav-link" href="../chapter_3/chap3_section_6.html">Airport Surface Detection Procedures</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap3_section_7">
+                    <a class="nav-link" href="../chapter_3/chap3_section_7.html">Taxi and Ground Movement Procedures</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap3_section_8">
+                    <a class="nav-link" href="../chapter_3/chap3_section_8.html">Spacing and Sequencing</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap3_section_9">
+                    <a class="nav-link" href="../chapter_3/chap3_section_9.html">Departure Procedures and Separation</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap3_section_10">
+                    <a class="nav-link" href="../chapter_3/chap3_section_10.html">Arrival Procedures and Separation</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap3_section_11">
+                    <a class="nav-link" href="../chapter_3/chap3_section_11.html">Helicopter Operations</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap3_section_12">
+                    <a class="nav-link" href="../chapter_3/chap3_section_12.html">Sea Lane Operations</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item" data-depth="0" data-id="menu-0-4">
+            <ul class="nav-list">
+              <li class="nav-item" data-depth="1" data-id="menu-1-/chap_4">
+                <button class="nav-toggle" aria-label="Navigation toggler"></button>
+                <span class="nav-text"></span>
+                <a class="nav-link" href="../chapter_4/chap_4.html">IFR</a>
+                <ul class="nav-list">
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap4_section_1">
+                    <a class="nav-link" href="../chapter_4/chap4_section_1.html">NAVAID Use Limitations</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap4_section_2">
+                    <a class="nav-link" href="../chapter_4/chap4_section_2.html">Clearances</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap4_section_3">
+                    <a class="nav-link" href="../chapter_4/chap4_section_3.html">Departure Procedures</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap4_section_4">
+                    <a class="nav-link" href="../chapter_4/chap4_section_4.html">Route Assignment</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap4_section_5">
+                    <a class="nav-link" href="../chapter_4/chap4_section_5.html">Altitude Assignment and Verification</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap4_section_6">
+                    <a class="nav-link" href="../chapter_4/chap4_section_6.html">Holding Aircraft</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap4_section_7">
+                    <a class="nav-link" href="../chapter_4/chap4_section_7.html">Arrival Procedures</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap4_section_8">
+                    <a class="nav-link" href="../chapter_4/chap4_section_8.html">Approach Clearance Procedures</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item" data-depth="0" data-id="menu-0-5">
+            <ul class="nav-list">
+              <li class="nav-item" data-depth="1" data-id="menu-1-/chap_5">
+                <button class="nav-toggle" aria-label="Navigation toggler"></button>
+                <span class="nav-text"></span>
+                <a class="nav-link" href="../chapter_5/chap_5.html">Radar</a>
+                <ul class="nav-list">
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap5_section_1">
+                    <a class="nav-link" href="../chapter_5/chap5_section_1.html">General</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap5_section_2">
+                    <a class="nav-link" href="../chapter_5/chap5_section_2.html">Beacon/ADS-B Systems</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap5_section_3">
+                    <a class="nav-link" href="../chapter_5/chap5_section_3.html">Radar Identification</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap5_section_4">
+                    <a class="nav-link" href="../chapter_5/chap5_section_4.html">Transfer of Radar Identification</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap5_section_5">
+                    <a class="nav-link" href="../chapter_5/chap5_section_5.html">Radar Separation</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap5_section_6">
+                    <a class="nav-link" href="../chapter_5/chap5_section_6.html">Vectoring</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap5_section_7">
+                    <a class="nav-link" href="../chapter_5/chap5_section_7.html">Speed Adjustment</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap5_section_8">
+                    <a class="nav-link" href="../chapter_5/chap5_section_8.html">Radar Departures</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap5_section_9">
+                    <a class="nav-link" href="../chapter_5/chap5_section_9.html">Radar Arrivals</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap5_section_10">
+                    <a class="nav-link" href="../chapter_5/chap5_section_10.html">Radar Approaches- Terminal</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap5_section_11">
+                    <a class="nav-link" href="../chapter_5/chap5_section_11.html">Surveillance Approaches- Terminal</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap5_section_12">
+                    <a class="nav-link" href="../chapter_5/chap5_section_12.html">PAR Approaches- Terminal</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap5_section_13">
+                    <a class="nav-link" href="../chapter_5/chap5_section_13.html">Automation- En Route</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap5_section_14">
+                    <a class="nav-link" href="../chapter_5/chap5_section_14.html">Standard Terminal Automation Replacement System (STARS)-Terminal</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item" data-depth="0" data-id="menu-0-6">
+            <ul class="nav-list">
+              <li class="nav-item" data-depth="1" data-id="menu-1-/chap_6">
+                <button class="nav-toggle" aria-label="Navigation toggler"></button>
+                <span class="nav-text"></span>
+                <a class="nav-link" href="../chapter_6/chap_6.html">Nonradar</a>
+                <ul class="nav-list">
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap6_section_1">
+                    <a class="nav-link" href="../chapter_6/chap6_section_1.html">General</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap6_section_2">
+                    <a class="nav-link" href="../chapter_6/chap6_section_2.html">Initial Separation of Successive Departing Aircraft</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap6_section_3">
+                    <a class="nav-link" href="../chapter_6/chap6_section_3.html">Initial Separation of Departing and Arriving Aircraft</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap6_section_4">
+                    <a class="nav-link" href="../chapter_6/chap6_section_4.html">Longitudinal Separation</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap6_section_5">
+                    <a class="nav-link" href="../chapter_6/chap6_section_5.html">Lateral Separation</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap6_section_6">
+                    <a class="nav-link" href="../chapter_6/chap6_section_6.html">Vertical Separation</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap6_section_7">
+                    <a class="nav-link" href="../chapter_6/chap6_section_7.html">Timed Approaches</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item" data-depth="0" data-id="menu-0-7">
+            <ul class="nav-list">
+              <li class="nav-item" data-depth="1" data-id="menu-1-/chap_7">
+                <button class="nav-toggle" aria-label="Navigation toggler"></button>
+                <span class="nav-text"></span>
+                <a class="nav-link" href="../chapter_7/chap_7.html">Visual</a>
+                <ul class="nav-list">
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap7_section_1">
+                    <a class="nav-link" href="../chapter_7/chap7_section_1.html">General</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap7_section_2">
+                    <a class="nav-link" href="../chapter_7/chap7_section_2.html">Visual Separation</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap7_section_3">
+                    <a class="nav-link" href="../chapter_7/chap7_section_3.html">VFR‐On‐Top</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap7_section_4">
+                    <a class="nav-link" href="../chapter_7/chap7_section_4.html">Approaches</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap7_section_5">
+                    <a class="nav-link" href="../chapter_7/chap7_section_5.html">Special VFR (SVFR)</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap7_section_6">
+                    <a class="nav-link" href="../chapter_7/chap7_section_6.html">Basic Radar Service to VFR Aircraft- Terminal</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap7_section_7">
+                    <a class="nav-link" href="../chapter_7/chap7_section_7.html">Terminal Radar Service Area (TRSA)-Terminal</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap7_section_8">
+                    <a class="nav-link" href="../chapter_7/chap7_section_8.html">Class C Service- Terminal</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap7_section_9">
+                    <a class="nav-link" href="../chapter_7/chap7_section_9.html">Class B Service Area- Terminal</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item" data-depth="0" data-id="menu-0-8">
+            <ul class="nav-list">
+              <li class="nav-item" data-depth="1" data-id="menu-1-/chap_8">
+                <button class="nav-toggle" aria-label="Navigation toggler"></button>
+                <span class="nav-text"></span>
+                <a class="nav-link" href="../chapter_8/chap_8.html">Offshore/Oceanic Procedures</a>
+                <ul class="nav-list">
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap8_section_1">
+                    <a class="nav-link" href="../chapter_8/chap8_section_1.html">General</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap8_section_2">
+                    <a class="nav-link" href="../chapter_8/chap8_section_2.html">Coordination</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap8_section_3">
+                    <a class="nav-link" href="../chapter_8/chap8_section_3.html">Longitudinal Separation</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap8_section_4">
+                    <a class="nav-link" href="../chapter_8/chap8_section_4.html">Lateral Separation</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap8_section_5">
+                    <a class="nav-link" href="../chapter_8/chap8_section_5.html">Offshore/Oceanic Transition Procedures</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap8_section_6">
+                    <a class="nav-link" href="../chapter_8/chap8_section_6.html">Separation from Airspace Reservations</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap8_section_7">
+                    <a class="nav-link" href="../chapter_8/chap8_section_7.html">North Atlantic ICAO Region</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap8_section_8">
+                    <a class="nav-link" href="../chapter_8/chap8_section_8.html">Caribbean ICAO Region</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap8_section_9">
+                    <a class="nav-link" href="../chapter_8/chap8_section_9.html">Pacific ICAO Region</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap8_section_10">
+                    <a class="nav-link" href="../chapter_8/chap8_section_10.html">North American ICAO Region</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item" data-depth="0" data-id="menu-0-9">
+            <ul class="nav-list">
+              <li class="nav-item" data-depth="1" data-id="menu-1-/chap_9">
+                <button class="nav-toggle" aria-label="Navigation toggler"></button>
+                <span class="nav-text"></span>
+                <a class="nav-link" href="../chapter_9/chap_9.html">Special Flights</a>
+                <ul class="nav-list">
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap9_section_1">
+                    <a class="nav-link" href="../chapter_9/chap9_section_1.html">General</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap9_section_2">
+                    <a class="nav-link" href="../chapter_9/chap9_section_2.html">Special Operations</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap9_section_3">
+                    <a class="nav-link" href="../chapter_9/chap9_section_3.html">Special Use, ATC-Assigned Airspace, and Stationary ALTRVs</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap9_section_4">
+                    <a class="nav-link" href="../chapter_9/chap9_section_4.html">Fuel Dumping</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap9_section_5">
+                    <a class="nav-link" href="../chapter_9/chap9_section_5.html">Jettisoning of External Stores</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap9_section_6">
+                    <a class="nav-link" href="../chapter_9/chap9_section_6.html">Unmanned Free Balloons</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap9_section_7">
+                    <a class="nav-link" href="../chapter_9/chap9_section_7.html">Parachute Operations</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap9_section_8">
+                    <a class="nav-link" href="../chapter_9/chap9_section_8.html">Unidentified Anomalous Phenomena (UAP) Reports</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item" data-depth="0" data-id="menu-0-10">
+            <ul class="nav-list">
+              <li class="nav-item" data-depth="1" data-id="menu-1-/chap_10">
+                <button class="nav-toggle" aria-label="Navigation toggler"></button>
+                <span class="nav-text"></span>
+                <a class="nav-link" href="../chapter_10/chap_10.html">Emergencies</a>
+                <ul class="nav-list">
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap10_section_1">
+                    <a class="nav-link" href="../chapter_10/chap10_section_1.html">General</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap10_section_2">
+                    <a class="nav-link" href="../chapter_10/chap10_section_2.html">Emergency Assistance</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap10_section_3">
+                    <a class="nav-link" href="../chapter_10/chap10_section_3.html">Overdue Aircraft</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap10_section_4">
+                    <a class="nav-link" href="../chapter_10/chap10_section_4.html">Control Actions</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap10_section_5">
+                    <a class="nav-link" href="../chapter_10/chap10_section_5.html">Miscellaneous Operations</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap10_section_6">
+                    <a class="nav-link" href="../chapter_10/chap10_section_6.html">Oceanic Emergency Procedures</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap10_section_7">
+                    <a class="nav-link" href="../chapter_10/chap10_section_7.html">Ground Missile Emergencies</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item" data-depth="0" data-id="menu-0-11">
+            <ul class="nav-list">
+              <li class="nav-item" data-depth="1" data-id="menu-1-/chap_11">
+                <button class="nav-toggle" aria-label="Navigation toggler"></button>
+                <span class="nav-text"></span>
+                <a class="nav-link" href="../chapter_11/chap_11.html">Traffic Management Procedures</a>
+                <ul class="nav-list">
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap11_section_1">
+                    <a class="nav-link" href="../chapter_11/chap11_section_1.html">General</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item" data-depth="0" data-id="menu-0-12">
+            <ul class="nav-list">
+              <li class="nav-item" data-depth="1" data-id="menu-1-/chap_12">
+                <button class="nav-toggle" aria-label="Navigation toggler"></button>
+                <span class="nav-text"></span>
+                <a class="nav-link" href="../chapter_12/chap_12.html">Canadian Airspace Procedures</a>
+                <ul class="nav-list">
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap12_section_1">
+                    <a class="nav-link" href="../chapter_12/chap12_section_1.html">General Control</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item" data-depth="0" data-id="menu-0-13">
+            <ul class="nav-list">
+              <li class="nav-item" data-depth="1" data-id="menu-1-/chap_13">
+                <button class="nav-toggle" aria-label="Navigation toggler"></button>
+                <span class="nav-text"></span>
+                <a class="nav-link" href="../chapter_13/chap_13.html">Decision Support Tools</a>
+                <ul class="nav-list">
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap13_section_1">
+                    <a class="nav-link" href="../chapter_13/chap13_section_1.html">ERAM - En Route</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap13_section_2">
+                    <a class="nav-link" href="../chapter_13/chap13_section_2.html">ATOP - Oceanic</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item is-active" data-depth="0" data-id="menu-0-14">
+            <ul class="nav-list">
+              <li class="nav-item" data-depth="1" data-id="menu-1-/chap_14">
+                <button class="nav-toggle" aria-label="Navigation toggler"></button>
+                <span class="nav-text"></span>
+                <a class="nav-link" href="chap_14.html">Data Link Communications</a>
+                <ul class="nav-list">
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap14_section_1">
+                    <a class="nav-link" href="chap14_section_1.html">Terminal Procedures for Issuing Automated Clearances</a>
+                  </li>
+                  <li class="nav-item is-active" data-depth="2" data-id="menu-2-/chap14_section_2">
+                    <a class="nav-link" href="chap14_section_2.html">En Route Controller Pilot Data Link Communications (CPDLC) - Domestic</a>
+                  </li>
+                  <li class="nav-item" data-depth="2" data-id="menu-2-/chap14_section_3">
+                    <a class="nav-link" href="chap14_section_3.html">Advanced Technologies and Oceanic Procedures (ATOP) - Oceanic Controller Pilot Data Link Communications (CPDLC)</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item" data-depth="0">
+            <a class="nav-link" href="../appendix_a.html">Appendix A</a>
+          </li>
+          <li class="nav-item" data-depth="0">
+            <a class="nav-link" href="../appendix_b.html">Appendix B</a>
+          </li>
+              </ul>
+            </nav>
+          </div>
+        </div>
+      </aside>
+    </div><div class="main-content usa-content" id="main"><div class="toolbar" role="navigation"><button title="navigation-toggle" class="navigation-toggle" aria-label="Toggle navigation"> </button><nav class="crumbs" aria-label="breadcrumbs"><ul><li class="crumb"><a aria-label="Chapter title" class="chapter-link-title" href="chap_14.html">Data Link Communications</a></li><li class="crumb">En Route Controller Pilot Data Link Communications (CPDLC) - Domestic</li></ul></nav></div><main role="main"><article role="article" aria-labelledby="ariaid-title1"><article class="nested0" aria-labelledby="ariaid-title1" id="chap14_section_2">
+<h1 class="chapter-title text-center">Chapter 14. Data Link Communications</h1>
+<h2 class="section-title text-center">Section 2. En Route Controller Pilot Data Link Communications (CPDLC) - Domestic</h2>
+
+<div class="body conbody">
+
+<h4 class="paragraph-title" id="14-2-1">14-2-1. GENERAL</h4>
+<aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<p class="p"><em class="ph i"><br>
+
+Controller Pilot Data Link Communications (CPDLC) messages in use in domestic en route operations are contained in <a class="xref" href="chap14_section_2.html#14-2-4">TBL 14-2-1</a> through <a class="xref" href="chap14_section_2.html#14-2-4">TBL 14-2-23</a>.</em></p></div></aside><ol class="ol level-one">
+<li class="li" id="chap14_section_2__c_general_5-li_1">The use of CPDLC is approved to augment the voice communication requirements of FAA Order JO 7110.65 for all altitudes, routes, speeds, holding clearances, altimeters, advisories, and frequency changes.</li>
+<li class="li" id="chap14_section_2__c_general_5-li_2">The sector team is responsible for sending and responding to CPDLC messages.</li>
+<li class="li" id="chap14_section_2__c_general_5-li_3">Controllers should minimize the use of CPDLC during critical phases of flight.</li>
+<li class="li" id="chap14_section_2__c_general_5-li_4">CPDLC should not be used to issue immediate or expeditious clearances unless voice communication is not operationally feasible.</li>
+<li class="li" id="chap14_section_2__c_general_5-li_5">Ensure there are no trajectory altering clearances (TAC) open prior to transfer of communication unless otherwise coordinated.</li>
+<li class="li" id="chap14_section_2__c_general_5-li_6">Use of the automated Voice Communication Indicator (VCI) during CPDLC operations complies with the requirements of FAA Order JO 7110.65 paragraph <a class="xref" href="../chapter_2/chap2_section_1.html#2-1-17">2-1-17</a>, Radio Communications.</li>
+<li class="li" id="chap14_section_2__c_general_5-li_7">Unless otherwise coordinated, the last controller working the aircraft before it exits the continental United States (U.S.) must ensure the CPDLC connection is terminated upon transfer of communication to any non‐U.S. facility or Advanced Technologies and Oceanic Procedures (ATOP) sector.</li>
+<li class="li" id="chap14_section_2__c_general_5-li_8">Coordination must be accomplished with the sector with eligibility prior to terminating a CPDLC connection from any other position or adapted air traffic workstation.</li>
+<li class="li" id="chap14_section_2__c_general_5-li_9">In the event of receipt of an emergency pilot initiated downlink (PID), follow the provisions of FAA Order JO 7110.65, <a class="xref" href="../chapter_10/chap10_section_1.html#chap10_section_1">Chapter 10</a>, Emergencies.</li>
+<li class="li" id="chap14_section_2__c_general_5-li_10">When responding to a PID for a weather deviation request via CPDLC, and the aircraft has a clearance to climb/descend via or has a crossing restriction, the controller must unable the request and revert to voice communications.
+
+<aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<p class="p">After a climb via or descend via clearance has been issued, a vector/deviation off a SID/STAR cancels the altitude restrictions on the procedure. The aircraft's flight management system (FMS) may be unable to process crossing altitude restrictions once the aircraft leaves the SID/STAR lateral path. Without an assigned altitude, the aircraft's FMS may revert to leveling off at the altitude set by the pilot, which may be the SID/STAR published top or bottom altitude.</p></div></aside><aside class="reference-box" role="doc-tip"><p class="block-title">REFERENCE-</p><div class="block-content">
+<p class="p">FAA Order JO 7110.65, Para <a class="xref" href="../chapter_4/chap4_section_2.html#4-2-5">4-2-5</a>, Route or Altitude Amendments.</p></div></aside></li></ol>
+
+<h4 class="paragraph-title" id="14-2-2">14-2-2. ABNORMAL SITUATIONS</h4>
+<ol class="ol level-one">
+<li class="li" id="chap14_section_2__c_abnormal_situations-li_1">When an Initial Contact (IC) mismatch or confirm assigned altitude (CAA) downlink time‐out indicator is displayed in the full data block (FDB) and ACL, the controller who has the aircraft on their voice frequency must use voice communication to verify the assigned altitude of the aircraft and acknowledge the IC mismatch/time‐out indicator.
+
+<aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<p class="p">All sectors in the controlling ARTCC displaying an FDB will show the IC mismatch/time‐out indicator.</p></div></aside></li>
+<li class="li" id="chap14_section_2__c_abnormal_situations-li_2">Abnormal CPDLC indications must be acknowledged by the controller only after required coordination has been performed.</li>
+<li class="li" id="chap14_section_2__c_abnormal_situations-li_3">Use voice communications when overriding an open CPDLC clearance and issuing alternate control instructions. If the CPDLC clearance contains multiple elements, the entire clearance must be restated.
+
+<aside class="phraseology-box" role="note"><p class="block-title">PHRASEOLOGY-</p><div class="block-content">
+<p class="p">DISREGARD CPDLC (type) CLEARANCE (description of clearance) AND SEND AN UNABLE (alternate clearance).</p></div></aside><aside class="example-box" role="note"><p class="block-title">EXAMPLE-</p><div class="block-content">
+<p class="p">“American Fifty‐Two, disregard CPDLC altitude clearance to flight level three five zero and send an unable. Climb and maintain flight level three one zero.”<br>
+
+“Delta Four Twenty‐Three, disregard CPDLC route clearance direct Memphis and send an unable. Cleared direct Nashville, direct Memphis, rest of route unchanged.”<br>
+
+“United Thirty‐Two, disregard CPDLC hold clearance at JKSON and send an unable. Cleared to Atlanta airport via direct JKSON GLAVN one, maintain flight level three three zero.”<br>
+
+“Alaska Ten, disregard CPDLC crossing and speed clearance at EMZOH and send an unable. Cross EMZOH at and maintain flight level two eight zero at two five zero knots.”</p></div></aside><aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<p class="p">Controllers should be aware that the CPDLC clearance being overridden may not have been received on the flight deck at the time of the voice communication. This phraseology tells the pilot exactly which clearance requires an UNABLE response.</p></div></aside></li>
+<li class="li" id="chap14_section_2__c_abnormal_situations-li_4">Controllers may cancel an open uplink only after ensuring the pilot has been issued and acknowledged, via voice communication, the superseding ATC clearance.
+
+<aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<ol class="ol level-two" type="a">
+<li class="li" id="chap14_section_2__c_abnormal_situations-li_5">The provisions of this paragraph are not intended to replace the requirements to override a CPDLC clearance as stipulated in paragraph <a class="xref" href="chap14_section_2.html#14-2-3">14-2-3</a>.</li>
+<li class="li" id="chap14_section_2__c_abnormal_situations-li_6">Canceling an uplink only removes the uplink from the CPDLC ground system. The uplink remains open on the flight deck. Controllers must instruct the pilot to respond with an unable to close the uplink on the flight deck.</li>
+<li class="li" id="chap14_section_2__c_abnormal_situations-li_7">The ability to cancel an uplink is only provided to allow controllers to clear open uplink indications in the FDB and ACL. Clearing these indications allows controllers to continue CPDLC operations with the affected aircraft.</li></ol></div></aside></li>
+<li class="li" id="chap14_section_2__c_abnormal_situations-li_8">For No Radio (NORDO) aircraft with an active CPDLC connection:
+
+<ol class="ol level-two" type="a">
+<li class="li" id="chap14_section_2__c_abnormal_situations-li_9">It is permissible for the sector with eligibility to mark the aircraft on frequency to allow CPDLC communications with that aircraft.</li>
+<li class="li" id="chap14_section_2__c_abnormal_situations-li_10">Use procedures in FAA Order JO 7110.65, paragraphs <a class="xref" href="../chapter_5/chap5_section_2.html#5-2-4">5-2-4</a>, Radio Failure, and <a class="xref" href="../chapter_10/chap10_section_4.html#10-4-4">10-4-4</a>, Communications Failure, for all CPDLC aircraft that experience a two‐way voice radio communications failure.</li></ol></li></ol>
+
+<h4 class="paragraph-title" id="14-2-3">14-2-3. SYSTEM SITUATIONS</h4>
+<ol class="ol level-one">
+<li class="li" id="chap14_section_2__c_system_situations-li_1">If the CPDLC system fails to provide a necessary automated altimeter setting to an aircraft, the controller must issue an altimeter setting in accordance with FAA Order JO 7110.65, <a class="xref" href="../chapter_2/chap2_section_1.html#chap2_section_1">Chapter 2</a>, <a class="xref" href="../chapter_2/chap2_section_7.html#chap2_section_7">Section 7</a>, Altimeter Settings.
+
+<aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<p class="p">If the CPDLC system fails to provide an automated altimeter setting, the controller with eligibility will be notified with an abnormal indication in the FDB. Automated altimeters are only sent in response to a monitor transfer of communication (TOC), or an altitude uplink when the assigned altitude is below FL 180.</p></div></aside></li>
+<li class="li" id="chap14_section_2__c_system_situations-li_2">When a CPDLC connection is unexpectedly lost with an aircraft, and voice communication had not previously been established, the controller must ensure voice communication is established and maintained with that aircraft.</li>
+<li class="li" id="chap14_section_2__c_system_situations-li_3">Whenever there is a shutdown or failure of CPDLC service:
+
+<ol class="ol level-two" type="a">
+<li class="li" id="chap14_section_2__c_system_situations-li_4">Controllers must use voice to broadcast a message alerting pilots to the shutdown and request no pilot downlinks until further advised.
+
+<aside class="example-box" role="note"><p class="block-title">EXAMPLE-</p><div class="block-content">
+<p class="p">“Attention all aircraft; CPDLC no longer in use. Do not downlink any messages until further advised.”</p></div></aside></li>
+<li class="li" id="chap14_section_2__c_system_situations-li_5">Controllers must take action to ensure that any open or abnormally closed uplinks at the time of the shutdown are resolved, by voice, with each aircraft.</li></ol></li></ol>
+
+<h4 class="paragraph-title" id="14-2-4">14-2-4. SPECIFIC UPLINKS</h4>
+<ol class="ol level-one">
+<li class="li" id="chap14_section_2__c_specific_uplinks-li_1">Advisory Messages
+
+<ol class="ol level-two" type="a">
+<li class="li" id="chap14_section_2__c_specific_uplinks-li_2">Control instructions and messages that require an acknowledgement from the aircraft must not be issued via advisory/free text messages.</li>
+<li class="li" id="chap14_section_2__c_specific_uplinks-li_3">When using abbreviations to compose weather related or advisory/free text messages, comply with FAA Order JO 7340.2, Contractions.
+
+<aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<p class="p">Some common meteorological abbreviations:<br>
+
+ 1. Extreme = EXTRM<br>
+
+ 2. Severe = SEV<br>
+
+ 3. Heavy = HVY<br>
+
+ 4. Moderate = MOD<br>
+
+ 5. Light = LGT<br>
+
+ 6. Turbulence = TURB<br>
+
+ 7. Continuous = CONS<br>
+
+ 8. Occasional = OCNL<br>
+
+ 9. Intermittent = INTMT</p></div></aside></li></ol></li>
+<li class="li" id="chap14_section_2__c_specific_uplinks-li_4">Speeds
+
+<ol class="ol level-two" type="a">
+<li class="li" id="chap14_section_2__c_specific_uplinks-li_5">When using CPDLC to issue a speed assignment to an aircraft at or above FL 390, the WILCO response satisfies the requirement in JO 7110.65, <a class="xref" href="../chapter_5/chap5_section_7.html#5-7-2">5-7-2</a><a class="xref" href="../chapter_5/chap5_section_7.html#5-7-2">b</a>, regarding pilot concurrence.</li>
+<li class="li" id="chap14_section_2__c_specific_uplinks-li_6">CPDLC must not be used to issue a speed adjustment to an aircraft established on a route or procedure that has published speed restrictions.</li></ol></li>
+<li class="li" id="chap14_section_2__c_specific_uplinks-li_7">Holding
+
+<ol class="ol level-two" type="a">
+<li class="li" id="chap14_section_2__c_specific_uplinks-li_8">CPDLC must not be used to clear an aircraft out of holding.
+
+<aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<p class="p">Because a route uplink does not specify a new clearance limit, clearing an aircraft out of holding must be done via voice.</p></div></aside></li>
+<li class="li" id="chap14_section_2__c_specific_uplinks-li_9">If an aircraft has a clearance to climb/descend via, holding instructions must not be issued via CPDLC.
+
+<aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<p class="p">The vertical navigation portion of the procedure must be canceled prior to using CPDLC to issue holding instructions.</p></div></aside><table class="table"><caption><span class="tbl-number">TBL 14-2-1</span><span class="tbl-title">Response Attribute of CPDLC Message Element</span></caption><colgroup><col><col></colgroup><thead class="thead">
+<tr class="row">
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__1"><p class="p"><strong class="ph b">Response Attribute</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__2"><p class="p"><strong class="ph b">Description</strong></p></th></tr>
+</thead><tbody class="tbody">
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__1 chap14_section_2__c_specific_uplinks-li_9__entry__2" colspan="2"><p class="p"><strong class="ph b">For Uplink Message</strong></p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__1"><p class="p">W/U</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__2"><p class="p">Response required.</p><p class="p">Valid responses. WILCO, UNABLE, STANDBY, NOT CURRENT DATA AUTHORITY, NOT AUTHORIZED NEXT DATA AUTHORITY, LOGICAL ACKNOWLEDGEMENT (only if required), ERROR</p><p class="p">NOTE– WILCO, UNABLE, NOT CURRENT DATA AUTHORITY, NOT AUTHORIZED NEXT DATA AUTHORITY and ERROR will close the uplink message.</p><p class="p">FANS 1/A.— WILCO, UNABLE, STANDBY, ERROR, NOT CURRENT DATA AUTHORITY.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__1"><p class="p">A/N</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__2"><p class="p">Response required.</p><p class="p">Valid responses. AFFIRM, NEGATIVE, STANDBY, NOT CURRENT DATA AUTHORITY, NOT AUTHORIZED NEXT DATA AUTHORITY, LOGICAL ACKNOWLEDGEMENT (only if required), ERROR</p><p class="p">NOTE– AFFIRM, NEGATIVE, NOT CURRENT DATA AUTHORITY, NOT AUTHORIZED NEXT DATA AUTHORITY and ERROR will close the uplink message.</p><p class="p">FANS 1/A.— AFFIRM, NEGATIVE, STANDBY, ERROR, NOT CURRENT DATA AUTHORITY</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__1"><p class="p">R</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__2"><p class="p">Response required.</p><p class="p">Valid responses. ROGER, UNABLE, STANDBY, NOT CURRENT DATA AUTHORITY, NOT AUTHORIZED NEXT DATA AUTHORITY, LOGICAL ACKNOWLEDGEMENT (only if required), ERROR</p><p class="p">NOTE– ROGER, NOT CURRENT DATA AUTHORITY, NOT AUTHORIZED NEXT DATA AUTHORITY and ERROR will close the uplink message.</p><p class="p">FANS 1/A.— ROGER, STANDBY, ERROR, NOT CURRENT DATA AUTHORITY. FANS 1/A aircraft do not have the capability to send UNABLE in response to an uplink message containing message elements with an “R” response attribute. For these aircraft, the flight crew may use alternative means to UNABLE the message. These alternative means will need to be taken into consideration to ensure proper technical and operational closure of the communication transaction.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__1"><p class="p">Y</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__2"><p class="p">Response required.</p><p class="p">Valid responses: Any CPDLC downlink message, LOGICAL ACKNOWLEDGEMENT (only if required).</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__1"><p class="p">N</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__2"><p class="p">No response required unless logical acknowledgement is required.</p><p class="p">Valid Responses (only if LOGICAL ACKNOWLEDGEMENT is required). LOGICAL ACKNOWLEDGEMENT, NOT CURRENT DATA AUTHORITY, NOT AUTHORIZED NEXT DATA AUTHORITY, ERROR</p><p class="p">FANS 1/A.— “N” is defined as “no response is required,” but not used. Under some circumstances, an ERROR message will also close an uplink message.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__1"><p class="p">NE</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__2"><p class="p">[Not defined in Doc 4444]</p><p class="p">FANS 1/A.— The WILCO, UNABLE, AFFIRM, NEGATIVE, ROGER, and STANDBY responses are not enabled (NE) for flight crew selection. An uplink message with a response attribute NE is considered to be closed even though a response may be required operationally. Under some circumstances, a downlink error message may be linked to an uplink message with a NE attribute.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__1 chap14_section_2__c_specific_uplinks-li_9__entry__2" colspan="2"><p class="p"><strong class="ph b">For Downlink Message</strong></p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__1"><p class="p">Y</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__2"><p class="p">Response required. Yes</p><p class="p">Valid responses. Any CPDLC uplink message, LOGICAL ACKNOWLEDGEMENT (only if required).</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__1"><p class="p">N</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__2"><p class="p">Response required. No, unless logical acknowledgement required.</p><p class="p">Valid responses (only if LOGICAL ACKNOWLEDGEMENT is required). LOGICAL ACKNOWLEDGEMENT, SERVICE UNAVAILABLE, FLIGHT PLAN NOT HELD, ERROR</p><p class="p">FANS 1/A.— Aircraft do not have the capability to receive technical responses to downlink message elements with an “N” response attribute (other than LACK or ERROR for ATN B1 aircraft). In some cases, the response attribute is different between FANS 1/A aircraft and Doc 4444. As an example, most emergency messages have an “N” response attribute for FANS 1/A whereas Doc 4444 defines a “Y” response attribute for them. As a consequence, for FANS 1/A aircraft, ATC will need to use alternative means to acknowledge to the flight crew that an emergency message has been received.</p></td></tr>
+</tbody></table><div class="table-scroll-box" role="region" tabindex="0" aria-label="Scrollable table TBL 14-2-2 Route Uplink Message Elements"><table class="table table-scroll"><caption><span class="tbl-number">TBL 14-2-2</span><span class="tbl-title">Route Uplink Message Elements</span></caption><colgroup><col><col><col><col></colgroup><thead class="thead">
+<tr class="row">
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__21"><p class="p"><strong class="ph b">FANS 1/A Message Identifier</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__22"><p class="p"><strong class="ph b">Message Content</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__23"><p class="p"><strong class="ph b">Response</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__24"><p class="p"><strong class="ph b">Message element intended use</strong></p></th></tr>
+</thead><tbody class="tbody">
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__21"><p class="p">UM74</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__22"><p class="p">position</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__23"><p class="p">W/U</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__24"><p class="p">Instruction to proceed directly to the specified position.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__21"><p class="p">UM75</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__22"><p class="p">position</p><p class="p">NOTE– This message element is equivalent to SUPU-5 plus RTEU-2 in Doc 4444.</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__23"><p class="p">W/U</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__24"><p class="p">Instruction to proceed directly to the specified position.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__21"><p class="p">UM77</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__22"><p class="p">AT (<em class="ph i">position</em>) PROCEED DIRECT TO (<em class="ph i">position</em>)</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__23"><p class="p">W/U</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__24"><p class="p">Instruction to proceed, at the specified position, directly to the next specified position.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__21"><p class="p">UM78</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__22"><p class="p">AT <em class="ph i">(altitude)</em> PROCEED DIRECT TO (<em class="ph i">position</em>)</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__23"><p class="p">W/U</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__24"><p class="p">Instruction to proceed directly to the specified position upon reaching the specified altitude.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__21"><p class="p">UM79</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__22"><p class="p">CLEARED TO (<em class="ph i">position</em>) VIA (<em class="ph i">route clearance</em>)</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__23"><p class="p">W/U</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__24"><p class="p">Instruction to proceed to the specified position via the specified route.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__21"><p class="p">UM80</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__22"><p class="p">route clearance</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__23"><p class="p">W/U</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__24"><p class="p">Instruction to proceed via the specified route.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__21"><p class="p">UM83</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__22"><p class="p">AT (<em class="ph i">position</em>) CLEARED (<em class="ph i">route clearance</em>)</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__23"><p class="p">W/U</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__24"><p class="p">Instruction to proceed from the specified position via the specified route.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__21"><p class="p">UM91</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__22"><p class="p">HOLD AT (<em class="ph i">position</em>) MAINTAIN <em class="ph i">(altitude)</em> INBOUND TRACK (<em class="ph i">degrees</em>) (<em class="ph i">direction</em>) TURN LEG TIME (<em class="ph i">leg type</em>)</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__23"><p class="p">W/U</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__24"><p class="p">Instruction to enter a holding pattern at the specified position in accordance with the specified instructions.</p><p class="p">NOTE– RTEU-13 EXPECT FURTHER CLEARANCE AT (time) is appended to this message when an extended hold is anticipated.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__21"><p class="p">UM92</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__22"><p class="p">HOLD AT (<em class="ph i">position</em>) AS PUBLISHED MAINTAIN <em class="ph i">(altitude)</em></p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__23"><p class="p">W/U</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__24"><p class="p">Instruction to enter a holding pattern at the specified position in accordance with the published holding instructions.</p><p class="p">NOTE– RTEU-13 EXPECT FURTHER CLEARANCE AT TIME (time) is appended to this message when an extended hold is anticipated.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__21"><p class="p">UM93</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__22"><p class="p">time</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__23"><p class="p">W/U</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__24"><p class="p">Notification that an onwards clearance may be issued at the specified time.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__21"><p class="p">UM137</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__22"><p class="p">CONFIRM ASSIGNED ROUTE</p><p class="p">NOTE– NE response attribute.</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__23"><p class="p">Y</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__24"><p class="p">Request to confirm the assigned route.</p></td></tr>
+</tbody></table></div><div class="table-scroll-box" role="region" tabindex="0" aria-label="Scrollable table TBL 14-2-3 Route Downlink Message Elements"><table class="table table-scroll"><caption><span class="tbl-number">TBL 14-2-3</span><span class="tbl-title">Route Downlink Message Elements</span></caption><colgroup><col><col><col><col></colgroup><thead class="thead">
+<tr class="row">
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__69"><p class="p"><strong class="ph b">FANS 1/A Message Identifier</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__70"><p class="p"><strong class="ph b">Message Content</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__71"><p class="p"><strong class="ph b">Response</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__72"><p class="p"><strong class="ph b">Message element intended use</strong></p></th></tr>
+</thead><tbody class="tbody">
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__69"><p class="p">DM22</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__70"><p class="p">position</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__71"><p class="p">Y</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__72"><p class="p">Request for a direct clearance to the specified position.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__69"><p class="p">DM23</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__70"><p class="p">procedure name</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__71"><p class="p">Y</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__72"><p class="p">Request for the specified procedure or clearance name.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__69"><p class="p">DM24</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__70"><p class="p">route clearance</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__71"><p class="p">Y</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__72"><p class="p">Request for the specified route.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__69"><p class="p">DM40</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__70"><p class="p">route clearance</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__71"><p class="p">N</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__72"><p class="p">Confirmation that the assigned route is the specified route.</p></td></tr>
+</tbody></table></div><div class="table-scroll-box" role="region" tabindex="0" aria-label="Scrollable table TBL 14-2-4 Lateral Uplink Message Elements"><table class="table table-scroll"><caption><span class="tbl-number">TBL 14-2-4</span><span class="tbl-title">Lateral Uplink Message Elements</span></caption><colgroup><col><col><col><col></colgroup><thead class="thead">
+<tr class="row">
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__89"><p class="p"><strong class="ph b">FANS 1/A Message Identifier</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__90"><p class="p"><strong class="ph b">Message Content</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__91"><p class="p"><strong class="ph b">Response</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__92"><p class="p"><strong class="ph b">Message element intended use</strong></p></th></tr>
+</thead><tbody class="tbody">
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__89"><p class="p">UM82</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__90"><p class="p">CLEARED TO DEVIATE UP TO (<em class="ph i">distance offset</em>) (<em class="ph i">direction</em>) OF ROUTE</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__91"><p class="p">W/U</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__92"><p class="p">Instruction allowing deviation up to the specified distance(s) from the cleared route in the specified direction(s).</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__89"><p class="p">UM127</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__90"><p class="p">REPORT BACK ON ROUTE</p><p class="p">NOTE– R response attribute.</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__91"><p class="p">W/U</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__92"><p class="p">Instruction to report when the aircraft is back on the cleared route.</p></td></tr>
+</tbody></table></div><div class="table-scroll-box" role="region" tabindex="0" aria-label="Scrollable table TBL 14-2-5 Lateral Downlink Message Elements"><table class="table table-scroll"><caption><span class="tbl-number">TBL 14-2-5</span><span class="tbl-title">Lateral Downlink Message Elements</span></caption><colgroup><col><col><col><col></colgroup><thead class="thead">
+<tr class="row">
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__101"><p class="p"><strong class="ph b">FANS 1/A Message Identifier</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__102"><p class="p"><strong class="ph b">Message Content</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__103"><p class="p"><strong class="ph b">Response</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__104"><p class="p"><strong class="ph b">Message element intended use</strong></p></th></tr>
+</thead><tbody class="tbody">
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__101"><p class="p">DM27</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__102"><p class="p">REQUEST WEATHER DEVIATION UP TO (<em class="ph i">specified distance</em>) (<em class="ph i">direction</em>) OF ROUTE</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__103"><p class="p">Y</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__104"><p class="p">Request for a weather deviation up to the specified distance(s) off track in the specified direction(s).</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__101"><p class="p">DM41</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__102"><p class="p">BACK ON ROUTE</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__103"><p class="p">N</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__104"><p class="p">Report indicating that the cleared route has been rejoined.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__101"><p class="p">DM59</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__102"><p class="p">DIVERTING TO (<em class="ph i">position</em>) VIA (<em class="ph i">route clearance</em>)</p><p class="p">NOTE 1. – H alert attribute.</p><p class="p">NOTE 2. – N response attribute.</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__103"><p class="p">N</p><p class="p">See Note</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__104"><p class="p">Report indicating diverting to the specified position via the specified route, which may be sent without any previous coordination done with ATC.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__101"><p class="p">DM60</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__102"><p class="p">OFFSETTING (<em class="ph i">distance</em><em class="ph i">offset</em>) (<em class="ph i">direction</em>) OF ROUTE</p><p class="p">NOTE 1. – H alert attribute.</p><p class="p">NOTE 2. – N response attribute.</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__103"><p class="p">N</p><p class="p">See Note</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__104"><p class="p">Report indicating that the aircraft is offsetting to a parallel track at the specified distance in the specified direction off from the cleared route.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__101"><p class="p">DM80</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__102"><p class="p">DEVIATING (<em class="ph i">deviation</em><em class="ph i">offset</em>) (<em class="ph i">direction</em>) OF ROUTE</p><p class="p">NOTE 1. – H alert attribute.</p><p class="p">NOTE 2. – N response attribute.</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__103"><p class="p">N</p><p class="p">See Note</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__104"><p class="p">Report indicating deviating specified distance or degrees in the specified direction from the cleared route.</p></td></tr>
+</tbody></table></div><aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<p class="p">ICAO Document 10037, Global Operational Data Link (GOLD) Manual, has these values set to Y in their table.</p></div></aside><div class="table-scroll-box" role="region" tabindex="0" aria-label="Scrollable table TBL 14-2-6 Altitude Uplink Message Elements"><table class="table table-scroll"><caption><span class="tbl-number">TBL 14-2-6</span><span class="tbl-title">Altitude Uplink Message Elements</span></caption><colgroup><col><col><col><col></colgroup><thead class="thead">
+<tr class="row">
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__125"><p class="p"><strong class="ph b">FANS 1/A Message Identifier</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__126"><p class="p"><strong class="ph b">Message Content</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__127"><p class="p"><strong class="ph b">Response Attribute</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__128"><p class="p"><strong class="ph b">Message element intended use</strong></p></th></tr>
+</thead><tbody class="tbody">
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__125"><p class="p">UM19</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__126"><p class="p">(altitude)</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__127"><p class="p">W/U</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__128"><p class="p">Instruction to maintain the specified altitude.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__125"><p class="p">UM20</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__126"><p class="p">(altitude)</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__127"><p class="p">W/U</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__128"><p class="p">Instruction that a climb to the specified altitude is to commence and once reached is to be maintained.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__125"><p class="p">UM23</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__126"><p class="p">(altitude)</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__127"><p class="p">W/U</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__128"><p class="p">Instruction that a descent to the specified altitude is to commence and once reached is to be maintained.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__125"><p class="p">UM30</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__126"><p class="p">MAINTAIN BLOCK <em class="ph i">(altitude)</em> TO <em class="ph i">(altitude)</em></p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__127"><p class="p">W/U</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__128"><p class="p">Instruction to maintain the specified vertical range.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__125"><p class="p">UM31</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__126"><p class="p">CLIMB TO AND MAINTAIN BLOCK <em class="ph i">(altitude)</em> TO <em class="ph i">(altitude)</em></p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__127"><p class="p">W/U</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__128"><p class="p">Instruction that a climb to the specified vertical range is to commence and once reached is to be maintained.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__125"><p class="p">UM32</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__126"><p class="p">DESCEND TO AND MAINTAIN BLOCK <em class="ph i">(altitude)</em> TO <em class="ph i">(altitude)</em></p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__127"><p class="p">W/U</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__128"><p class="p">Instruction that a descent to the specified vertical range is to commence and once reached is to be maintained.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__125"><p class="p">UM36</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__126"><p class="p">(altitude)</p><p class="p">NOTE– This message element is equivalent to SUPU-3 plus LVLU-6 in Doc 4444.</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__127"><p class="p">W/U</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__128"><p class="p">Instruction that a climb to the specified altitude or vertical range is to commence and once reached is to be maintained.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__125"><p class="p">UM37</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__126"><p class="p">(altitude)</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__127"><p class="p">W/U</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__128"><p class="p">Instruction that a descent to the specified altitude or vertical range is to commence and once reached is to be maintained.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__125"><p class="p">UM38</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__126"><p class="p">(altitude)</p><p class="p">NOTE– This message element is equivalent to EMGU-2 plus LVLU-6 in Doc 4444.</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__127"><p class="p">W/U</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__128"><p class="p">Instruction that a climb to the specified altitude or vertical range is to commence and once reached is to be maintained.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__125"><p class="p">UM39</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__126"><p class="p">(altitude)</p><p class="p">NOTE– This message element is equivalent to EMGU-2 plus LVLU-9 in Doc 4444.</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__127"><p class="p">W/U</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__128"><p class="p">Instruction that a descent to the specified altitude or vertical range is to commence and once reached is to be maintained.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__125"><p class="p">UM135</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__126"><p class="p">CONFIRM ASSIGNED ALTITUDE</p><p class="p">NOTE– NE response attribute.</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__127"><p class="p">Y</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__128"><p class="p">Request to confirm the assigned altitude.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__125"><p class="p">UM177</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__126"><p class="p">AT PILOTS DISCRETION</p><p class="p">See Note</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__127"><p class="p">NE</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__128"><p class="p">An instruction used in conjunction with altitude assignments, means that ATC has offered the pilot the option of starting climb or descent whenever they wish and conducting the climb or descent at any rate they wish. The pilot may temporarily level off at any intermediate altitude. However, once the aircraft has vacated an altitude, it may not return to that altitude.</p></td></tr>
+</tbody></table></div><aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<p class="p">ICAO Document 10037, Global Operational Data Link (GOLD) Manual, does not include this in its tables.</p></div></aside><div class="table-scroll-box" role="region" tabindex="0" aria-label="Scrollable table TBL 14-2-7 Altitude Downlink Message Elements"><table class="table table-scroll"><caption><span class="tbl-number">TBL 14-2-7</span><span class="tbl-title">Altitude Downlink Message Elements</span></caption><colgroup><col><col><col><col></colgroup><thead class="thead">
+<tr class="row">
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__177"><p class="p"><strong class="ph b">FANS 1/A Message Identifier</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__178"><p class="p"><strong class="ph b">Message Content</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__179"><p class="p"><strong class="ph b">Response Attribute</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__180"><p class="p"><strong class="ph b">Message element intended use</strong></p></th></tr>
+</thead><tbody class="tbody">
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__177"><p class="p">DM6</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__178"><p class="p">(altitude)</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__179"><p class="p">Y</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__180"><p class="p">Request to fly at the specified altitude.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__177"><p class="p">DM7</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__178"><p class="p">REQUEST BLOCK <em class="ph i">(altitude)</em> TO <em class="ph i">(altitude)</em></p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__179"><p class="p">Y</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__180"><p class="p">Request to fly at the specified vertical range.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__177"><p class="p">DM9</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__178"><p class="p">(altitude)</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__179"><p class="p">Y</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__180"><p class="p">Request for a climb to the specified level or vertical range.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__177"><p class="p">DM10</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__178"><p class="p">(altitude)</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__179"><p class="p">Y</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__180"><p class="p">Request for a descent to the specified level or vertical range.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__177"><p class="p">DM38</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__178"><p class="p">(altitude)</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__179"><p class="p">N</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__180"><p class="p">Confirmation that the assigned altitude is the specified altitude or vertical range.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__177"><p class="p">DM61</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__178"><p class="p">DM61 DESCENDING TO (altitude)</p><p class="p">NOTE– Urgent alert attribute.</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__179"><p class="p">N</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__180"><p class="p">Report indicating descending to the specified altitude.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__177"><p class="p">DM77</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__178"><p class="p">DM77 ASSIGNED BLOCK (<em class="ph i">altitude</em>) TO (<em class="ph i">altitude</em>)</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__179"><p class="p">N</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__180"><p class="p">Confirmation that the assigned vertical range is the specified vertical range.</p></td></tr>
+</tbody></table></div><div class="table-scroll-box" role="region" tabindex="0" aria-label="Scrollable table TBL 14-2-8 Crossing Constraint Uplink Message Elements"><table class="table table-scroll"><caption><span class="tbl-number">TBL 14-2-8</span><span class="tbl-title">Crossing Constraint Uplink Message Elements</span></caption><colgroup><col><col><col><col></colgroup><thead class="thead">
+<tr class="row">
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__209"><p class="p"><strong class="ph b">FANS 1/A Message Identifier</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__210"><p class="p"><strong class="ph b">Message Content</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__211"><p class="p"><strong class="ph b">Response Attribute</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__212"><p class="p"><strong class="ph b">Message element intended use</strong></p></th></tr>
+</thead><tbody class="tbody">
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__209"><p class="p">UM46</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__210"><p class="p">CROSS (<em class="ph i">position</em>) AT (<em class="ph i">altitude</em>)</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__211"><p class="p">W/U</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__212"><p class="p">Instruction that the specified position is to be crossed at the specified altitude.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__209"><p class="p">UM49</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__210"><p class="p">CROSS (<em class="ph i">position</em>) AT AND MAINTAIN (<em class="ph i">altitude</em>)</p><p class="p">NOTE– This message element is equivalent to CSTU-1 plus LVLU-5 in Doc 4444.</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__211"><p class="p">W/U</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__212"><p class="p">Instruction that the specified position is to be crossed at the specified altitude.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__209"><p class="p">UM51</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__210"><p class="p">CROSS (<em class="ph i">position</em>) AT (<em class="ph i">time</em>)</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__211"><p class="p">W/U</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__212"><p class="p">Instruction that the specified position is to be crossed at the specified time.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__209"><p class="p">UM52</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__210"><p class="p">CROSS (<em class="ph i">position</em>) AT OR BEFORE (<em class="ph i">time</em>)</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__211"><p class="p">W/U</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__212"><p class="p">Instruction that the specified position is to be crossed before the specified time.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__209"><p class="p">UM53</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__210"><p class="p">CROSS (<em class="ph i">position</em>) AT OR AFTER (<em class="ph i">time</em>)</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__211"><p class="p">W/U</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__212"><p class="p">Instruction that the specified position is to be crossed after the specified time.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__209"><p class="p">UM55</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__210"><p class="p">CROSS (<em class="ph i">position</em>) AT (<em class="ph i">speed</em>)</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__211"><p class="p">W/U</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__212"><p class="p">Instruction that the specified position is to be crossed at the specified speed.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__209"><p class="p">UM56</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__210"><p class="p">CROSS (<em class="ph i">position</em>) AT OR LESS THAN (<em class="ph i">speed</em>)</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__211"><p class="p">W/U</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__212"><p class="p">Instruction that the specified position is to be crossed at or less than the specified speed.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__209"><p class="p">UM57</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__210"><p class="p">CROSS (<em class="ph i">position</em>) AT OR GREATER THAN (<em class="ph i">speed</em>)</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__211"><p class="p">W/U</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__212"><p class="p">Instruction that the specified position is to be crossed at or greater than the specified speed.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__209"><p class="p">UM61</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__210"><p class="p">CROSS (<em class="ph i">position</em>) AT AND MAINTAIN (<em class="ph i">altitude</em>) AT (<em class="ph i">speed</em>)</p><p class="p">NOTE– This message element is equivalent to CSTU-14 plus LVLU-5 in Doc 4444.</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__211"><p class="p">W/U</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__212"><p class="p">Instruction that the specified position is to be crossed at the specified altitude and speed.</p></td></tr>
+</tbody></table></div><div class="table-scroll-box" role="region" tabindex="0" aria-label="Scrollable table TBL 14-2-9 Speed Uplink Message Elements"><table class="table table-scroll"><caption><span class="tbl-number">TBL 14-2-9</span><span class="tbl-title">Speed Uplink Message Elements</span></caption><colgroup><col><col><col><col></colgroup><thead class="thead">
+<tr class="row">
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__249"><p class="p"><strong class="ph b">FANS 1/A Message Identifier</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__250"><p class="p"><strong class="ph b">Message Content</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__251"><p class="p"><strong class="ph b">Response Attribute</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__252"><p class="p"><strong class="ph b">Message element intended use</strong></p></th></tr>
+</thead><tbody class="tbody">
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__249"><p class="p">UM106</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__250"><p class="p">speed</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__251"><p class="p">W/U</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__252"><p class="p">Instruction to maintain the specified speed.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__249"><p class="p">UM107</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__250"><p class="p">MAINTAIN PRESENT SPEED</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__251"><p class="p">W/U</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__252"><p class="p">Instruction to maintain the present speed.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__249"><p class="p">UM108</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__250"><p class="p">speed</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__251"><p class="p">W/U</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__252"><p class="p">Instruction to maintain the specified speed or greater.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__249"><p class="p">UM109</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__250"><p class="p">speed</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__251"><p class="p">W/U</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__252"><p class="p">Instruction to maintain the specified speed or less.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__249"><p class="p">UM116</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__250"><p class="p">RESUME NORMAL SPEED</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__251"><p class="p">W/U</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__252"><p class="p">Instruction to resume a normal speed. The aircraft no longer needs to comply with a previously issued speed restriction.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__249"><p class="p">UM134</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__250"><p class="p">CONFIRM SPEED</p><p class="p">NOTE– NE response attribute.</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__251"><p class="p">Y</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__252"><p class="p">Request to report the speed defined by the speed type(s).</p></td></tr>
+</tbody></table></div><div class="table-scroll-box" role="region" tabindex="0" aria-label="Scrollable table TBL 14-2-10 Speed Downlink Message Elements"><table class="table table-scroll"><caption><span class="tbl-number">TBL 14-2-10</span><span class="tbl-title">Speed Downlink Message Elements</span></caption><colgroup><col><col><col><col></colgroup><thead class="thead">
+<tr class="row">
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__277"><p class="p"><strong class="ph b">FANS 1/A Message Identifier</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__278"><p class="p"><strong class="ph b">Message Content</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__279"><p class="p"><strong class="ph b">Response Attribute</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__280"><p class="p"><strong class="ph b">Message element intended use</strong></p></th></tr>
+</thead><tbody class="tbody">
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__277"><p class="p">DM34</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__278"><p class="p">speed</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__279"><p class="p">N</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__280"><p class="p">Report indicating the speed defined by the specified speed types is the specified speed.</p></td></tr>
+</tbody></table></div><div class="table-scroll-box" role="region" tabindex="0" aria-label="Scrollable table TBL 14-2-11 Air Traffic Advisory Uplink Message Elements"><table class="table table-scroll"><caption><span class="tbl-number">TBL 14-2-11</span><span class="tbl-title">Air Traffic Advisory Uplink Message Elements</span></caption><colgroup><col><col><col><col></colgroup><thead class="thead">
+<tr class="row">
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__285"><p class="p"><strong class="ph b">FANS 1/A Message Identifier</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__286"><p class="p"><strong class="ph b">Message Content</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__287"><p class="p"><strong class="ph b">Response Attribute</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__288"><p class="p"><strong class="ph b">Message element intended use</strong></p></th></tr>
+</thead><tbody class="tbody">
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__285"><p class="p">UM154</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__286"><p class="p">RADAR SERVICES TERMINATED</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__287"><p class="p">R</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__288"><p class="p">Advisory that the ATS surveillance service is terminated.</p></td></tr>
+</tbody></table></div><div class="table-scroll-box" role="region" tabindex="0" aria-label="Scrollable table TBL 14-2-12 Voice Communications Uplink Message Elements"><table class="table table-scroll"><caption><span class="tbl-number">TBL 14-2-12</span><span class="tbl-title">Voice Communications Uplink Message Elements</span></caption><colgroup><col><col><col><col></colgroup><thead class="thead">
+<tr class="row">
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__293"><p class="p"><strong class="ph b">FANS 1/A Message Identifier</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__294"><p class="p"><strong class="ph b">Message Content</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__295"><p class="p"><strong class="ph b">Response Attribute</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__296"><p class="p"><strong class="ph b">Message element intended use</strong></p></th></tr>
+</thead><tbody class="tbody">
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__293"><p class="p">UM117</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__294"><p class="p">CONTACT (<em class="ph i">ICAO unit name</em>) (<em class="ph i">frequency</em>)</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__295"><p class="p">W/U</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__296"><p class="p">Instruction to establish voice contact with the specified ATS unit on the specified frequency.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__293"><p class="p">UM120</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__294"><p class="p">MONITOR (<em class="ph i">ICAO unit name</em>) (<em class="ph i">frequency</em>)</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__295"><p class="p">W/U</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__296"><p class="p">Instruction to monitor the specified ATS unit on the specified frequency. The flight crew is not required to establish voice contact on the frequency.</p></td></tr>
+</tbody></table></div><div class="table-scroll-box" role="region" tabindex="0" aria-label="Scrollable table TBL 14-2-13 Voice Communications Downlink Message Elements"><table class="table table-scroll"><caption><span class="tbl-number">TBL 14-2-13</span><span class="tbl-title">Voice Communications Downlink Message Elements</span></caption><colgroup><col><col><col><col></colgroup><thead class="thead">
+<tr class="row">
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__305"><p class="p"><strong class="ph b">FANS 1/A Message Identifier</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__306"><p class="p"><strong class="ph b">Message Content</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__307"><p class="p"><strong class="ph b">Response Attribute</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__308"><p class="p"><strong class="ph b">Message element intended use</strong></p></th></tr>
+</thead><tbody class="tbody">
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__305"><p class="p">DM20</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__306"><p class="p">REQUEST VOICE CONTACT</p><p class="p">NOTE– Used when a frequency is not required.</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__307"><p class="p">Y</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__308"><p class="p">Request for voice contact on the specified frequency.</p></td></tr>
+</tbody></table></div><div class="table-scroll-box" role="region" tabindex="0" aria-label="Scrollable table TBL 14-2-14 Emergency/Urgency Uplink Message Elements"><table class="table table-scroll"><caption><span class="tbl-number">TBL 14-2-14</span><span class="tbl-title">Emergency/Urgency Uplink Message Elements</span></caption><colgroup><col><col><col><col></colgroup><thead class="thead">
+<tr class="row">
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__313"><p class="p"><strong class="ph b">FANS 1/A Message Identifier</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__314"><p class="p"><strong class="ph b">Message Content</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__315"><p class="p"><strong class="ph b">Response Attribute</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__316"><p class="p"><strong class="ph b">Message element intended use</strong></p></th></tr>
+</thead><tbody class="tbody">
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__313"><p class="p">UM38</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__314"><p class="p">altitude</p><p class="p">Used in combination with LVLU-6 and LVLU-9, which is implemented in FANS 1/A as above</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__315"><p class="p">Y</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__316"><p class="p">Instruction to immediately comply with the associated instruction to avoid imminent situation.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__313"><p class="p">UM39</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__314"><p class="p">altitude</p><p class="p">Used in combination with LVLU-6 and LVLU-9, which is implemented in FANS 1/A as above</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__315"><p class="p">Y</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__316"><p class="p">Instruction to immediately comply with the associated instruction to avoid imminent situation.</p></td></tr>
+</tbody></table></div><div class="table-scroll-box" role="region" tabindex="0" aria-label="Scrollable table TBL 14-2-15 Emergency/Urgency Downlink Message Elements"><table class="table table-scroll"><caption><span class="tbl-number">TBL 14-2-15</span><span class="tbl-title">Emergency/Urgency Downlink Message Elements</span></caption><colgroup><col><col><col><col></colgroup><thead class="thead">
+<tr class="row">
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__325"><p class="p"><strong class="ph b">FANS 1/A Message Identifier</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__326"><p class="p"><strong class="ph b">Message Content</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__327"><p class="p"><strong class="ph b">Response Attribute</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__328"><p class="p"><strong class="ph b">Message element intended use</strong></p></th></tr>
+</thead><tbody class="tbody">
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__325"><p class="p">DM55</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__326"><p class="p">PAN PAN PAN</p><p class="p">NOTE– N response attribute.</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__327"><p class="p">Y</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__328"><p class="p">Indication of an urgent situation.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__325"><p class="p">DM56</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__326"><p class="p">MAYDAY MAYDAY MAYDAY</p><p class="p">NOTE– N response attribute.</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__327"><p class="p">Y</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__328"><p class="p">Indication of an emergency situation.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__325"><p class="p">DM57</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__326"><p class="p">(<em class="ph i">remaining fuel</em>) OF FUEL REMAINING AND (<em class="ph i">remaining souls</em>) SOULS ON BOARD</p><p class="p">NOTE– N response attribute</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__327"><p class="p">Y</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__328"><p class="p">Report indicating fuel remaining (time) and number of persons on board.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__325"><p class="p">DM58</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__326"><p class="p">CANCEL EMERGENCY</p><p class="p">NOTE– N response attribute.</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__327"><p class="p">Y</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__328"><p class="p">Indication that the emergency situation is canceled.</p></td></tr>
+</tbody></table></div><div class="table-scroll-box" role="region" tabindex="0" aria-label="Scrollable table TBL 14-2-16 Standard Response Uplink Message Elements"><table class="table table-scroll"><caption><span class="tbl-number">TBL 14-2-16</span><span class="tbl-title">Standard Response Uplink Message Elements</span></caption><colgroup><col><col><col><col></colgroup><thead class="thead">
+<tr class="row">
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__345"><p class="p"><strong class="ph b">FANS 1/A Message Identifier</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__346"><p class="p"><strong class="ph b">Message Content</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__347"><p class="p"><strong class="ph b">Response Attribute</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__348"><p class="p"><strong class="ph b">Message element intended use</strong></p></th></tr>
+</thead><tbody class="tbody">
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__345"><p class="p">UM0</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__346"><p class="p">UNABLE</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__347"><p class="p">N</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__348"><p class="p">Indication that the message cannot be complied with.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__345"><p class="p">UM1</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__346"><p class="p">STANDBY</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__347"><p class="p">N</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__348"><p class="p">Indication that the message will be responded to shortly.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__345"><p class="p">UM3</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__346"><p class="p">ROGER</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__347"><p class="p">N</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__348"><p class="p">Indication that the message is received.</p></td></tr>
+</tbody></table></div><div class="table-scroll-box" role="region" tabindex="0" aria-label="Scrollable table TBL 14-2-17 Standard Response Downlink Message Elements"><table class="table table-scroll"><caption><span class="tbl-number">TBL 14-2-17</span><span class="tbl-title">Standard Response Downlink Message Elements</span></caption><colgroup><col><col><col><col></colgroup><thead class="thead">
+<tr class="row">
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__361"><p class="p"><strong class="ph b">FANS 1/A Message Identifier</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__362"><p class="p"><strong class="ph b">Message Content</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__363"><p class="p"><strong class="ph b">Response Attribute</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__364"><p class="p"><strong class="ph b">Message element intended use</strong></p></th></tr>
+</thead><tbody class="tbody">
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__361"><p class="p">DM0</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__362"><p class="p">WILCO</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__363"><p class="p">N</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__364"><p class="p">Indication that the instruction is understood and will be complied with.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__361"><p class="p">DM1</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__362"><p class="p">UNABLE</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__363"><p class="p">N</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__364"><p class="p">Indication that the instruction cannot be complied with.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__361"><p class="p">DM2</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__362"><p class="p">STANDBY</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__363"><p class="p">N</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__364"><p class="p">Indication that the message will be responded to shortly.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__361"><p class="p">DM3</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__362"><p class="p">ROGER</p><p class="p">NOTE– ROGER is the only correct response to an uplink free text message.</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__363"><p class="p">N</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__364"><p class="p">Indication that the message is received.</p></td></tr>
+</tbody></table></div><div class="table-scroll-box" role="region" tabindex="0" aria-label="Scrollable table TBL 14-2-18 Supplemental Uplink Message Elements"><table class="table table-scroll"><caption><span class="tbl-number">TBL 14-2-18</span><span class="tbl-title">Supplemental Uplink Message Elements</span></caption><colgroup><col><col><col><col></colgroup><thead class="thead">
+<tr class="row">
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__381"><p class="p"><strong class="ph b">FANS 1/A Message Identifier</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__382"><p class="p"><strong class="ph b">Message Content</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__383"><p class="p"><strong class="ph b">Response Attribute</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__384"><p class="p"><strong class="ph b">Message element intended use</strong></p></th></tr>
+</thead><tbody class="tbody">
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__381"><p class="p">UM166</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__382"><p class="p">DUE TO TRAFFIC</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__383"><p class="p">N</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__384"><p class="p">Indication that the associated message is issued due to the specified reason.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__381"><p class="p">UM167</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__382"><p class="p">DUE TO AIRSPACE RESTRICTION</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__383"><p class="p">N</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__384"><p class="p">Indication that the associated message is issued due to the specified reason.</p></td></tr>
+</tbody></table></div><div class="table-scroll-box" role="region" tabindex="0" aria-label="Scrollable table TBL 14-2-19 Supplemental Downlink Message Elements"><table class="table table-scroll"><caption><span class="tbl-number">TBL 14-2-19</span><span class="tbl-title">Supplemental Downlink Message Elements</span></caption><colgroup><col><col><col><col></colgroup><thead class="thead">
+<tr class="row">
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__393"><p class="p"><strong class="ph b">FANS 1/A Message Identifier</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__394"><p class="p"><strong class="ph b">Message Content</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__395"><p class="p"><strong class="ph b">Response Attribute</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__396"><p class="p"><strong class="ph b">Message element intended use</strong></p></th></tr>
+</thead><tbody class="tbody">
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__393"><p class="p">DM65</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__394"><p class="p">DUE TO WEATHER</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__395"><p class="p">N</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__396"><p class="p">Indication that the associated message is issued due to specified reason.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__393"><p class="p">DM66</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__394"><p class="p">DUE TO AIRCRAFT PERFORMANCE</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__395"><p class="p">N</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__396"><p class="p">Indication that the associated message is issued due to specified reason.</p></td></tr>
+</tbody></table></div><div class="table-scroll-box" role="region" tabindex="0" aria-label="Scrollable table TBL 14-2-20 Free Text Uplink Message Elements"><table class="table table-scroll"><caption><span class="tbl-number">TBL 14-2-20</span><span class="tbl-title">Free Text Uplink Message Elements</span></caption><colgroup><col><col><col><col></colgroup><thead class="thead">
+<tr class="row">
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__405"><p class="p"><strong class="ph b">FANS 1/A Message Identifier</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__406"><p class="p"><strong class="ph b">Message Content</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__407"><p class="p"><strong class="ph b">Response Attribute</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__408"><p class="p"><strong class="ph b">Message element intended use</strong></p></th></tr>
+</thead><tbody class="tbody">
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__405"><p class="p">UM169</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__406"><p class="p">free text</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__407"><p class="p">R</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__408"><p class="p">A message or part of a message that does not conform to any standard message element in the PANSATM (Doc 4444).</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__405"><p class="p">UM169</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__406"><p class="p">free text</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__407"><p class="p">R</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__408"><p class="p">See Note</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__405"><p class="p">UM169</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__406"><p class="p">free text</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__407"><p class="p">R</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__408"><p class="p">See Note</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__405"><p class="p">UM169</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__406"><p class="p">free text</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__407"><p class="p">R</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__408"><p class="p">See Note</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__405"><p class="p">UM169</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__406"><p class="p">free text</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__407"><p class="p">R</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__408"><p class="p">See Note</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__405"><p class="p">UM169</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__406"><p class="p">free text</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__407"><p class="p">R</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__408"><p class="p">See Note</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__405"><p class="p">UM169</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__406"><p class="p">free text</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__407"><p class="p">R</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__408"><p class="p">See Note</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__405"><p class="p">UM169</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__406"><p class="p">free text</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__407"><p class="p">R</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__408"><p class="p">See Note</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__405"><p class="p">UM169</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__406"><p class="p">free text</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__407"><p class="p">R</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__408"><p class="p">See Note</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__405"><p class="p">UM169</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__406"><p class="p">free text</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__407"><p class="p">R</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__408"><p class="p">See Note</p></td></tr>
+</tbody></table></div><aside class="note-box" role="note"><p class="block-title">NOTE-</p><div class="block-content">
+<p class="p">These are FAA scripted free text messages with no GOLD equivalent.</p></div></aside><div class="table-scroll-box" role="region" tabindex="0" aria-label="Scrollable table TBL 14-2-21 Free Text Downlink Message Elements"><table class="table table-scroll"><caption><span class="tbl-number">TBL 14-2-21</span><span class="tbl-title">Free Text Downlink Message Elements</span></caption><colgroup><col><col><col><col></colgroup><thead class="thead">
+<tr class="row">
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__449"><p class="p"><strong class="ph b">FANS 1/A Message Identifier</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__450"><p class="p"><strong class="ph b">Message Content</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__451"><p class="p"><strong class="ph b">Response Attribute</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__452"><p class="p"><strong class="ph b">Message element intended use</strong></p></th></tr>
+</thead><tbody class="tbody">
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__449"><p class="p">DM68</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__450"><p class="p">free text</p><p class="p">NOTE 1. – Urgency or Distress (M alert attribute)</p><p class="p">NOTE 2. – Selecting any of the emergency message elements will result in this message element being enabled for the flight crew to include in the emergency message at their discretion.</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__451"><p class="p">Y</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__452"><p class="p">N/A</p></td></tr>
+</tbody></table></div><div class="table-scroll-box" role="region" tabindex="0" aria-label="Scrollable table TBL 14-2-22 System Management Uplink Message Elements"><table class="table table-scroll"><caption><span class="tbl-number">TBL 14-2-22</span><span class="tbl-title">System Management Uplink Message Elements</span></caption><colgroup><col><col><col><col></colgroup><thead class="thead">
+<tr class="row">
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__457"><p class="p"><strong class="ph b">FANS 1/A Message Identifier</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__458"><p class="p"><strong class="ph b">Message Content</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__459"><p class="p"><strong class="ph b">Response Attribute</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__460"><p class="p"><strong class="ph b">Message element intended use</strong></p></th></tr>
+</thead><tbody class="tbody">
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__457"><p class="p">UM159</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__458"><p class="p">error information</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__459"><p class="p">N</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__460"><p class="p">System‐generated notification of an error.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__457"><p class="p">UM160</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__458"><p class="p">ICAO facility designation</p><p class="p">NOTE– The facility designation is required.</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__459"><p class="p">N</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__460"><p class="p">System‐generated notification of the next data authority or the cancellation thereof.</p></td></tr>
+</tbody></table></div><div class="table-scroll-box" role="region" tabindex="0" aria-label="Scrollable table TBL 14-2-23 System Management Downlink Message Elements"><table class="table table-scroll"><caption><span class="tbl-number">TBL 14-2-23</span><span class="tbl-title">System Management Downlink Message Elements</span></caption><colgroup><col><col><col><col></colgroup><thead class="thead">
+<tr class="row">
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__469"><p class="p"><strong class="ph b">FANS 1/A Message Identifier</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__470"><p class="p"><strong class="ph b">Message Content</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__471"><p class="p"><strong class="ph b">Response Attribute</strong></p></th>
+<th class="entry align-center" id="chap14_section_2__c_specific_uplinks-li_9__entry__472"><p class="p"><strong class="ph b">Message element intended use</strong></p></th></tr>
+</thead><tbody class="tbody">
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__469"><p class="p">DM62</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__470"><p class="p">error information</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__471"><p class="p">N</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__472"><p class="p">System‐generated notification of an error.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__469"><p class="p">DM63</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__470"><p class="p">NOT CURRENT DATA AUTHORITY</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__471"><p class="p">N</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__472"><p class="p">System‐generated rejection of any CPDLC message sent from a ground facility that is not the current data authority.</p></td></tr>
+
+<tr class="row">
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__469"><p class="p">DM64</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__470"><p class="p">ICAO facility designation</p><p class="p">NOTE– Use by FANS 1/A aircraft in B1 environments.</p></td>
+<td class="entry align-center" headers="chap14_section_2__c_specific_uplinks-li_9__entry__471"><p class="p">N</p></td>
+<td class="entry" headers="chap14_section_2__c_specific_uplinks-li_9__entry__472"><p class="p">System‐generated notification that the ground system is not designated as the next data authority (NDA), indicating the identity of the current data authority (CDA). Identity of the NDA, if any, is also reported.</p></td></tr>
+</tbody></table></div></li></ol></li></ol></div></article></article></main></div></div><footer class="main-footer">
+<nav id="paginator__nav" class="usa-pagination" role="navigation" aria-label="Pagination"><a class="page__nav" aria-label="Previous Page" href="chap14_section_1.html">Previous</a> | <a class="page__nav" aria-label="Top of the Page" href="#atc-body">Top</a> | <a class="page__nav" aria-label="Next Page" href="chap14_section_3.html">Next</a></nav>
+<div class="center footer-details"><ul class="footer-items"><li class="footer-item"><a href="../index.html" aria-label="FAA Order 7110.65" rel="noopener">7110.65</a> | </li><li class="footer-item"><a href="http://www.faa.gov/air_traffic/publications/" target="_blank" rel="noopener">ATPUBS</a> | </li><li class="footer-item"><a href="http://www.faa.gov" target="_blank" rel="noopener">FAA</a> | </li><li><a class="suggestion-contact" href="mailto:9-AJV-P-HQ-Correspondence@faa.gov">
+              Send your comments regarding this website.
+            </a></li></ul></div></footer><script src="../atc-nav.js"></script></body></html>

@@ -1,0 +1,409 @@
+/**
+ * FAA ATC HTML5 - Typography System
+ * Font families: IBM Plex Serif (body), Roboto Condensed (headings/nav)
+ * Matches production site typography exactly.
+ */
+
+/* ================================================================
+   CSS Custom Properties
+   ================================================================ */
+:root {
+  --color-text: #112e51;
+  --color-navbar-bg: #112e51;
+  --color-navbar-bg-focus: #0071bc;
+  --color-navbar-text: #fff;
+  --color-link: #005ea2;
+  --color-link-hover: #0071bc;
+  --color-border: #e1e1e1;
+  --color-bg-light: #fafafa;
+  --color-footer-bg: #112e51;
+  --color-footer-text: rgba(255, 255, 255, 0.75);
+  --navbar-height: 3.25rem;
+  --toolbar-height: 2.5rem;
+  --drawer-height: 2.5rem;
+}
+
+/* ================================================================
+   Base Reset
+   ================================================================ */
+*, *::before, *::after {
+  box-sizing: inherit;
+}
+
+html {
+  box-sizing: border-box;
+  font-family: 'IBM Plex Serif', 'Libre Franklin', 'Open Sans', serif;
+  font-size: 0.8em;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+@media screen and (min-width: 1024px) {
+  html {
+    font-size: 16px;
+  }
+}
+
+body, html {
+  height: 100%;
+}
+
+body {
+  color: var(--color-text);
+  line-height: 2;
+  margin: 0;
+  padding-top: var(--navbar-height);
+}
+
+/* ================================================================
+   Typography
+   ================================================================ */
+a {
+  color: var(--color-link);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* WCAG 1.4.1 (link-in-text-block): links embedded in body text must be
+   distinguishable from surrounding text by more than color. The link blue
+   (#005ea2) on the body navy (#112e51) is only 2.03:1, so underline every
+   in-content link. Navigation chrome (navbar, footer, pagination, TOC,
+   section headers) lives outside .body and sets its own text-decoration,
+   so it is unaffected. */
+.body a,
+a.xref {
+  text-decoration: underline;
+}
+
+b, dt, strong, th {
+  font-weight: 700;
+}
+
+p {
+  margin: 0;
+  padding: 0;
+}
+
+code, kbd, pre {
+  font-family: 'Montserrat', monospace;
+}
+
+/* Main content typography */
+.main-content {
+  font-family: 'IBM Plex Serif', 'Noto Serif', serif;
+  font-size: 1.1rem;
+  margin-top: 10px;
+}
+
+/* Heading typography - use Roboto Condensed */
+.main-content h1,
+.main-content h2,
+.main-content h3,
+.main-content h4,
+.main-content h5,
+.main-content h6,
+.topictitle1,
+.topictitle2,
+.topictitle3,
+.topictitle4,
+.sectiontitle {
+  font-family: 'Roboto Condensed', 'IBM Plex Serif', "Times New Roman", serif;
+}
+
+/* Topic title sizing */
+.usa-content h1,
+h1.topictitle1 {
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.main-content h2,
+h2.topictitle2 {
+  color: #000;
+  font-size: 1.4rem;
+  margin-bottom: 0.4em;
+  margin-top: 0.6em;
+  font-weight: 700;
+}
+
+h2.text-center {
+  font-weight: 700;
+}
+
+/* Paragraph titles (e.g., 2-1-1. ATC SERVICE) */
+h4.paragraph-title,
+.paragraph-title {
+  font-weight: 700;
+  font-family: 'Roboto Condensed', 'Fira Sans', sans-serif;
+  color: var(--color-text);
+  font-size: 1.1rem;
+  margin-top: 1rem;
+  margin-bottom: 0.25rem;
+  line-height: 1.3;
+  display: block;
+}
+
+p.paragraph-title strong {
+  font-weight: 700;
+  font-family: 'Roboto Condensed', 'Fira Sans', sans-serif;
+  color: var(--color-text);
+  font-size: 1.1rem;
+}
+
+/* Section header styling */
+.section-header {
+  font-family: 'Roboto Condensed', 'IBM Plex Serif', "Times New Roman", serif;
+  font-size: 20px;
+  max-width: 60ch;
+}
+
+.section-number,
+.section-title {
+  font-weight: 700;
+}
+
+/* ================================================================
+   Text Alignment
+   ================================================================ */
+.text-left { text-align: left; }
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.text-justify { text-align: justify; }
+
+/* ================================================================
+   Vertical Alignment
+   ================================================================ */
+.valign-top { vertical-align: top; }
+.valign-middle { vertical-align: middle; }
+.valign-bottom { vertical-align: bottom; }
+.valign-baseline { vertical-align: baseline; }
+
+/* ================================================================
+   Inline text decoration
+   ================================================================ */
+.underline { text-decoration: underline; }
+.overline { text-decoration: overline; }
+.overline.underline,
+.underline-overline { text-decoration: underline overline; }
+.italic-content { font-style: italic; }
+.nowrap { white-space: nowrap; }
+
+/* ================================================================
+   Images
+   ================================================================ */
+img {
+  margin-left: auto;
+  margin-right: auto;
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+img.with-border {
+  border: solid 1px #000;
+}
+
+img.small_img {
+  display: inline-block;
+}
+
+/* ================================================================
+   Figures
+   ================================================================ */
+figure,
+.fig,
+.fignone {
+  margin: 1.5em auto;
+  text-align: center;
+  max-width: 100%;
+  border: none;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+}
+
+img.image,
+figure img,
+.fig img,
+.fignone img {
+  max-width: 100%;
+  height: auto;
+  /* Cap very tall scans so they cannot dominate the viewport; with width and
+     height auto the browser fits both bounds and preserves the aspect ratio. */
+  max-height: 85vh;
+  display: block;
+  margin: 0 auto;
+  /* Thin frame so figure imagery reads against the page. */
+  border: 1px solid #000;
+}
+
+/* Make figure wrappers measurable containers so image sizing can respond to
+   the actual parent column width rather than the viewport. The main content
+   column is the fallback container for images that sit directly in
+   paragraphs (no figure wrapper). */
+main,
+figure,
+.fig,
+.fignone {
+  container-type: inline-size;
+}
+
+/* In parents wider than 700px, cap content images at 80% of the parent so
+   full-bleed figures keep breathing room; narrower columns keep full width. */
+@container (min-width: 700px) {
+  img.image,
+  figure img,
+  .fig img,
+  .fignone img {
+    max-width: 80%;
+  }
+}
+
+/* Content figures are low-resolution source line-art. Disable the browser's
+   default bilinear smoothing so diagrams stay crisp when the display scales
+   them (notably on HiDPI/retina screens, where 1 CSS px maps to 2+ device px),
+   matching the print (FOP/CSS-PDF) rendering. Scoped to content images
+   (.image / figure imagery) — never UI chrome. */
+img.image,
+figure img,
+.fig img,
+.fignone img {
+  image-rendering: crisp-edges;
+}
+
+figcaption,
+.figcap {
+  text-align: center;
+  margin-top: 0.75em;
+  margin-bottom: 0.5em;
+  line-height: 1.4;
+  font-size: 14px;
+}
+
+.fig-number,
+.fig--title-label {
+  font-weight: 700;
+  font-style: italic;
+  display: block;
+}
+
+.fig-title {
+  font-weight: 700;
+  display: block;
+}
+
+/* ================================================================
+   Table captions
+   TBL number on one line, title text below, both centered and bold.
+   Matches production FAA layout.
+   ================================================================ */
+caption {
+  text-align: center;
+  margin-bottom: 0.75em;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.tbl-number {
+  font-weight: 700;
+  font-style: italic;
+  display: block;
+}
+
+.tbl-title {
+  font-weight: 700;
+  display: block;
+}
+
+/* Hide DITA auto-generated "Table N." label (fallback if XSL override misses) */
+.table--title-label {
+  display: none;
+}
+
+/* Bold override for TBL/FIG titles */
+.text-center strong,
+h4.text-center {
+  font-weight: 700;
+}
+
+/* ================================================================
+   Utility: center
+   ================================================================ */
+.pydocx-center,
+.center {
+  text-align: center;
+}
+
+/* Unresolved cross-references (NO TAG placeholders from legacy source) */
+.unresolved-xref {
+  color: #b91c1c;
+  font-style: italic;
+  background-color: #fef2f2;
+  padding: 0 2px;
+}
+
+/* First p child inline within list items */
+li > p:first-of-type {
+  display: inline;
+}
+
+/* ================================================================
+   Explanation of Changes page (topic id chap0_section_0)
+   Mirrors the published faa.gov EOC layout:
+   - "EXPLANATION OF CHANGES" heading and the "Direct questions …
+     (OPI)" sentence are centered, with no mid-sentence line break
+   - each a./b./c. item's bold title is followed by a line break
+     before its body text
+   ================================================================ */
+#chap0_section_0 .conbody > .sectiontitle,
+#chap0_section_0 .section > .sectiontitle {
+  text-align: center;
+}
+
+/* Only the leading "Direct questions … (OPI)" instruction is centered —
+   publications whose EOC items are plain paragraphs (AIM) must keep their
+   item bodies left-aligned. */
+#chap0_section_0 .conbody > .p:first-of-type,
+#chap0_section_0 .section > .p:first-of-type {
+  text-align: center;
+}
+
+#chap0_section_0 .conbody > .p:first-of-type br,
+#chap0_section_0 .section > .p:first-of-type br {
+  display: none;
+}
+
+#chap0_section_0 li > p:first-of-type {
+  display: block;
+  margin-top: 0.25em;
+}
+
+/* Appendix pages: the topic title carries "Appendix X. Title" (outputclass
+   "appendix" set by Stage 2, emitted by DITA-OT as a body class) and is
+   centered like the published pages */
+body.appendix main h1.title.topictitle1,
+article.appendix > h1.title {
+  text-align: center;
+}
+
+/* Appendix numbered-section items ("1. PURPOSE"): the body paragraph starts
+   on its own line under the bold heading (the global li > p:first-of-type
+   inline rule would glue "PURPOSEThis appendix prescribes...") */
+body.appendix li > p:first-of-type {
+  display: block;
+  margin-top: 0.25em;
+}
+
+/* Long unbroken tokens in body content — raw URLs pasted as link text are the
+   common case — must wrap instead of forcing page-level horizontal scroll on
+   narrow viewports. anywhere lets the break happen mid-token only when no
+   other break point exists. */
+main a,
+main p,
+main li {
+  overflow-wrap: anywhere;
+}

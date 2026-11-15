@@ -1,0 +1,383 @@
+/**
+ * FAA ATC HTML5 - 6-Level Semantic Ordered List Styling
+ * Matches FAA Order JO 7110.65 list marker convention:
+ *   Level 1: a., b., c.         (lower-alpha with period)
+ *   Level 2: 1., 2., 3.         (decimal with period)
+ *   Level 3: (a), (b), (c)      (parenthetical lower-alpha)
+ *   Level 4: (1), (2), (3)      (parenthetical decimal)
+ *   Level 5: [a], [b], [c]      (bracketed lower-alpha)
+ *   Level 6: [1], [2], [3]      (bracketed decimal)
+ */
+
+/* ================================================================
+   Level 1: a., b., c. (lower-alpha)
+   ================================================================ */
+ol.level-one,
+.usa-content ol.level-one {
+  list-style-type: lower-alpha;
+  padding-left: 2em;
+  margin: 1rem 0;
+  counter-reset: list-item;
+}
+
+ol.level-one > li,
+.usa-content ol.level-one > li {
+  display: list-item;
+  padding-left: 0;
+  margin-bottom: 0.5rem;
+  line-height: 1.6;
+}
+
+ol.level-one > li::marker {
+  font-weight: bold;
+}
+
+/* Override legacy ::before content */
+ol.level-one > li::before,
+ol.level-two > li::before {
+  content: none !important;
+  margin: 0 !important;
+  float: none !important;
+  counter-increment: none !important;
+}
+
+/* ================================================================
+   Level 2: 1., 2., 3. (decimal)
+   ================================================================ */
+ol.level-two,
+.usa-content ol.level-two,
+ol.level-one > li > ol.level-two {
+  list-style-type: decimal;
+  padding-left: 2em;
+  margin: 0.5rem 0;
+  counter-reset: list-item;
+}
+
+ol.level-two > li,
+.usa-content ol.level-two > li {
+  display: list-item;
+  padding-left: 0;
+  margin-bottom: 0.4rem;
+}
+
+ol.level-two > li::marker {
+  font-weight: bold;
+}
+
+/* ================================================================
+   Level 3: (a), (b), (c) (parenthetical lower-alpha)
+   Uses CSS counters for custom marker format
+   ================================================================ */
+ol.level-three,
+.usa-content ol.level-three,
+ol.level-two > li > ol.level-three {
+  list-style-type: none;
+  padding-left: 2em;
+  margin: 0.5rem 0;
+  counter-reset: level-three-counter;
+}
+
+ol.level-three > li,
+.usa-content ol.level-three > li {
+  display: list-item;
+  margin-bottom: 0.4rem;
+  counter-increment: level-three-counter;
+  position: relative;
+}
+
+ol.level-three > li::before,
+.usa-content ol.level-three > li::before {
+  content: '(' counter(level-three-counter, lower-alpha) ') ';
+  position: absolute;
+  left: -2em;
+  width: 2em;
+  text-align: right;
+  padding-right: 0.5em;
+  font-weight: bold;
+}
+
+/* ================================================================
+   Level 4: (1), (2), (3) (parenthetical decimal)
+   ================================================================ */
+ol.level-four,
+.usa-content ol.level-four,
+ol.level-three > li > ol.level-four {
+  list-style-type: none;
+  padding-left: 2em;
+  margin: 0.5rem 0;
+  counter-reset: level-four-counter;
+}
+
+ol.level-four > li,
+.usa-content ol.level-four > li {
+  display: list-item;
+  margin-bottom: 0.4rem;
+  counter-increment: level-four-counter;
+  position: relative;
+}
+
+ol.level-four > li::before,
+.usa-content ol.level-four > li::before {
+  content: '(' counter(level-four-counter, decimal) ') ';
+  position: absolute;
+  left: -2em;
+  width: 2em;
+  text-align: right;
+  padding-right: 0.5em;
+  font-weight: bold;
+}
+
+/* ================================================================
+   Level 5: [a], [b], [c] (bracketed lower-alpha)
+   ================================================================ */
+ol.level-five,
+.usa-content ol.level-five,
+ol.level-four > li > ol.level-five {
+  list-style-type: none;
+  padding-left: 2em;
+  margin: 0.5rem 0;
+  counter-reset: level-five-counter;
+}
+
+ol.level-five > li,
+.usa-content ol.level-five > li {
+  display: list-item;
+  margin-bottom: 0.4rem;
+  counter-increment: level-five-counter;
+  position: relative;
+}
+
+ol.level-five > li::before,
+.usa-content ol.level-five > li::before {
+  content: '[' counter(level-five-counter, lower-alpha) '] ';
+  position: absolute;
+  left: -2em;
+  width: 2em;
+  text-align: right;
+  padding-right: 0.5em;
+  font-weight: bold;
+}
+
+/* ================================================================
+   Level 6: [1], [2], [3] (bracketed decimal)
+   ================================================================ */
+ol.level-six,
+.usa-content ol.level-six,
+ol.level-five > li > ol.level-six {
+  list-style-type: none;
+  padding-left: 2em;
+  margin: 0.5rem 0;
+  counter-reset: level-six-counter;
+}
+
+ol.level-six > li,
+.usa-content ol.level-six > li {
+  display: list-item;
+  margin-bottom: 0.4rem;
+  counter-increment: level-six-counter;
+  position: relative;
+}
+
+ol.level-six > li::before,
+.usa-content ol.level-six > li::before {
+  content: '[' counter(level-six-counter, decimal) '] ';
+  position: absolute;
+  left: -2em;
+  width: 2em;
+  text-align: right;
+  padding-right: 0.5em;
+  font-weight: bold;
+}
+
+/* ================================================================
+   DITA-OT default list overrides
+   Map DITA-OT's .ol/.ul classes to match production styling
+   ================================================================ */
+.ul {
+  padding-left: 2em;
+  margin: 0.5rem 0;
+}
+
+.li {
+  margin-bottom: 0.4rem;
+}
+
+/* Simple lists (no bullets) */
+ul.simple {
+  list-style: none;
+  padding-left: 0;
+}
+
+/* ================================================================
+   DITA-OT Depth-Based Ordered List Styling
+   DITA-OT generates <ol class="ol"> at every nesting level without
+   semantic level classes. These selectors target nesting depth within
+   the main content area to match the FAA 6-level list hierarchy:
+     Level 1: a., b., c.         (lower-alpha)
+     Level 2: 1., 2., 3.         (decimal)
+     Level 3: (a), (b), (c)      (parenthetical lower-alpha)
+     Level 4: (1), (2), (3)      (parenthetical decimal)
+     Level 5: [a], [b], [c]      (bracketed lower-alpha)
+     Level 6: [1], [2], [3]      (bracketed decimal)
+   ================================================================ */
+
+/* NOTE (review batch 3): every depth-fallback selector below is scoped to
+   ol.ol:not([class*="level-"]) — the depth system exists ONLY for DITA-OT
+   output that lacks the semantic level classes. Lists carrying .level-N
+   are styled by the semantic rules above regardless of nesting depth
+   (fixes markerless numbered NOTE/EXAMPLE lists nested >=2 deep). */
+
+/* --- Level 1: a. b. c. (lower-alpha) --- */
+.main-content ol.ol:not([class*="level-"]){
+  list-style-type: lower-alpha !important;
+  padding-left: 2em;
+  margin: 0.5rem 0;
+}
+
+.main-content ol.ol:not([class*="level-"]) > li.li{
+  margin-bottom: 0.4rem;
+}
+
+.main-content ol.ol:not([class*="level-"]) > li.li::marker{
+  font-weight: 700;
+}
+
+/* --- Level 2: 1. 2. 3. (decimal) --- */
+.main-content ol.ol ol.ol:not([class*="level-"]){
+  list-style-type: decimal !important;
+  padding-left: 2em;
+  margin: 0.5rem 0;
+}
+
+.main-content ol.ol ol.ol:not([class*="level-"]) > li.li::marker{
+  font-weight: 700;
+}
+
+/* --- Level 3: (a) (b) (c) (parenthetical lower-alpha via counter) --- */
+.main-content ol.ol ol.ol ol.ol:not([class*="level-"]){
+  list-style-type: none !important;
+  padding-left: 2.5em;
+  margin: 0.5rem 0;
+  counter-reset: dita-level-three;
+}
+
+.main-content ol.ol ol.ol ol.ol:not([class*="level-"]) > li.li{
+  counter-increment: dita-level-three;
+  position: relative;
+}
+
+.main-content ol.ol ol.ol ol.ol:not([class*="level-"]) > li.li::before{
+  content: '(' counter(dita-level-three, lower-alpha) ') ';
+  position: absolute;
+  left: -2.5em;
+  width: 2.5em;
+  text-align: right;
+  padding-right: 0.4em;
+  font-weight: 700;
+}
+
+/* --- Level 4: (1) (2) (3) (parenthetical decimal via counter) --- */
+.main-content ol.ol ol.ol ol.ol ol.ol:not([class*="level-"]){
+  list-style-type: none !important;
+  padding-left: 2.5em;
+  margin: 0.5rem 0;
+  counter-reset: dita-level-four;
+}
+
+.main-content ol.ol ol.ol ol.ol ol.ol:not([class*="level-"]) > li.li{
+  counter-increment: dita-level-four;
+  position: relative;
+}
+
+.main-content ol.ol ol.ol ol.ol ol.ol:not([class*="level-"]) > li.li::before{
+  content: '(' counter(dita-level-four, decimal) ') ';
+  position: absolute;
+  left: -2.5em;
+  width: 2.5em;
+  text-align: right;
+  padding-right: 0.4em;
+  font-weight: 700;
+}
+
+/* --- Level 5: [a] [b] [c] (bracketed lower-alpha via counter) --- */
+.main-content ol.ol ol.ol ol.ol ol.ol ol.ol:not([class*="level-"]){
+  list-style-type: none !important;
+  padding-left: 2.5em;
+  margin: 0.5rem 0;
+  counter-reset: dita-level-five;
+}
+
+.main-content ol.ol ol.ol ol.ol ol.ol ol.ol:not([class*="level-"]) > li.li{
+  counter-increment: dita-level-five;
+  position: relative;
+}
+
+.main-content ol.ol ol.ol ol.ol ol.ol ol.ol:not([class*="level-"]) > li.li::before{
+  content: '[' counter(dita-level-five, lower-alpha) '] ';
+  position: absolute;
+  left: -2.5em;
+  width: 2.5em;
+  text-align: right;
+  padding-right: 0.4em;
+  font-weight: 700;
+}
+
+/* --- Level 6: [1] [2] [3] (bracketed decimal via counter) --- */
+.main-content ol.ol ol.ol ol.ol ol.ol ol.ol ol.ol:not([class*="level-"]){
+  list-style-type: none !important;
+  padding-left: 2.5em;
+  margin: 0.5rem 0;
+  counter-reset: dita-level-six;
+}
+
+.main-content ol.ol ol.ol ol.ol ol.ol ol.ol ol.ol:not([class*="level-"]) > li.li{
+  counter-increment: dita-level-six;
+  position: relative;
+}
+
+.main-content ol.ol ol.ol ol.ol ol.ol ol.ol ol.ol:not([class*="level-"]) > li.li::before{
+  content: '[' counter(dita-level-six, decimal) '] ';
+  position: absolute;
+  left: -2.5em;
+  width: 2.5em;
+  text-align: right;
+  padding-right: 0.4em;
+  font-weight: 700;
+}
+
+/* Clear ::before for levels 1-2 that use native list-style-type.
+   No !important here — level 3+ selectors have higher specificity and must win. */
+.main-content ol.ol:not([class*="level-"]) > li.li::before,
+.main-content ol.ol ol.ol:not([class*="level-"]) > li.li::before{
+  content: none;
+}
+
+/* Lists inside note/example blocks reset to decimal numbering */
+.main-content aside ol.ol,
+.main-content .note ol.ol {
+  list-style-type: decimal !important;
+  counter-reset: note-item;
+}
+
+.main-content aside ol.ol > li.li::before,
+.main-content .note ol.ol > li.li::before {
+  content: none !important;
+}
+
+/* ================================================================
+   Appendix pages (body.appendix): number-first list hierarchies.
+   Some appendices invert the publication convention — top-level "1."
+   items with "a." subparagraphs (e.g. FSS Appendix D). Stage 1 encodes
+   the marker glyph in the semantic level class, so on appendix pages
+   the class decides the glyph, not the nesting depth. Letter-first
+   appendices are unaffected (their class matches the depth glyph).
+   ================================================================ */
+body.appendix .main-content ol.ol.level-one,
+body.appendix .main-content ol.ol ol.ol.level-one {
+  list-style-type: lower-alpha !important;
+}
+
+body.appendix .main-content ol.ol.level-two,
+body.appendix .main-content ol.ol ol.ol.level-two {
+  list-style-type: decimal !important;
+}

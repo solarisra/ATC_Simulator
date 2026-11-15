@@ -1233,6 +1233,30 @@ class RadarViewportTests(unittest.TestCase):
         )
         self.assertEqual(RadarDisplay.layout_secondary_returns(display), [])
 
+    def test_radar_blocks_do_not_extend_into_communications_panel(self):
+        snapshot = SimpleNamespace(aircraft_id="A1", latitude=0, longitude=0)
+        display = SimpleNamespace(
+            secondary_radar_returns=[snapshot],
+            calculate_range_and_bearing=lambda lat, lon: (10, 0),
+            convert_to_display_coordinates=lambda lat, lon: (500, 890),
+            is_visible_scope_position=lambda x, y: True,
+            secondary_return_layout=lambda *args: ("", 500, 950),
+            data_block_directions={},
+            selected_aircraft_id=None,
+            data_block_overlap_warned=False,
+            data_block_labels={},
+            width=1640,
+            height=1020,
+        )
+        with patch.object(
+            RadarDisplay,
+            "get_data_block_label",
+            return_value=SimpleNamespace(width=100, height=40),
+        ):
+            layouts = RadarDisplay.layout_secondary_returns(display)
+        self.assertEqual(len(layouts), 1)
+        self.assertLessEqual(layouts[0].text_y + layouts[0].height / 2, 900)
+
 
 if __name__ == "__main__":
     unittest.main()

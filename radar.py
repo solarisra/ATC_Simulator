@@ -7,6 +7,7 @@ import arcade
 import numpy as np
 
 from atc import CoordinationKind, TrackingPosition
+from communications import COMMUNICATIONS_HEIGHT, CommunicationsPanel
 from constants import (
     DISPLAY_RADIUS,
     FPS,
@@ -287,10 +288,15 @@ class RadarDisplay(arcade.Window):
     STARS = "STARS"
 
     def __init__(self, aircraft_list, atc_facility, flight_strips=None):
-        super().__init__(SCREEN_WIDTH + PANEL_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
+        super().__init__(
+            SCREEN_WIDTH + PANEL_WIDTH,
+            SCREEN_HEIGHT + COMMUNICATIONS_HEIGHT,
+            SCREEN_TITLE,
+        )
         arcade.set_background_color(arcade.color.BLACK)
         self.aircraft_list = aircraft_list
         self.atc_facility = atc_facility
+        self.communications_panel = CommunicationsPanel()
         self.strip_panel = FlightStripPanel(
             flight_strips if flight_strips is not None else [],
             aircraft_list,
@@ -395,11 +401,11 @@ class RadarDisplay(arcade.Window):
         shapes.append(
             arcade.shape_list.create_triangles_filled_with_colors(vertices, colors)
         )
-        shapes.position = SCREEN_WIDTH / 2, self.center_y
+        shapes.position = SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2
         return shapes
 
     def create_scope_mask(self):
-        cx, cy, radius = SCREEN_WIDTH / 2, self.center_y, DISPLAY_RADIUS
+        cx, cy, radius = SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, DISPLAY_RADIUS
         vertices = []
 
         def rectangle(left, bottom, right, top):
@@ -449,13 +455,13 @@ class RadarDisplay(arcade.Window):
             else min(SCREEN_WIDTH, SCREEN_HEIGHT) / 2
         )
         return self.radar_viewport.transform(
-            x, y, SCREEN_WIDTH / 2, self.center_y, radius
+            x, y, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, radius
         )
 
     def is_visible_scope_position(self, x, y):
         if self.display_type == self.STARS:
             return 0 <= x <= SCREEN_WIDTH and 0 <= y <= SCREEN_HEIGHT
-        return np.hypot(x - SCREEN_WIDTH / 2, y - self.center_y) <= DISPLAY_RADIUS
+        return np.hypot(x - SCREEN_WIDTH / 2, y - SCREEN_HEIGHT / 2) <= DISPLAY_RADIUS
 
     def setup(self):
         """
@@ -474,7 +480,7 @@ class RadarDisplay(arcade.Window):
             else min(SCREEN_WIDTH, SCREEN_HEIGHT) / 2
         )
         self.map_camera.position = self.radar_viewport.camera_position(
-            SCREEN_WIDTH / 2, self.center_y, radius
+            SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, radius
         )
         self.map_camera.zoom = self.radar_viewport.zoom
         self.map_camera.use()
@@ -522,6 +528,7 @@ class RadarDisplay(arcade.Window):
             self.control_warning_text.text = warning
             self.control_warning_text.draw()
         self.strip_panel.draw(self.selected_aircraft_id, self.departure_checkins)
+        self.communications_panel.draw()
 
     def control_limit_warning(self):
         facility = self.atc_facility
@@ -613,7 +620,7 @@ class RadarDisplay(arcade.Window):
                     previous_sweep_angle,
                     self.sweep.angle,
                     SCREEN_WIDTH / 2,
-                    self.center_y,
+                    SCREEN_HEIGHT / 2,
                     DISPLAY_RADIUS,
                 ).add_return()
 
@@ -760,6 +767,7 @@ class RadarDisplay(arcade.Window):
         placement_failed = False
         for snapshot, distance, x, y, width, height in contacts:
             scope_width = min(self.width, SCREEN_WIDTH)
+            scope_height = min(self.height, SCREEN_HEIGHT)
             direction = self.data_block_directions.get(snapshot.aircraft_id)
             _, preferred_x, preferred_y = self.secondary_return_layout(
                 snapshot, x, y, distance, direction
@@ -775,13 +783,14 @@ class RadarDisplay(arcade.Window):
                 width=width,
                 height=height,
                 scope_width=scope_width,
+                scope_height=scope_height,
                 x=x,
                 y=y,
             ):
                 end_x, end_y = leader_line_end(x, y, text_x, text_y, width, height)
                 return (
                     width / 2 <= text_x <= scope_width - width / 2
-                    and height / 2 <= text_y <= self.height - height / 2
+                    and height / 2 <= text_y <= scope_height - height / 2
                     and np.hypot(end_x - x, end_y - y) >= MIN_LEADER_LINE_LENGTH - 1e-8
                     and (
                         allow_overlap
@@ -794,7 +803,7 @@ class RadarDisplay(arcade.Window):
                     )
                 )
 
-            max_radius = np.hypot(scope_width, self.height) + DATA_BLOCK_DISTANCE
+            max_radius = np.hypot(scope_width, scope_height) + DATA_BLOCK_DISTANCE
             overlap_position = None
             for offset in range(0, int(max_radius) + 1, DATA_BLOCK_DISTANCE):
                 for dx, dy in directions:
@@ -819,7 +828,7 @@ class RadarDisplay(arcade.Window):
                     break
             if position is None:
                 candidate_x = [width / 2, scope_width - width / 2]
-                candidate_y = [height / 2, self.height - height / 2]
+                candidate_y = [height / 2, scope_height - height / 2]
                 for other in layouts:
                     candidate_x.extend(
                         (
@@ -853,7 +862,7 @@ class RadarDisplay(arcade.Window):
                 else:
                     position = (
                         min(max(preferred_x, width / 2), scope_width - width / 2),
-                        min(max(preferred_y, height / 2), self.height - height / 2),
+                        min(max(preferred_y, height / 2), scope_height - height / 2),
                     )
             layouts.append(
                 SecondaryReturnLayout(
@@ -1065,6 +1074,9 @@ class RadarDisplay(arcade.Window):
 
     def on_mouse_press(self, x, y, button, modifiers):
         if button != arcade.MOUSE_BUTTON_LEFT:
+            return
+        communications = self.__dict__.get("communications_panel")
+        if communications is not None and communications.press(x, y):
             return
         self.scratchpad_edit_id = None
         self.handoff_choice_id = None
@@ -1354,6 +1366,11 @@ class RadarDisplay(arcade.Window):
                 self.scratchpad_edit_text += character
                 self.scratchpad_edit_error = ""
             return
+        if symbol == arcade.key.SPACE:
+            communications = self.__dict__.get("communications_panel")
+            if communications is not None:
+                communications.keyboard_ptt = True
+                return
         if self.handoff_choice_id is not None:
             if symbol == arcade.key.ESCAPE:
                 self.handoff_choice_id = None
@@ -1577,7 +1594,15 @@ class RadarDisplay(arcade.Window):
                 symbol
             ]
 
+    def on_key_release(self, symbol, modifiers):
+        if symbol == arcade.key.SPACE:
+            communications = self.__dict__.get("communications_panel")
+            if communications is not None:
+                communications.keyboard_ptt = False
+
     def on_mouse_scroll(self, x, y, scroll_x, scroll_y):
+        if y >= SCREEN_HEIGHT:
+            return
         if x >= SCREEN_WIDTH:
             self.strip_panel.scroll(scroll_y)
         else:
@@ -1593,10 +1618,20 @@ class RadarDisplay(arcade.Window):
 
     def on_mouse_release(self, x, y, button, modifiers):
         if button == arcade.MOUSE_BUTTON_LEFT:
+            communications = self.__dict__.get("communications_panel")
+            if communications is not None and communications.mouse_ptt:
+                communications.release()
+                return
             self.strip_panel.finish_drag(x, y)
 
     def on_mouse_leave(self, x, y):
+        communications = self.__dict__.get("communications_panel")
+        if communications is not None:
+            communications.release()
         self.strip_panel.hover_position = None
+
+    def on_deactivate(self):
+        self.communications_panel.release_all()
 
     def on_close(self):
         self.gis_overlays.close()
@@ -1614,19 +1649,25 @@ class RadarDisplay(arcade.Window):
         Draw the ARTS IIE display.
         """
         arcade.draw_circle_outline(
-            SCREEN_WIDTH / 2, self.center_y, DISPLAY_RADIUS, arcade.color.DIM_GRAY, 1
+            SCREEN_WIDTH / 2,
+            SCREEN_HEIGHT / 2,
+            DISPLAY_RADIUS,
+            arcade.color.DIM_GRAY,
+            1,
         )
-        self.draw_degree_markings(SCREEN_WIDTH / 2, self.center_y, DISPLAY_RADIUS + 24)
+        self.draw_degree_markings(
+            SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, DISPLAY_RADIUS + 24
+        )
 
     def draw_sweep(self):
         self.map_camera.use()
         self.sweep_sector.angle = np.degrees(self.sweep.angle)
         self.sweep_sector.draw()
         self.default_camera.use()
-        start_x, start_y = self.transform_position(SCREEN_WIDTH / 2, self.center_y)
+        start_x, start_y = self.transform_position(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
         end_x, end_y = self.transform_position(
             SCREEN_WIDTH / 2 + DISPLAY_RADIUS * np.sin(self.sweep.angle),
-            self.center_y + DISPLAY_RADIUS * np.cos(self.sweep.angle),
+            SCREEN_HEIGHT / 2 + DISPLAY_RADIUS * np.cos(self.sweep.angle),
         )
         arcade.draw_line(start_x, start_y, end_x, end_y, SWEEP_COLOR, 2)
 
@@ -1638,12 +1679,12 @@ class RadarDisplay(arcade.Window):
         rect_height = SCREEN_HEIGHT
 
         arcade.draw_rect_outline(
-            arcade.XYWH(SCREEN_WIDTH / 2, self.center_y, rect_width, rect_height),
+            arcade.XYWH(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, rect_width, rect_height),
             arcade.color.DIM_GRAY,
             1,
         )
         self.draw_degree_markings(
-            SCREEN_WIDTH / 2, self.center_y, rect_width, rect_height
+            SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, rect_width, rect_height
         )
 
     @staticmethod
@@ -1690,7 +1731,7 @@ class RadarDisplay(arcade.Window):
                 2 * MAX_DISTANCE_MILES
             )
         x = SCREEN_WIDTH / 2 + distance * pixels_per_mile * np.sin(bearing)
-        y = self.center_y + distance * pixels_per_mile * np.cos(bearing)
+        y = SCREEN_HEIGHT / 2 + distance * pixels_per_mile * np.cos(bearing)
         return self.transform_position(x, y)
 
     def calculate_range_and_bearing(self, lat, lon):

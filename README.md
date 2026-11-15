@@ -38,6 +38,40 @@ knots, aircraft type, and scratchpad on four lines in both display modes. The se
 aircraft's heading, squawk, exact speed and range appear at the right of the
 radar. This is a simplified full data block.
 
+The communications panel is above the radar. Click a frequency button to cycle
+it through On, Listen and Off. Multiple frequencies can be monitored at
+once. Hold the `HOLD TO TALK` button or the spacebar to make the simulated
+mic hot: all On frequencies transmit, while Listen frequencies do not.
+Releasing a control stops its transmission; the mic remains hot while either
+control is held. Leaving the window releases the mouse control, and losing
+window focus releases both. Spacebar enters text instead of transmitting
+when supported during text entry; push-to-talk is disabled while editing a
+strip, scratchpad, clearance or coordination.
+Emergency frequencies initially listen; Yuma APP VHF starts On and all
+other frequencies start Off. Buttons use TWR, APP, DEP, ENR and SEC for
+tower, approach, departure, enroute and sector.
+
+The separate intrafacility section has lines for KNYL Tower (Local), Range
+Control, Approach/Departure and Enroute. Click a line to toggle it between
+Cold and Hot; all start Cold and can be Hot independently. A Hot line stays
+Hot without push-to-talk, regardless of the radio mic state.
+
+The panel displays separate Yuma approach/departure and VHF/UHF tower buttons.
+Its emergency, tower, approach and departure values are from the
+[FAA-derived Yuma listing](https://www.airnav.com/airport/KNYL), effective
+29 October 2026. KNYL enroute, ZLA sectors 9, 10 and 31 and ZAB sector 42
+use frequencies supplied for this scenario; the enroute values are provisional.
+Sector 31 is labeled for airspace above FL230, but the label does not automate
+sector assignment or handoffs. These values may change and are not for operational
+use. The panel only simulates communication state: there is no microphone,
+radio or intrafacility audio, and existing departure check-ins and controller
+clearances are not filtered by frequency or line.
+
+[RadioReference's Yuma airport listing](https://www.radioreference.com/db/aid/10632)
+lists departure VHF as 125.550 MHz, while the FAA-derived listing above gives
+125.500 MHz, which the simulator retains. RadioReference also lists an
+additional 336.400 MHz approach UHF frequency.
+
 The right-hand flight progress strip panel lists active scenario plans. Scroll
 over the panel to see additional strips; clicking a strip selects its radar
 track, and selecting a radar track also highlights its visible strip. Drag a

@@ -2,14 +2,16 @@ import runpy
 import unittest
 from collections import Counter
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import arcade
 
 from atc import FlightPlan, FlightStrip
 from constants import SCREEN_WIDTH
 from flight_strips import (
+    CHECKINS_TOP,
     LIST_TOP,
+    PANEL_WIDTH,
     STRIP_COLUMNS,
     STRIP_HEIGHT,
     STRIP_LEFT,
@@ -46,6 +48,35 @@ def make_panel(count):
 
 
 class FlightStripTests(unittest.TestCase):
+    def test_departure_checkins_have_separate_area_above_strips(self):
+        with patch("flight_strips.arcade.Text") as text_factory:
+            FlightStripPanel([], SimpleNamespace(aircraft_list=[]))
+        checkin_args = text_factory.call_args_list[2]
+        self.assertGreaterEqual(checkin_args.args[1], SCREEN_WIDTH)
+        self.assertLessEqual(
+            checkin_args.args[1] + checkin_args.kwargs["width"],
+            SCREEN_WIDTH + PANEL_WIDTH,
+        )
+        self.assertEqual(checkin_args.args[2], CHECKINS_TOP)
+        panel, aircraft, _ = make_panel(1)
+        panel.checkins = Mock()
+        messages = [
+            "LIFE12: YUMA DEPARTURE, 600 FT, CLIMBING 2500 FT",
+            "N380CJ: YUMA DEPARTURE, 1200 FT, CLIMBING 17000 FT",
+            "REACH47: YUMA DEPARTURE, 600 FT, CLIMBING 16000 FT",
+        ]
+        with (
+            patch("arcade.draw_rect_filled"),
+            patch("arcade.draw_line"),
+            patch.object(panel, "draw_field"),
+        ):
+            panel.draw(aircraft[0].id, messages)
+        self.assertEqual(
+            panel.checkins.text, "DEPARTURE CHECK-INS\n" + "\n".join(messages)
+        )
+        panel.checkins.draw.assert_called_once()
+        self.assertIsNone(panel.select_at(CHECKINS_TOP - 1))
+
     def test_terminal_fields_differ_for_arrivals_and_departures(self):
         _, _, strips = make_panel(1)
         strip = strips[0]

@@ -15,6 +15,7 @@ from radar import (
     RadarViewport,
     leader_line_end,
 )
+from sample_scenario import create_yuma_scenario
 
 
 def enter_coordination(display, text="NONE"):
@@ -64,6 +65,29 @@ def coordination_display(owner=TrackingPosition.YUMA):
     )
     display.capture_secondary_radar_returns()
     return display, aircraft
+
+
+def clearance_display():
+    aircraft_list, facility, strips = create_yuma_scenario()
+    aircraft = next(strip.aircraft for strip in strips if strip.aircraft.id == "A3")
+    display = SimpleNamespace(
+        aircraft_list=aircraft_list,
+        atc_facility=facility,
+        selected_aircraft_id=aircraft.id,
+        clearance_draft=None,
+        coordination_draft=None,
+        scratchpad_edit_id=None,
+        handoff_choice_id=None,
+        handoff_message="",
+    )
+    return display, aircraft
+
+
+def type_clearance(display, text):
+    RadarDisplay.on_key_press(display, arcade.key.G, 0)
+    for character in text.lower():
+        RadarDisplay.on_key_press(display, ord(character), 0)
+    RadarDisplay.on_key_press(display, arcade.key.ENTER, 0)
 
 
 class RadarSweepTests(unittest.TestCase):
@@ -768,6 +792,71 @@ class SecondaryRadarTests(unittest.TestCase):
         RadarDisplay.draw_selected_aircraft_details(display)
         self.assertIn("10.0 NM FROM NYL", display.selected_details_text.text)
         self.assertNotIn("KNYL", display.selected_details_text.text)
+
+    def test_controller_clearances_control_guidance_and_read_back(self):
+        display, aircraft = clearance_display()
+        guidance = aircraft.flight_guidance
+        original_route = guidance.strip.flight_plan.route
+        initial_fix = guidance.route[guidance.next_index].name
+        type_clearance(display, "HDG 360")
+        self.assertIsNone(display.clearance_draft)
+        self.assertEqual(guidance.vector_heading, 0)
+        self.assertIn("HEADING 360 TRUE", display.handoff_message)
+        aircraft.update_position(10)
+        self.assertEqual(guidance.route[guidance.next_index].name, initial_fix)
+        type_clearance(display, "ALT 6000")
+        aircraft.update_position(20)
+        self.assertEqual(guidance.assigned_altitude, 6000)
+        self.assertIn("MAINTAIN 6000 FT", display.handoff_message)
+        later = guidance.route[guidance.next_index + 1].name
+        type_clearance(display, f"DCT {later}")
+        self.assertIsNone(guidance.vector_heading)
+        self.assertEqual(guidance.route[guidance.next_index].name, later)
+        self.assertEqual(guidance.strip.flight_plan.route, original_route)
+        type_clearance(display, "HDG 180")
+        type_clearance(display, "RESUME")
+        self.assertIsNone(guidance.vector_heading)
+        self.assertEqual(guidance.route[guidance.next_index].name, later)
+        type_clearance(display, "ALT CLR")
+        self.assertIsNone(guidance.assigned_altitude)
+
+    def test_clearances_reject_invalid_or_uncontrolled_aircraft(self):
+        display, aircraft = clearance_display()
+        guidance = aircraft.flight_guidance
+        type_clearance(display, "HDG 361")
+        self.assertIsNone(guidance.vector_heading)
+        self.assertIn("001 TO 360", display.handoff_message)
+        RadarDisplay.on_key_press(display, arcade.key.ESCAPE, 0)
+        type_clearance(display, "DCT NOTAFIX")
+        self.assertIn("REMAINING ROUTE", display.handoff_message)
+        RadarDisplay.on_key_press(display, arcade.key.ESCAPE, 0)
+        type_clearance(display, "ALT 24000")
+        self.assertIn("CONTROL LIMIT", display.handoff_message)
+        RadarDisplay.on_key_press(display, arcade.key.ESCAPE, 0)
+        aircraft.track.communications_owner = TrackingPosition.LOS_ANGELES
+        RadarDisplay.on_key_press(display, arcade.key.G, 0)
+        self.assertIn("OWN TRACK AND COMMUNICATIONS", display.handoff_message)
+        self.assertIsNone(guidance.vector_heading)
+        aircraft.track.communications_owner = TrackingPosition.YUMA
+        aircraft.track.offer(TrackingPosition.LOS_ANGELES, "NONE")
+        RadarDisplay.on_key_press(display, arcade.key.G, 0)
+        self.assertIn("PENDING HANDOFF", display.handoff_message)
+        self.assertIsNone(guidance.vector_heading)
+        aircraft.track.cancel()
+        RadarDisplay.on_key_press(display, arcade.key.G, 0)
+        for character in "hdg 090":
+            RadarDisplay.on_key_press(display, ord(character), 0)
+        aircraft.track.communications_owner = TrackingPosition.LOS_ANGELES
+        RadarDisplay.on_key_press(display, arcade.key.ENTER, 0)
+        self.assertIn("OWN TRACK AND COMMUNICATIONS", display.handoff_message)
+        self.assertIsNone(guidance.vector_heading)
+
+    def test_ground_departure_cannot_begin_clearance_edit(self):
+        display, _ = clearance_display()
+        display.selected_aircraft_id = "A8"
+        RadarDisplay.on_key_press(display, arcade.key.G, 0)
+        self.assertIsNone(display.clearance_draft)
+        self.assertIn("NOT AIRBORNE", display.handoff_message)
 
     def test_leader_lines_remain_visible_for_wide_blocks_in_all_directions(self):
         snapshot = SimpleNamespace(

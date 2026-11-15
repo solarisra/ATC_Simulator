@@ -77,9 +77,34 @@ class CoordinationDraft:
     text: str = ""
 
 
+@dataclass
+class ClearanceDraft:
+    aircraft_id: str
+    text: str = ""
+
+
 def is_airborne(aircraft):
     departure = getattr(aircraft, "departure", None)
     return not aircraft.landed and (departure is None or departure.airborne)
+
+
+def clearance_control_error(aircraft, facility):
+    if not is_airborne(aircraft):
+        return "Aircraft is not airborne"
+    if (
+        aircraft.track.owner != TrackingPosition.YUMA
+        or aircraft.track.communications_owner != TrackingPosition.YUMA
+    ):
+        return "Yuma must own track and communications"
+    if aircraft.track.identification_confirmation_due:
+        return "Confirm incoming identification first"
+    if aircraft.track.handoff_target is not None:
+        return "Complete or cancel the pending handoff"
+    if facility.above_control_limit(aircraft.altitude):
+        return "Aircraft is above Yuma control limit"
+    if aircraft.flight_guidance is None:
+        return "Aircraft has no flight plan guidance"
+    return None
 
 
 def leader_line_end(x, y, text_x, text_y, width, height):
@@ -288,6 +313,7 @@ class RadarDisplay(arcade.Window):
         self.handoff_choice_id = None
         self.handoff_choice_kind = "HANDOFF"
         self.coordination_draft: CoordinationDraft | None = None
+        self.clearance_draft: ClearanceDraft | None = None
         self.handoff_message = ""
         self.data_block_directions = {}
         self.data_block_labels = {}
@@ -323,17 +349,6 @@ class RadarDisplay(arcade.Window):
             anchor_y="bottom",
             multiline=True,
             width=400,
-            font_name=DATA_BLOCK_FONT,
-        )
-        self.departure_checkin_text = arcade.Text(
-            "",
-            10,
-            200,
-            arcade.color.LIGHT_BLUE,
-            10,
-            anchor_y="top",
-            multiline=True,
-            width=500,
             font_name=DATA_BLOCK_FONT,
         )
 
@@ -506,12 +521,7 @@ class RadarDisplay(arcade.Window):
         if warning:
             self.control_warning_text.text = warning
             self.control_warning_text.draw()
-        if self.departure_checkins:
-            self.departure_checkin_text.text = "DEPARTURE CHECK-INS\n" + "\n".join(
-                self.departure_checkins
-            )
-            self.departure_checkin_text.draw()
-        self.strip_panel.draw(self.selected_aircraft_id)
+        self.strip_panel.draw(self.selected_aircraft_id, self.departure_checkins)
 
     def control_limit_warning(self):
         facility = self.atc_facility
@@ -968,6 +978,15 @@ class RadarDisplay(arcade.Window):
         if aircraft is not None:
             track = aircraft.track
             text += f"\nCOMMS {track.communications_owner}"
+            guidance = getattr(aircraft, "flight_guidance", None)
+            if guidance is not None:
+                if guidance.vector_heading is not None:
+                    heading = guidance.vector_heading or 360
+                    text += f"\nVECTOR {heading:03d} TRUE"
+                else:
+                    text += f"\nNEXT {guidance.route[guidance.next_index].name}"
+                if guidance.assigned_altitude is not None:
+                    text += f"\nCLEARED {guidance.assigned_altitude} FT"
             if track.owner != track.communications_owner:
                 text += "\nC TRANSFER COMMS"
             if track.handoff_information:
@@ -994,7 +1013,12 @@ class RadarDisplay(arcade.Window):
                 else:
                     text += "\nX CANCEL"
         draft = self.coordination_draft
-        if self.scratchpad_edit_id == snapshot.aircraft_id:
+        clearance = self.__dict__.get("clearance_draft")
+        if clearance is not None and clearance.aircraft_id == snapshot.aircraft_id:
+            text += f"\nCLEARANCE:\n{clearance.text}_\nENTER SEND / ESC CANCEL"
+            if self.handoff_message:
+                text += f"\n{self.handoff_message}"
+        elif self.scratchpad_edit_id == snapshot.aircraft_id:
             text += f"\nEDIT SCRATCHPAD:\n{self.scratchpad_edit_text}_\nENTER SAVE / ESC CANCEL"
             if self.scratchpad_edit_error:
                 text += f"\n{self.scratchpad_edit_error}"
@@ -1045,6 +1069,7 @@ class RadarDisplay(arcade.Window):
         self.scratchpad_edit_id = None
         self.handoff_choice_id = None
         self.coordination_draft = None
+        self.clearance_draft = None
         self.handoff_message = ""
         panel = self.__dict__.get("strip_panel")
         if panel is not None:
@@ -1077,6 +1102,82 @@ class RadarDisplay(arcade.Window):
                     )
                 )
         self.selected_aircraft_id = min(block_hits)[1] if block_hits else None
+
+    def handle_clearance_draft(self, symbol):
+        draft = self.clearance_draft
+        if draft is None:
+            raise RuntimeError("No clearance draft is active")
+        if symbol == arcade.key.ESCAPE:
+            self.clearance_draft = None
+            self.handoff_message = "CLEARANCE CANCELED"
+            return
+        if symbol == arcade.key.BACKSPACE:
+            draft.text = draft.text[:-1]
+            self.handoff_message = ""
+            return
+        if symbol not in (arcade.key.ENTER, arcade.key.NUM_ENTER):
+            if arcade.key.A <= symbol <= arcade.key.Z:
+                char = chr(symbol).upper()
+            elif ord("0") <= symbol <= ord("9") or symbol == ord(" "):
+                char = chr(symbol)
+            elif arcade.key.NUM_0 <= symbol <= arcade.key.NUM_9:
+                char = str(symbol - arcade.key.NUM_0)
+            else:
+                self.handoff_message = "USE A-Z, 0-9 OR SPACE"
+                return
+            if len(draft.text) >= 20:
+                self.handoff_message = "MAX 20 CHARACTERS"
+                return
+            draft.text += char
+            self.handoff_message = ""
+            return
+        aircraft = next(
+            (
+                item
+                for item in self.aircraft_list.aircraft_list
+                if item.id == draft.aircraft_id
+            ),
+            None,
+        )
+        if aircraft is None:
+            self.clearance_draft = None
+            self.handoff_message = "AIRCRAFT UNAVAILABLE"
+            return
+        try:
+            error = clearance_control_error(aircraft, self.atc_facility)
+            if error is not None:
+                raise ValueError(error)
+            guidance = aircraft.flight_guidance
+            guidance._refresh_route(aircraft)
+            parts = draft.text.upper().split()
+            if len(parts) == 2 and parts[0] == "HDG" and parts[1].isdigit():
+                heading = int(parts[1])
+                guidance.assign_heading(heading)
+                readback = f"HEADING {heading:03d} TRUE"
+            elif len(parts) == 2 and parts[0] == "ALT" and parts[1].isdigit():
+                altitude = int(parts[1])
+                if self.atc_facility.above_control_limit(altitude / 100):
+                    raise ValueError("Altitude is above Yuma control limit")
+                guidance.assign_altitude(altitude)
+                readback = f"MAINTAIN {altitude} FT"
+            elif parts == ["ALT", "CLR"]:
+                guidance.clear_altitude()
+                readback = (
+                    f"RESUME FILED ALTITUDE {guidance.strip.flight_plan.altitude} FT"
+                )
+            elif len(parts) == 2 and parts[0] == "DCT":
+                guidance.direct_to(parts[1])
+                readback = f"DIRECT {parts[1]}, THEN FLIGHT PLAN"
+            elif parts == ["RESUME"]:
+                guidance.resume_route()
+                readback = f"RESUME FLIGHT PLAN DIRECT {guidance.route[guidance.next_index].name}"
+            else:
+                raise ValueError("USE HDG nnn, ALT feet, ALT CLR, DCT fix OR RESUME")
+        except ValueError as error:
+            self.handoff_message = str(error).upper()
+            return
+        self.clearance_draft = None
+        self.handoff_message = f"{aircraft.callsign}: {readback}"
 
     def handle_coordination_draft(self, symbol):
         draft = self.coordination_draft
@@ -1202,6 +1303,9 @@ class RadarDisplay(arcade.Window):
         if panel is not None and panel.edit_strip is not None:
             panel.on_key_press(symbol, self.selected_aircraft_id)
             return
+        if self.__dict__.get("clearance_draft") is not None:
+            RadarDisplay.handle_clearance_draft(self, symbol)
+            return
         if self.__dict__.get("coordination_draft") is not None:
             RadarDisplay.handle_coordination_draft(self, symbol)
             return
@@ -1295,6 +1399,25 @@ class RadarDisplay(arcade.Window):
             self.handoff_message = ""
             return
         if panel is not None and panel.on_key_press(symbol, self.selected_aircraft_id):
+            return
+        if symbol == arcade.key.G and self.selected_aircraft_id is not None:
+            aircraft = next(
+                (
+                    item
+                    for item in self.aircraft_list.aircraft_list
+                    if item.id == self.selected_aircraft_id
+                ),
+                None,
+            )
+            if aircraft is None:
+                self.handoff_message = "AIRCRAFT UNAVAILABLE"
+                return
+            error = clearance_control_error(aircraft, self.atc_facility)
+            if error is not None:
+                self.handoff_message = error.upper()
+                return
+            self.clearance_draft = ClearanceDraft(aircraft.id)
+            self.handoff_message = ""
             return
         if self.selected_aircraft_id is not None and symbol in (
             arcade.key.H,

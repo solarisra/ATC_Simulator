@@ -171,6 +171,82 @@ class FlightNavigationTests(unittest.TestCase):
         self.assertEqual((aircraft.lat, aircraft.lon, aircraft.speed), (0, 1, 0))
         self.assertEqual(aircraft.altitude, 0)
 
+    def test_controller_vector_direct_and_resume_preserve_remaining_route(self):
+        aircraft = make_aircraft(lat=0, lon=0.05, heading=90, altitude=20, speed=100)
+        plan = FlightPlan("A1", "A", "D", "B C", 5000, 110)
+        strip = FlightStrip("A1", aircraft, plan)
+        points = [
+            Waypoint("A", 0, 0, 0),
+            Waypoint("B", 0, 0.4),
+            Waypoint("C", 0, 0.8),
+            Waypoint("D", 0, 1.2, 0),
+        ]
+        guidance = FlightPlanGuidance(
+            strip, SimpleNamespace(resolve=lambda plan: points)
+        )
+        aircraft.flight_guidance = guidance
+        guidance.assign_heading(360)
+        aircraft.update_position(100)
+        self.assertAlmostEqual(aircraft.heading, 0)
+        self.assertEqual(guidance.next_index, 1)
+        self.assertFalse(aircraft.landed)
+        guidance.resume_route()
+        aircraft.update_position(10)
+        self.assertGreater(aircraft.heading, 0)
+        guidance.direct_to("C")
+        self.assertEqual(guidance.next_index, 2)
+        self.assertIsNone(guidance.vector_heading)
+        with self.assertRaisesRegex(ValueError, "remaining route"):
+            guidance.direct_to("B")
+        with self.assertRaisesRegex(ValueError, "heading vector"):
+            guidance.resume_route()
+        self.assertEqual(plan.route, "B C")
+
+    def test_assigned_altitude_persists_and_prevents_automatic_landing(self):
+        aircraft = make_aircraft(lat=0, lon=0.05, altitude=20, speed=100)
+        strip = FlightStrip(
+            "A1", aircraft, FlightPlan("A1", "A", "B", "DCT", 5000, 100)
+        )
+        points = [Waypoint("A", 0, 0, 0), Waypoint("B", 0, 0.2, 0)]
+        guidance = FlightPlanGuidance(
+            strip, SimpleNamespace(resolve=lambda plan: points)
+        )
+        aircraft.flight_guidance = guidance
+        guidance.assign_altitude(3000)
+        aircraft.update_position(600)
+        self.assertEqual(aircraft.altitude, 30)
+        self.assertFalse(aircraft.landed)
+        self.assertTrue(strip.active)
+        self.assertEqual(strip.assigned_altitude, "")
+        guidance.assign_heading(270)
+        aircraft.update_position(30)
+        self.assertEqual(aircraft.altitude, 30)
+        guidance.resume_route()
+        guidance.clear_altitude()
+        aircraft.update_position(6000)
+        self.assertTrue(aircraft.landed)
+        with self.assertRaisesRegex(ValueError, "No assigned altitude"):
+            guidance.clear_altitude()
+
+    def test_vector_cancels_pending_automatic_approach_braking(self):
+        aircraft = make_aircraft(lat=0, lon=0, altitude=20, speed=100)
+        strip = FlightStrip(
+            "A1", aircraft, FlightPlan("A1", "A", "B", "DCT", 5000, 100)
+        )
+        points = [Waypoint("A", 0, 0, 0), Waypoint("B", 0, 0.1, 0)]
+        guidance = FlightPlanGuidance(
+            strip, SimpleNamespace(resolve=lambda plan: points)
+        )
+        aircraft.flight_guidance = guidance
+        aircraft.update_position(1)
+        self.assertTrue(guidance.approach)
+        self.assertIsNotNone(aircraft.target_speed)
+        guidance.assign_heading(360)
+        self.assertIsNone(aircraft.target_speed)
+        speed = aircraft.speed
+        aircraft.update_position(10)
+        self.assertEqual(aircraft.speed, speed)
+
     def test_revised_route_is_resolved_and_invalid_edit_is_not_ignored(self):
         aircraft = make_aircraft(lat=0, lon=0.05, speed=100)
         plan = FlightPlan("A1", "A", "B", "DCT", 5000, 100)
@@ -307,6 +383,19 @@ class FlightNavigationTests(unittest.TestCase):
         aircraft_list.update_positions(100)
         self.assertTrue(departure.departure.airborne)
         self.assertIn("N380CJ", departure.departure.check_in)
+
+    def test_departure_checkin_uses_controller_assigned_altitude(self):
+        _, _, strips = create_yuma_scenario()
+        aircraft = next(s.aircraft for s in strips if s.aircraft.id == "A8")
+        for _ in range(200):
+            aircraft.update_position(1)
+            if aircraft.departure.airborne:
+                break
+        self.assertTrue(aircraft.departure.airborne)
+        self.assertIsNone(aircraft.departure.check_in)
+        aircraft.flight_guidance.assign_altitude(6000)
+        aircraft.update_position(15)
+        self.assertIn("CLIMBING 6000 FT", aircraft.departure.check_in)
 
     @staticmethod
     def mexico_boundary():

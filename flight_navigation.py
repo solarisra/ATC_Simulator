@@ -206,8 +206,56 @@ class FlightPlanGuidance:
         self.route = []
         self.next_index = 1
         self.approach = False
+        self.vector_heading = None
+        self.assigned_altitude = None
         self._refresh_route(strip.aircraft)
         strip.aircraft.target_speed = None
+
+    def assign_heading(self, heading):
+        if not isinstance(heading, int) or not 1 <= heading <= 360:
+            raise ValueError("Heading must be 001 to 360 true")
+        self.vector_heading = heading % 360
+        self._cancel_approach()
+
+    def assign_altitude(self, altitude):
+        aircraft = self.strip.aircraft
+        if (
+            not isinstance(altitude, int)
+            or not 1 <= altitude <= aircraft.aircraft_model.service_ceiling
+        ):
+            raise ValueError("Altitude must be positive and within aircraft ceiling")
+        self.assigned_altitude = altitude
+        self._cancel_approach()
+
+    def _cancel_approach(self):
+        if self.approach:
+            self.strip.aircraft.target_speed = None
+        self.approach = False
+
+    def clear_altitude(self):
+        if self.assigned_altitude is None:
+            raise ValueError("No assigned altitude to clear")
+        self.assigned_altitude = None
+
+    def direct_to(self, name):
+        matches = [
+            index
+            for index in range(self.next_index, len(self.route))
+            if self.route[index].name == name.upper()
+        ]
+        if not matches:
+            raise ValueError("Fix is not on the remaining route")
+        if len(matches) > 1:
+            raise ValueError("Fix occurs more than once on the remaining route")
+        self.next_index = matches[0]
+        self.vector_heading = None
+        self._cancel_approach()
+
+    def resume_route(self):
+        if self.vector_heading is None:
+            raise ValueError("Aircraft is not on a heading vector")
+        self.vector_heading = None
+        self._cancel_approach()
 
     def _refresh_route(self, aircraft):
         plan = self.strip.flight_plan
@@ -233,6 +281,16 @@ class FlightPlanGuidance:
             raise ValueError(
                 f"{aircraft.id} cannot follow a route without maneuver rates"
             )
+        if self.vector_heading is not None:
+            altitude = (
+                self.assigned_altitude
+                if self.assigned_altitude is not None
+                else self.strip.flight_plan.altitude
+            )
+            aircraft.update_heading(self.vector_heading)
+            aircraft.update_altitude(altitude / 100)
+            aircraft._advance_position(delta_time)
+            return
         turn_radius = aircraft.speed / (3600 * math.radians(turn_rate))
         capture_radius = max(0.15, turn_radius * 1.25)
         target = self.route[self.next_index]
@@ -253,6 +311,11 @@ class FlightPlanGuidance:
         if field_elevation is None:
             raise ValueError(f"Missing destination elevation for {aircraft.id}")
         filed_altitude = self.strip.flight_plan.altitude
+        if self.assigned_altitude is not None:
+            aircraft.update_heading(_bearing(aircraft.lat, aircraft.lon, target))
+            aircraft.update_altitude(self.assigned_altitude / 100)
+            aircraft._advance_position(delta_time)
+            return
         descent_seconds = (
             max(0, max(aircraft.altitude * 100, filed_altitude) - field_elevation)
             / aircraft.aircraft_model.climb_rate

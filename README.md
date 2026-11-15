@@ -69,8 +69,8 @@ a session.
 The three KNYL departures begin stationary at field elevation and automatically
 begin takeoff after 30, 60, and 90 seconds, without a controller takeoff command. Their
 strips remain active while they wait. A simulated pilot check-in to Yuma
-Departure appears on the scope 15 seconds after liftoff; the most recent three
-check-ins remain visible. This assumes one person staffs approach, departure
+Departure appears above the flight strips 15 seconds after liftoff; the most
+recent three check-ins remain visible. This assumes one person staffs approach, departure
 and enroute. Ground positions and runway headings are approximate, with no
 taxi, runway conflict, tower coordination, or voice simulation.
 The startup tracks and route legs are kept north of the U.S.–Mexico border
@@ -109,6 +109,24 @@ and their required coordination are not simulated. See FAA Order 7110.65
 This is not a runway approach, terrain-avoidance system, or operational
 clearance. Route edits to the underlying plan are resolved again; strip
 annotations do not change the route.
+
+To issue a simulated clearance, select an airborne aircraft and press `G`. Enter
+`HDG 090` for a true heading, `ALT 6000` for an altitude in feet, `DCT FIX`
+for a fix on the remaining expanded route, `RESUME` to fly to the next
+remaining route fix after a vector, or `ALT CLR` to release the assigned
+altitude and return to normal filed-altitude guidance. Press Enter to issue
+the instruction or Escape to cancel. A text readback appears on the scope.
+Use the full internal airport code for a direct-to airport (for example
+`KIPL`), to distinguish it from a navaid with the same displayed code.
+Direct-to skips earlier fixes but does not change the filed plan. A heading
+vector suspends route guidance; an assigned altitude persists across route
+changes and vectors. While either is active, automatic descent and landing
+are inhibited; release the altitude and resume route guidance to restore
+them. Assigned altitudes are separate from editable strip annotations.
+Clearances require an airborne aircraft with Yuma track and communications
+ownership, no pending handoff, and an altitude within Yuma's control limit.
+These are simplified text interactions; they do not model voice, separation,
+terrain, airspace restrictions, or coordination approvals.
 
 The Yuma scenario assumes 03L, 03R and 35 are active.
 Yuma-bound or departing military and commercial samples, including the

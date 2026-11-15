@@ -7,7 +7,8 @@ from flight_navigation import NavigationData
 
 PANEL_WIDTH = 440
 STRIP_HEIGHT = 76
-LIST_TOP = SCREEN_HEIGHT - 60
+CHECKINS_TOP = SCREEN_HEIGHT - 55
+LIST_TOP = SCREEN_HEIGHT - 180
 LIST_BOTTOM = 220
 VISIBLE_STRIPS = (LIST_TOP - LIST_BOTTOM) // STRIP_HEIGHT
 STRIP_LEFT = SCREEN_WIDTH + 8
@@ -144,6 +145,17 @@ class FlightStripPanel:
             SCREEN_HEIGHT - 14,
             arcade.color.WHITE,
             11,
+            font_name="Consolas",
+            anchor_y="top",
+            multiline=True,
+            width=PANEL_WIDTH - 24,
+        )
+        self.checkins = arcade.Text(
+            "",
+            SCREEN_WIDTH + 12,
+            CHECKINS_TOP,
+            arcade.color.LIGHT_BLUE,
+            10,
             font_name="Consolas",
             anchor_y="top",
             multiline=True,
@@ -462,7 +474,7 @@ class FlightStripPanel:
         self.text.position = (x, y)
         self.text.draw()
 
-    def draw(self, selected_id):
+    def draw(self, selected_id, departure_checkins=()):
         arcade.draw_rect_filled(
             arcade.LBWH(SCREEN_WIDTH, 0, PANEL_WIDTH, SCREEN_HEIGHT),
             (32, 38, 42),
@@ -474,6 +486,9 @@ class FlightStripPanel:
             f"SIM RWY {' '.join(self.active_runways) or '--'} / DRAG / SCROLL"
         )
         self.header.draw()
+        if departure_checkins:
+            self.checkins.text = "DEPARTURE CHECK-INS\n" + "\n".join(departure_checkins)
+            self.checkins.draw()
         for index, strip in enumerate(visible):
             top = LIST_TOP - index * STRIP_HEIGHT
             selected = strip.aircraft.id == selected_id

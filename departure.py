@@ -73,8 +73,17 @@ class Departure:
         self.airborne_elapsed += delta_time
         if self.check_in is None and self.airborne_elapsed >= 15:
             altitude = round(aircraft.altitude) * 100
+            assigned = aircraft.flight_guidance.assigned_altitude
+            target = (
+                assigned if assigned is not None else self.strip.flight_plan.altitude
+            )
+            if target > altitude:
+                status = f"CLIMBING {target} FT"
+            elif target < altitude:
+                status = f"DESCENDING {target} FT"
+            else:
+                status = f"LEVEL {target} FT"
             self.check_in = (
-                f"{aircraft.callsign}: YUMA DEPARTURE, {altitude} FT, "
-                f"CLIMBING {self.strip.flight_plan.altitude} FT"
+                f"{aircraft.callsign}: YUMA DEPARTURE, {altitude} FT, {status}"
             )
             self.check_in_time = self.elapsed

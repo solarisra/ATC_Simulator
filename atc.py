@@ -1,3 +1,59 @@
+from enum import StrEnum
+
+SIMULATED_HANDOFF_DELAY_SECONDS = 3.0
+
+
+class TrackingPosition(StrEnum):
+    YUMA = "Y"
+    LOS_ANGELES = "L"
+    ALBUQUERQUE = "A"
+
+
+class TrackOwnership:
+    def __init__(self):
+        self.owner = TrackingPosition.YUMA
+        self.handoff_target = None
+        self.handoff_elapsed = 0.0
+
+    def offer(self, target):
+        if not isinstance(target, TrackingPosition):
+            raise TypeError("Invalid tracking position")
+        if self.handoff_target is not None:
+            raise ValueError("A handoff is already pending")
+        if target == self.owner or (
+            self.owner != TrackingPosition.YUMA and target != TrackingPosition.YUMA
+        ):
+            raise ValueError("Handoffs must be between Yuma and a neighboring center")
+        self.handoff_target = target
+        self.handoff_elapsed = 0.0
+
+    def accept(self, position):
+        if (
+            not isinstance(position, TrackingPosition)
+            or self.handoff_target is None
+            or position != self.handoff_target
+        ):
+            raise ValueError("No handoff is pending for this position")
+        self.owner = position
+        self.handoff_target = None
+        self.handoff_elapsed = 0.0
+
+    def cancel(self):
+        if self.handoff_target is None:
+            raise ValueError("No handoff is pending")
+        self.handoff_target = None
+        self.handoff_elapsed = 0.0
+
+    def advance(self, delta_time):
+        if self.owner != TrackingPosition.YUMA or self.handoff_target is None:
+            return False
+        self.handoff_elapsed += delta_time
+        if self.handoff_elapsed < SIMULATED_HANDOFF_DELAY_SECONDS:
+            return False
+        self.accept(self.handoff_target)
+        return True
+
+
 class ATCFacility:
     """
     Represents an ATC (Air Traffic Control) facility.

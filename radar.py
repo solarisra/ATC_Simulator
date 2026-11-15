@@ -5,6 +5,7 @@ from typing import NamedTuple
 import arcade
 import numpy as np
 
+from atc import TrackingPosition
 from constants import (
     DISPLAY_RADIUS,
     FPS,
@@ -22,6 +23,7 @@ from navmath import NavigationalCoordinateSystem
 
 SWEEP_COLOR = arcade.color.ORANGE
 DATA_BLOCK_DISTANCE = 40
+MIN_LEADER_LINE_LENGTH = 12
 DATA_BLOCK_WIDTH = 200
 DATA_BLOCK_FONT = "Consolas"
 DATA_BLOCK_FONT_SIZE = 11
@@ -61,6 +63,16 @@ PAN_DIRECTIONS = {
     arcade.key.UP: (0, 1),
     arcade.key.DOWN: (0, -1),
 }
+
+
+def leader_line_end(x, y, text_x, text_y, width, height):
+    dx, dy = text_x - x, text_y - y
+    intersection = min(
+        1.0,
+        width / (2 * abs(dx)) if dx else 1.0,
+        height / (2 * abs(dy)) if dy else 1.0,
+    )
+    return text_x - intersection * dx, text_y - intersection * dy
 
 
 class RadarViewport:
@@ -113,6 +125,8 @@ class SecondaryRadarSnapshot(NamedTuple):
     aircraft_id: str
     altitude_trend: int
     scratchpad: str
+    tracking_owner: TrackingPosition
+    handoff_target: TrackingPosition | None
 
 
 class SecondaryReturnLayout(NamedTuple):
@@ -245,6 +259,8 @@ class RadarDisplay(arcade.Window):
         self.scratchpad_edit_id = None
         self.scratchpad_edit_text = ""
         self.scratchpad_edit_error = ""
+        self.handoff_choice_id = None
+        self.handoff_message = ""
         self.data_block_directions = {}
         self.data_block_labels = {}
         self.secondary_return_layouts = []
@@ -446,6 +462,10 @@ class RadarDisplay(arcade.Window):
 
         # Generate radar returns
         for aircraft in self.aircraft_list.aircraft_list:
+            if aircraft.track.advance(delta_time):
+                RadarDisplay.refresh_track_snapshot(self, aircraft)
+                if self.selected_aircraft_id == aircraft.id:
+                    self.handoff_message = f"HANDOFF ACCEPTED BY {aircraft.track.owner}"
             if not aircraft.landed:
                 aircraft.update_position(delta_time)
             distance, bearing = self.calculate_range_and_bearing(
@@ -492,8 +512,21 @@ class RadarDisplay(arcade.Window):
                 aircraft.id,
                 altitude_trend(aircraft),
                 aircraft.scratchpad,
+                aircraft.track.owner,
+                aircraft.track.handoff_target,
             )
             for aircraft in self.aircraft_list.aircraft_list
+        ]
+
+    def refresh_track_snapshot(self, aircraft):
+        self.secondary_radar_returns = [
+            snapshot._replace(
+                tracking_owner=aircraft.track.owner,
+                handoff_target=aircraft.track.handoff_target,
+            )
+            if snapshot.aircraft_id == aircraft.id
+            else snapshot
+            for snapshot in self.secondary_radar_returns
         ]
 
     @staticmethod
@@ -518,7 +551,10 @@ class RadarDisplay(arcade.Window):
         altitude = f"{trend}{math.floor(snapshot.altitude + 0.5):03d}"
         speed = f"{math.floor(snapshot.speed / 10 + 0.5):02d}"
         emergency = " EM" if snapshot.squawk == "7700" and emergency_visible else ""
-        text = f"{snapshot.callsign}{emergency}\n{altitude}  {speed}\n{snapshot.aircraft_type}\n{snapshot.scratchpad or ' '}"
+        position = snapshot.tracking_owner
+        if snapshot.handoff_target is not None:
+            position = f"{position}>{snapshot.handoff_target}"
+        text = f"{snapshot.callsign} {position}{emergency}\n{altitude}  {speed}\n{snapshot.aircraft_type}\n{snapshot.scratchpad or ' '}"
         return text, text_x, text_y
 
     def get_data_block_label(self, snapshot, distance):
@@ -592,24 +628,48 @@ class RadarDisplay(arcade.Window):
             directions = [(preferred_dx, preferred_dy), *DATA_BLOCK_DIRECTIONS]
             position = None
 
-            def available(text_x, text_y, width=width, height=height):
+            def available(
+                text_x,
+                text_y,
+                allow_overlap=False,
+                width=width,
+                height=height,
+                x=x,
+                y=y,
+            ):
+                end_x, end_y = leader_line_end(x, y, text_x, text_y, width, height)
                 return (
                     width / 2 <= text_x <= self.width - width / 2
                     and height / 2 <= text_y <= self.height - height / 2
-                    and not any(
-                        abs(text_x - other.text_x) < (width + other.width) / 2 + 4
-                        and abs(text_y - other.text_y) < (height + other.height) / 2 + 4
-                        for other in layouts
+                    and np.hypot(end_x - x, end_y - y) >= MIN_LEADER_LINE_LENGTH - 1e-8
+                    and (
+                        allow_overlap
+                        or not any(
+                            abs(text_x - other.text_x) < (width + other.width) / 2 + 4
+                            and abs(text_y - other.text_y)
+                            < (height + other.height) / 2 + 4
+                            for other in layouts
+                        )
                     )
                 )
 
             max_radius = np.hypot(self.width, self.height) + DATA_BLOCK_DISTANCE
-            for radius in range(
-                DATA_BLOCK_DISTANCE, int(max_radius) + 1, DATA_BLOCK_DISTANCE
-            ):
+            overlap_position = None
+            for offset in range(0, int(max_radius) + 1, DATA_BLOCK_DISTANCE):
                 for dx, dy in directions:
                     length = np.hypot(dx, dy)
-                    text_x, text_y = x + radius * dx / length, y + radius * dy / length
+                    unit_x, unit_y = dx / length, dy / length
+                    edge_distance = min(
+                        width / (2 * abs(unit_x)) if unit_x else math.inf,
+                        height / (2 * abs(unit_y)) if unit_y else math.inf,
+                    )
+                    radius = (
+                        max(DATA_BLOCK_DISTANCE, edge_distance + MIN_LEADER_LINE_LENGTH)
+                        + offset
+                    )
+                    text_x, text_y = x + radius * unit_x, y + radius * unit_y
+                    if overlap_position is None and available(text_x, text_y, True):
+                        overlap_position = (text_x, text_y)
                     if not available(text_x, text_y):
                         continue
                     position = (text_x, text_y)
@@ -647,10 +707,13 @@ class RadarDisplay(arcade.Window):
                     )
             if position is None:
                 placement_failed = True
-                position = (
-                    min(max(preferred_x, width / 2), self.width - width / 2),
-                    min(max(preferred_y, height / 2), self.height - height / 2),
-                )
+                if overlap_position is not None:
+                    position = overlap_position
+                else:
+                    position = (
+                        min(max(preferred_x, width / 2), self.width - width / 2),
+                        min(max(preferred_y, height / 2), self.height - height / 2),
+                    )
             layouts.append(
                 SecondaryReturnLayout(
                     snapshot, distance, x, y, *position, width, height
@@ -659,7 +722,7 @@ class RadarDisplay(arcade.Window):
 
         if placement_failed and not self.data_block_overlap_warned:
             logging.getLogger(__name__).warning(
-                "Unable to place all radar data blocks without overlap."
+                "Unable to place all radar data blocks without overlap or preserve leader clearance."
             )
         self.data_block_overlap_warned = placement_failed
         return layouts
@@ -704,17 +767,12 @@ class RadarDisplay(arcade.Window):
         arcade.draw_circle_filled(x, y, 3, arcade.color.LIGHT_BLUE)
         if selected:
             arcade.draw_circle_outline(x, y, 8, arcade.color.YELLOW, 2)
-        dx, dy = text_x - x, text_y - y
-        intersection = min(
-            1.0,
-            width / (2 * abs(dx)) if dx else 1.0,
-            height / (2 * abs(dy)) if dy else 1.0,
-        )
+        end_x, end_y = leader_line_end(x, y, text_x, text_y, width, height)
         arcade.draw_line(
             x,
             y,
-            text_x - intersection * dx,
-            text_y - intersection * dy,
+            end_x,
+            end_y,
             arcade.color.WHITE,
             1,
         )
@@ -749,6 +807,9 @@ class RadarDisplay(arcade.Window):
             if self.scratchpad_edit_id is not None and self.scratchpad_edit_error:
                 self.selected_details_text.text = self.scratchpad_edit_error
                 self.selected_details_text.draw()
+            elif self.handoff_message:
+                self.selected_details_text.text = self.handoff_message
+                self.selected_details_text.draw()
             return
         distance, _ = self.calculate_range_and_bearing(
             snapshot.latitude, snapshot.longitude
@@ -760,10 +821,19 @@ class RadarDisplay(arcade.Window):
             f"SPD {snapshot.speed:g} KT\n"
             f"RNG {distance:.1f} NM"
         )
+        text += f"\nTRACK {snapshot.tracking_owner}"
+        if snapshot.handoff_target is not None:
+            text += f" TO {snapshot.handoff_target}"
         if self.scratchpad_edit_id == snapshot.aircraft_id:
             text += f"\nEDIT SCRATCHPAD:\n{self.scratchpad_edit_text}_\nENTER SAVE / ESC CANCEL"
             if self.scratchpad_edit_error:
                 text += f"\n{self.scratchpad_edit_error}"
+        elif self.handoff_choice_id == snapshot.aircraft_id:
+            text += "\nHANDOFF: L=LA / A=ABQ\nESC CANCEL"
+            if self.handoff_message:
+                text += f"\n{self.handoff_message}"
+        elif self.handoff_message:
+            text += f"\n{self.handoff_message}"
         if self.selected_details_text.text != text:
             self.selected_details_text.text = text
         self.selected_details_text.draw()
@@ -772,6 +842,8 @@ class RadarDisplay(arcade.Window):
         if button != arcade.MOUSE_BUTTON_LEFT:
             return
         self.scratchpad_edit_id = None
+        self.handoff_choice_id = None
+        self.handoff_message = ""
 
         symbol_hits = [
             (np.hypot(x - layout.x, y - layout.y), layout.snapshot.aircraft_id)
@@ -841,6 +913,86 @@ class RadarDisplay(arcade.Window):
                     return
                 self.scratchpad_edit_text += character
                 self.scratchpad_edit_error = ""
+            return
+        if self.handoff_choice_id is not None:
+            if symbol == arcade.key.ESCAPE:
+                self.handoff_choice_id = None
+                self.handoff_message = "HANDOFF CANCELED"
+                return
+            targets = {
+                arcade.key.L: TrackingPosition.LOS_ANGELES,
+                arcade.key.A: TrackingPosition.ALBUQUERQUE,
+            }
+            if symbol not in targets:
+                self.handoff_message = "CHOOSE L OR A; ESC CANCEL"
+                return
+            aircraft = next(
+                (
+                    item
+                    for item in self.aircraft_list.aircraft_list
+                    if item.id == self.handoff_choice_id
+                ),
+                None,
+            )
+            self.handoff_choice_id = None
+            if aircraft is None:
+                self.handoff_message = "AIRCRAFT UNAVAILABLE"
+                logging.getLogger(__name__).warning(
+                    "Cannot offer handoff: aircraft is unavailable."
+                )
+                return
+            try:
+                aircraft.track.offer(targets[symbol])
+            except ValueError as error:
+                self.handoff_message = str(error).upper()
+                return
+            RadarDisplay.refresh_track_snapshot(self, aircraft)
+            self.handoff_message = "HANDOFF OFFERED"
+            return
+        if self.selected_aircraft_id is not None and symbol in (
+            arcade.key.H,
+            arcade.key.I,
+            arcade.key.A,
+            arcade.key.X,
+        ):
+            aircraft = next(
+                (
+                    item
+                    for item in self.aircraft_list.aircraft_list
+                    if item.id == self.selected_aircraft_id
+                ),
+                None,
+            )
+            if aircraft is None:
+                self.handoff_message = "AIRCRAFT UNAVAILABLE"
+                logging.getLogger(__name__).warning(
+                    "Cannot manage handoff: aircraft is unavailable."
+                )
+                return
+            try:
+                if symbol == arcade.key.H:
+                    if aircraft.track.owner != TrackingPosition.YUMA:
+                        raise ValueError("Yuma does not own this track")
+                    if aircraft.track.handoff_target is not None:
+                        raise ValueError("A handoff is already pending")
+                    self.handoff_choice_id = aircraft.id
+                    self.handoff_message = ""
+                    return
+                if symbol == arcade.key.I:
+                    if aircraft.track.owner == TrackingPosition.YUMA:
+                        raise ValueError("Track is already owned by Yuma")
+                    aircraft.track.offer(TrackingPosition.YUMA)
+                    self.handoff_message = "INCOMING HANDOFF: A ACCEPT / X REJECT"
+                elif symbol == arcade.key.A:
+                    aircraft.track.accept(TrackingPosition.YUMA)
+                    self.handoff_message = "HANDOFF ACCEPTED"
+                else:
+                    aircraft.track.cancel()
+                    self.handoff_message = "HANDOFF CANCELED"
+            except ValueError as error:
+                self.handoff_message = str(error).upper()
+                return
+            RadarDisplay.refresh_track_snapshot(self, aircraft)
             return
         if symbol == arcade.key.S and self.selected_aircraft_id is not None:
             aircraft = next(

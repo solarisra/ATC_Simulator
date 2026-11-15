@@ -1,5 +1,6 @@
 import math
 
+from atc import TrackOwnership
 from constants import FPS
 from navmath import NavigationalCoordinateSystem
 
@@ -86,6 +87,7 @@ class Aircraft:
         self.id = aircraft_id
         self.squawk = squawk
         self.scratchpad = ""
+        self.track = TrackOwnership()
         self.mode_s = mode_s
         self.callsign = callsign
         self.aircraft_model = aircraft_model

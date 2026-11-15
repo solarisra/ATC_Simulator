@@ -32,8 +32,25 @@ directions to position the selected aircraft's data block. The STARS-style
 block shows the callsign, altitude in hundreds of feet with speed in tens of
 knots, aircraft type, and scratchpad on four lines in both display modes. The selected
 aircraft's heading, squawk, exact speed and range appear at the right. This
-is a simplified full data block; flight-plan and controller-ownership fields
-are not simulated.
+is a simplified full data block; flight-plan fields are not simulated.
+
+The first line also shows simulated track ownership: `Y` for Yuma, `L` for
+Los Angeles Center, and `A` for Albuquerque Center. These are illustrative
+simulator identifiers, not verified operational position symbols. An offer
+appears as `Y>L`, `Y>A`, `L>Y`, or `A>Y`. All startup tracks belong to Yuma.
+For a selected Yuma-owned aircraft, press H and then L or A to offer a handoff;
+the simulated center accepts after three seconds. Press X to cancel a pending
+offer. To simulate an incoming offer for a center-owned aircraft, select it
+and press I, then A to accept or X to reject. Escape cancels the destination
+prompt. Handoffs are manual, with no geographic boundary checks or Mexican
+handoffs. The track ownership model does not simulate radio communications or
+the full operational transfer of control.
+
+The data blocks remain white rather than using unverified ownership colors.
+FAA Order 7110.65BB [5-14-4 and 5-14-5](documentation/ATC_7110.65BB/chapter_5/chap5_section_14.html)
+calls for local procedures and directives; it does not specify a universal
+ownership color scheme in those sections. Handoff procedures are described in
+[5-4](documentation/ATC_7110.65BB/chapter_5/chap5_section_4.html).
 
 Squawk 7700 flashes `EM` on the first line. To edit a selected aircraft's
 scratchpad, press S, type up to 16 letters, digits, hyphens or slashes, and

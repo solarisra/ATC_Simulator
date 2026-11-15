@@ -25,7 +25,7 @@ from aircraft_models import (
     sikorsky_uh60,
     v22_osprey,
 )
-from atc import ATCFacility
+from atc import ATCFacility, TrackingPosition
 from navmath import NavigationalCoordinateSystem
 from radar import RadarDisplay, RadarReturnManager, RadarSweep
 
@@ -56,6 +56,40 @@ def make_aircraft(
 
 
 class AircraftTests(unittest.TestCase):
+    def test_track_handoffs_require_an_offer_and_acceptance(self):
+        track = make_aircraft().track
+        self.assertEqual(track.owner, TrackingPosition.YUMA)
+        with self.assertRaises(ValueError):
+            track.accept(TrackingPosition.LOS_ANGELES)
+        with self.assertRaises(ValueError):
+            track.offer(TrackingPosition.YUMA)
+        with self.assertRaises(TypeError):
+            track.offer("M")
+
+        track.offer(TrackingPosition.LOS_ANGELES)
+        with self.assertRaises(ValueError):
+            track.offer(TrackingPosition.ALBUQUERQUE)
+        self.assertFalse(track.advance(2.9))
+        self.assertEqual(track.owner, TrackingPosition.YUMA)
+        self.assertTrue(track.advance(0.1))
+        self.assertEqual(track.owner, TrackingPosition.LOS_ANGELES)
+        with self.assertRaises(ValueError):
+            track.offer(TrackingPosition.ALBUQUERQUE)
+        track.offer(TrackingPosition.YUMA)
+        self.assertFalse(track.advance(10))
+        self.assertEqual(track.owner, TrackingPosition.LOS_ANGELES)
+        with self.assertRaises(ValueError):
+            track.accept(TrackingPosition.ALBUQUERQUE)
+        track.accept(TrackingPosition.YUMA)
+        self.assertEqual(track.owner, TrackingPosition.YUMA)
+
+        track.offer(TrackingPosition.ALBUQUERQUE)
+        track.cancel()
+        self.assertEqual(track.owner, TrackingPosition.YUMA)
+        self.assertIsNone(track.handoff_target)
+        with self.assertRaises(ValueError):
+            track.cancel()
+
     def test_initial_altitude_and_assigned_squawk_are_preserved(self):
         for flight_rules in ("VFR", "IFR", "None"):
             for heading in (90, 210):
@@ -188,6 +222,7 @@ class AircraftTests(unittest.TestCase):
             ARTS_IIE=RadarDisplay.ARTS_IIE,
             secondary_update_elapsed=0,
             emergency_flash_elapsed=0,
+            selected_aircraft_id=None,
             secondary_radar_returns=[],
             calculate_range_and_bearing=lambda lat, lon: (10, 0),
         )
@@ -215,6 +250,7 @@ class AircraftTests(unittest.TestCase):
                     secondary_update_elapsed=0,
                     secondary_radar_returns=[],
                     emergency_flash_elapsed=0,
+                    selected_aircraft_id=None,
                     center_x=600,
                     center_y=450,
                     calculate_range_and_bearing=lambda lat, lon: (10, 0),

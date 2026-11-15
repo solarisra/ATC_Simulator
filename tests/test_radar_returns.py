@@ -6,8 +6,15 @@ from unittest.mock import Mock, patch
 
 import arcade
 
+from atc import TrackingPosition, TrackOwnership
 from constants import DISPLAY_RADIUS, FULL_ROTATION_TIME_SECONDS
-from radar import RadarDisplay, RadarReturnManager, RadarSweep, RadarViewport
+from radar import (
+    RadarDisplay,
+    RadarReturnManager,
+    RadarSweep,
+    RadarViewport,
+    leader_line_end,
+)
 
 
 class RadarSweepTests(unittest.TestCase):
@@ -129,6 +136,7 @@ class SecondaryRadarTests(unittest.TestCase):
             landed=True,
             distance=0,
             scratchpad="",
+            track=TrackOwnership(),
         )
         display = SimpleNamespace(
             aircraft_list=SimpleNamespace(aircraft_list=[aircraft]),
@@ -140,6 +148,7 @@ class SecondaryRadarTests(unittest.TestCase):
             center_y=450,
             secondary_update_elapsed=0,
             emergency_flash_elapsed=0,
+            selected_aircraft_id=None,
             secondary_radar_returns=[],
             calculate_range_and_bearing=lambda lat, lon: (10, 0),
         )
@@ -170,6 +179,7 @@ class SecondaryRadarTests(unittest.TestCase):
                 altitude=altitude,
                 speed=100,
                 scratchpad="",
+                track=TrackOwnership(),
                 aircraft_model=SimpleNamespace(aircraft_type="C172"),
             )
 
@@ -203,6 +213,7 @@ class SecondaryRadarTests(unittest.TestCase):
             aircraft_model=SimpleNamespace(aircraft_type="C172"),
             speed=120,
             scratchpad="",
+            track=TrackOwnership(),
         )
         display = SimpleNamespace(
             aircraft_list=SimpleNamespace(aircraft_list=[aircraft]),
@@ -220,7 +231,7 @@ class SecondaryRadarTests(unittest.TestCase):
                 snapshot, 100, 200, 15.5, text_size=(50, 30)
             )
 
-        self.assertEqual(draw_text.call_args.args[0], "TEST\n050  12\nC172\n ")
+        self.assertEqual(draw_text.call_args.args[0], "TEST Y\n050  12\nC172\n ")
         draw_line.assert_called_once_with(100, 200, 85, 200, arcade.color.WHITE, 1)
 
     def test_data_block_reserves_empty_scratchpad_line(self):
@@ -233,9 +244,11 @@ class SecondaryRadarTests(unittest.TestCase):
             altitude_trend=0,
             squawk="1200",
             scratchpad="",
+            tracking_owner=TrackingPosition.YUMA,
+            handoff_target=None,
         )
         text, _, _ = RadarDisplay.secondary_return_layout(snapshot, 0, 0, 10)
-        self.assertEqual(text, "N123\n005  13\nC172\n ")
+        self.assertEqual(text, "N123 Y\n005  13\nC172\n ")
 
     def test_data_block_label_is_reused_and_updates_with_aircraft_data(self):
         snapshot = SimpleNamespace(
@@ -248,6 +261,8 @@ class SecondaryRadarTests(unittest.TestCase):
             altitude_trend=0,
             squawk="1200",
             scratchpad="",
+            tracking_owner=TrackingPosition.YUMA,
+            handoff_target=None,
         )
         display = SimpleNamespace(
             data_block_labels={},
@@ -260,7 +275,7 @@ class SecondaryRadarTests(unittest.TestCase):
 
         with patch("arcade.Text", side_effect=make_label) as create_text:
             cached = RadarDisplay.get_data_block_label(display, snapshot, 10)
-            self.assertEqual(cached.label.text, "TEST\n050  12\nC172\n ")
+            self.assertEqual(cached.label.text, "TEST Y\n050  12\nC172\n ")
             self.assertEqual((cached.width, cached.height), (50, 45))
             self.assertIs(
                 RadarDisplay.get_data_block_label(display, snapshot, 10), cached
@@ -268,7 +283,7 @@ class SecondaryRadarTests(unittest.TestCase):
             create_text.assert_called_once()
             snapshot.altitude = 60
             updated = RadarDisplay.get_data_block_label(display, snapshot, 10)
-            self.assertEqual(updated.label.text, "TEST\n060  12\nC172\n ")
+            self.assertEqual(updated.label.text, "TEST Y\n060  12\nC172\n ")
             self.assertEqual(create_text.call_count, 2)
 
     def test_emergency_flashes_only_em_and_keeps_layout_stable(self):
@@ -282,6 +297,8 @@ class SecondaryRadarTests(unittest.TestCase):
             altitude_trend=0,
             squawk="7700",
             scratchpad="ABC",
+            tracking_owner=TrackingPosition.YUMA,
+            handoff_target=None,
         )
         display = Mock(
             data_block_labels={},
@@ -303,21 +320,21 @@ class SecondaryRadarTests(unittest.TestCase):
 
         with patch("arcade.Text", side_effect=FakeLabel):
             cached = RadarDisplay.get_data_block_label(display, snapshot, 10)
-            self.assertEqual(cached.label.text, "TEST EM\n050  12\nC172\nABC")
+            self.assertEqual(cached.label.text, "TEST Y EM\n050  12\nC172\nABC")
             dimensions = cached.width, cached.height
             display.emergency_flash_elapsed = 0.5
             self.assertIs(
                 RadarDisplay.get_data_block_label(display, snapshot, 10), cached
             )
-            self.assertEqual(cached.label.text, "TEST\n050  12\nC172\nABC")
+            self.assertEqual(cached.label.text, "TEST Y\n050  12\nC172\nABC")
             self.assertEqual((cached.width, cached.height), dimensions)
             display.emergency_flash_elapsed = 0
             RadarDisplay.get_data_block_label(display, snapshot, 10)
-            self.assertIn("TEST EM\n", cached.label.text)
+            self.assertIn("TEST Y EM\n", cached.label.text)
             for squawk in ("1200", "7500", "7600"):
                 snapshot.squawk = squawk
                 label = RadarDisplay.get_data_block_label(display, snapshot, 10)
-                self.assertEqual(label.label.text, "TEST\n050  12\nC172\nABC")
+                self.assertEqual(label.label.text, "TEST Y\n050  12\nC172\nABC")
 
     def test_scratchpad_edit_save_cancel_clear_and_limits(self):
         aircraft = [
@@ -331,6 +348,7 @@ class SecondaryRadarTests(unittest.TestCase):
                 altitude=50,
                 speed=100,
                 scratchpad="",
+                track=TrackOwnership(),
                 aircraft_model=SimpleNamespace(aircraft_type="C172"),
             )
             for identifier in ("A1", "A2")
@@ -342,6 +360,7 @@ class SecondaryRadarTests(unittest.TestCase):
             scratchpad_edit_id=None,
             scratchpad_edit_text="",
             scratchpad_edit_error="",
+            handoff_choice_id=None,
         )
         RadarDisplay.capture_secondary_radar_returns(display)
         RadarDisplay.on_key_press(display, arcade.key.S, 0)
@@ -380,6 +399,83 @@ class SecondaryRadarTests(unittest.TestCase):
         self.assertIsNone(display.scratchpad_edit_id)
         self.assertEqual(aircraft[0].scratchpad, "")
 
+    def test_selected_track_handoff_workflow_and_snapshot_updates(self):
+        aircraft = SimpleNamespace(
+            id="A1",
+            lat=32,
+            lon=-114,
+            callsign="TEST",
+            squawk="1200",
+            heading=90,
+            altitude=50,
+            speed=100,
+            scratchpad="KEEP",
+            aircraft_model=SimpleNamespace(aircraft_type="C172"),
+            track=TrackOwnership(),
+            landed=True,
+        )
+        display = Mock(
+            aircraft_list=SimpleNamespace(aircraft_list=[aircraft]),
+            secondary_radar_returns=[],
+            selected_aircraft_id="A1",
+            scratchpad_edit_id=None,
+            handoff_choice_id=None,
+            handoff_message="",
+            sweep=RadarSweep(),
+            radar_return_manager=RadarReturnManager(),
+            display_type=RadarDisplay.STARS,
+            ARTS_IIE=RadarDisplay.ARTS_IIE,
+            secondary_update_elapsed=0,
+            emergency_flash_elapsed=0,
+            calculate_range_and_bearing=lambda lat, lon: (10, 0),
+        )
+        display.capture_secondary_radar_returns = lambda: (
+            RadarDisplay.capture_secondary_radar_returns(display)
+        )
+        display.capture_secondary_radar_returns()
+        RadarDisplay.on_key_press(display, arcade.key.H, 0)
+        RadarDisplay.on_key_press(display, arcade.key.L, 0)
+        snapshot = display.secondary_radar_returns[0]
+        self.assertEqual((snapshot.tracking_owner, snapshot.handoff_target), ("Y", "L"))
+        self.assertIn(
+            "TEST Y>L", RadarDisplay.secondary_return_layout(snapshot, 0, 0, 10)[0]
+        )
+        RadarDisplay.on_key_press(display, arcade.key.A, 0)
+        self.assertEqual(aircraft.track.owner, TrackingPosition.YUMA)
+        self.assertIn("NO HANDOFF", display.handoff_message)
+        RadarDisplay.on_update(display, 2.9)
+        self.assertEqual(aircraft.track.owner, TrackingPosition.YUMA)
+        RadarDisplay.on_update(display, 0.1)
+        self.assertEqual(aircraft.track.owner, TrackingPosition.LOS_ANGELES)
+        self.assertEqual(display.secondary_radar_returns[0].tracking_owner, "L")
+        self.assertEqual(display.secondary_radar_returns[0].scratchpad, "KEEP")
+        self.assertIn("ACCEPTED", display.handoff_message)
+
+        RadarDisplay.on_key_press(display, arcade.key.I, 0)
+        self.assertEqual(display.secondary_radar_returns[0].handoff_target, "Y")
+        RadarDisplay.on_update(display, 5)
+        self.assertEqual(aircraft.track.owner, TrackingPosition.LOS_ANGELES)
+        RadarDisplay.on_key_press(display, arcade.key.X, 0)
+        self.assertIsNone(display.secondary_radar_returns[0].handoff_target)
+        RadarDisplay.on_key_press(display, arcade.key.I, 0)
+        RadarDisplay.on_key_press(display, arcade.key.A, 0)
+        self.assertEqual(display.secondary_radar_returns[0].tracking_owner, "Y")
+        self.assertIsNone(display.secondary_radar_returns[0].handoff_target)
+
+        RadarDisplay.on_key_press(display, arcade.key.H, 0)
+        RadarDisplay.on_key_press(display, arcade.key.A, 0)
+        self.assertEqual(display.secondary_radar_returns[0].handoff_target, "A")
+        RadarDisplay.on_key_press(display, arcade.key.X, 0)
+        self.assertEqual(aircraft.track.owner, TrackingPosition.YUMA)
+        self.assertIsNone(display.secondary_radar_returns[0].handoff_target)
+        RadarDisplay.on_key_press(display, arcade.key.H, 0)
+        RadarDisplay.on_key_press(display, arcade.key.A, 0)
+        RadarDisplay.on_update(display, 3)
+        self.assertEqual(display.secondary_radar_returns[0].tracking_owner, "A")
+        RadarDisplay.on_key_press(display, arcade.key.I, 0)
+        RadarDisplay.on_key_press(display, arcade.key.A, 0)
+        self.assertEqual(display.secondary_radar_returns[0].tracking_owner, "Y")
+
     def test_selected_aircraft_details_show_extra_data(self):
         snapshot = SimpleNamespace(
             aircraft_id="A1",
@@ -389,6 +485,8 @@ class SecondaryRadarTests(unittest.TestCase):
             speed=125,
             latitude=32,
             longitude=-114,
+            tracking_owner=TrackingPosition.YUMA,
+            handoff_target=None,
         )
         text = unittest.mock.Mock()
         text.text = ""
@@ -396,17 +494,133 @@ class SecondaryRadarTests(unittest.TestCase):
             selected_aircraft_id="A1",
             secondary_radar_returns=[snapshot],
             scratchpad_edit_id=None,
+            handoff_choice_id=None,
+            handoff_message="",
             calculate_range_and_bearing=lambda lat, lon: (15.5, 0),
             selected_details_text=text,
         )
         RadarDisplay.draw_selected_aircraft_details(display)
         self.assertEqual(
-            text.text, "SELECTED TEST\nHDG 090\nSQK 1200\nSPD 125 KT\nRNG 15.5 NM"
+            text.text,
+            "SELECTED TEST\nHDG 090\nSQK 1200\nSPD 125 KT\nRNG 15.5 NM\nTRACK Y",
         )
         text.draw.assert_called_once()
         display.selected_aircraft_id = None
         RadarDisplay.draw_selected_aircraft_details(display)
         text.draw.assert_called_once()
+
+    def test_leader_lines_remain_visible_for_wide_blocks_in_all_directions(self):
+        snapshot = SimpleNamespace(
+            aircraft_id="A1",
+            latitude=0,
+            longitude=0,
+            heading=0,
+            callsign="TEST",
+            squawk="1200",
+            altitude=50,
+            speed=120,
+            aircraft_type="C172",
+            altitude_trend=0,
+            scratchpad="W" * 16,
+            tracking_owner=TrackingPosition.YUMA,
+            handoff_target=None,
+        )
+        display = Mock(
+            secondary_radar_returns=[snapshot],
+            data_block_labels={},
+            selected_aircraft_id=None,
+            data_block_overlap_warned=False,
+            width=1200,
+            height=900,
+            calculate_range_and_bearing=lambda lat, lon: (10, 0),
+            convert_to_display_coordinates=lambda lat, lon: (500, 450),
+            is_visible_scope_position=lambda x, y: True,
+            secondary_return_layout=RadarDisplay.secondary_return_layout,
+        )
+        for direction in (
+            (0, 1),
+            (1, 1),
+            (1, 0),
+            (1, -1),
+            (0, -1),
+            (-1, -1),
+            (-1, 0),
+            (-1, 1),
+        ):
+            with self.subTest(direction=direction):
+                display.data_block_directions = {"A1": direction}
+                with patch.object(
+                    RadarDisplay,
+                    "get_data_block_label",
+                    return_value=SimpleNamespace(width=128, height=68),
+                ):
+                    layout = RadarDisplay.layout_secondary_returns(display)[0]
+                with (
+                    patch("arcade.draw_circle_filled"),
+                    patch("arcade.draw_line") as line,
+                    patch("arcade.draw_text"),
+                ):
+                    RadarDisplay.draw_secondary_return(
+                        snapshot,
+                        layout.x,
+                        layout.y,
+                        layout.distance,
+                        text_position=(layout.text_x, layout.text_y),
+                        text_size=(layout.width, layout.height),
+                    )
+                x1, y1, x2, y2 = line.call_args.args[:4]
+                self.assertGreaterEqual(math.hypot(x2 - x1, y2 - y1), 12 - 1e-8)
+                self.assertEqual(
+                    int(layout.text_x > x1) - int(layout.text_x < x1), direction[0]
+                )
+                self.assertEqual(
+                    int(layout.text_y > y1) - int(layout.text_y < y1), direction[1]
+                )
+
+    def test_crowded_blocks_preserve_leader_lines_even_if_they_overlap(self):
+        snapshots = [
+            SimpleNamespace(aircraft_id=identifier, latitude=0, longitude=0, heading=90)
+            for identifier in ("A1", "A2")
+        ]
+        display = Mock(
+            secondary_radar_returns=snapshots,
+            data_block_labels={},
+            selected_aircraft_id=None,
+            data_block_directions={"A1": (1, 0), "A2": (1, 0)},
+            data_block_overlap_warned=False,
+            width=400,
+            height=160,
+            calculate_range_and_bearing=lambda lat, lon: (10, 0),
+            convert_to_display_coordinates=lambda lat, lon: (50, 80),
+            is_visible_scope_position=lambda x, y: True,
+            secondary_return_layout=lambda snapshot, x, y, distance, direction: (
+                "",
+                x + 40,
+                y,
+            ),
+        )
+        with (
+            patch.object(
+                RadarDisplay,
+                "get_data_block_label",
+                return_value=SimpleNamespace(width=200, height=120),
+            ),
+            self.assertLogs("radar", level="WARNING"),
+        ):
+            layouts = RadarDisplay.layout_secondary_returns(display)
+        self.assertTrue(display.data_block_overlap_warned)
+        for layout in layouts:
+            end_x, end_y = leader_line_end(
+                layout.x,
+                layout.y,
+                layout.text_x,
+                layout.text_y,
+                layout.width,
+                layout.height,
+            )
+            self.assertGreaterEqual(
+                math.hypot(end_x - layout.x, end_y - layout.y), 12 - 1e-8
+            )
 
     def test_select_individual_contact_and_move_its_data_block(self):
         aircraft = [
@@ -421,6 +635,7 @@ class SecondaryRadarTests(unittest.TestCase):
                 aircraft_model=SimpleNamespace(aircraft_type="C172"),
                 speed=120,
                 scratchpad="",
+                track=TrackOwnership(),
             )
             for identifier, latitude in (("A1", 100), ("A2", 300))
         ]
@@ -430,6 +645,8 @@ class SecondaryRadarTests(unittest.TestCase):
             ARTS_IIE=RadarDisplay.ARTS_IIE,
             selected_aircraft_id=None,
             scratchpad_edit_id=None,
+            handoff_choice_id=None,
+            handoff_message="",
             emergency_flash_elapsed=0,
             data_block_directions={},
             secondary_return_layouts=[],
@@ -491,6 +708,8 @@ class SecondaryRadarTests(unittest.TestCase):
             speed=120,
             altitude_trend=0,
             scratchpad="",
+            tracking_owner=TrackingPosition.YUMA,
+            handoff_target=None,
         )
         for key, direction in (
             (arcade.key.NUM_1, (-1, -1)),
@@ -507,6 +726,7 @@ class SecondaryRadarTests(unittest.TestCase):
                     selected_aircraft_id="A1",
                     data_block_directions={},
                     scratchpad_edit_id=None,
+                    handoff_choice_id=None,
                 )
                 RadarDisplay.on_key_press(display, key, 0)
                 self.assertEqual(display.data_block_directions["A1"], direction)
@@ -529,6 +749,7 @@ class SecondaryRadarTests(unittest.TestCase):
                 aircraft_model=SimpleNamespace(aircraft_type="C172"),
                 speed=120,
                 scratchpad="",
+                track=TrackOwnership(),
             )
             for identifier, latitude in (("A1", 500), ("A2", 500), ("A3", 500))
         ]
@@ -536,6 +757,8 @@ class SecondaryRadarTests(unittest.TestCase):
             aircraft_list=SimpleNamespace(aircraft_list=aircraft),
             selected_aircraft_id="A1",
             scratchpad_edit_id=None,
+            handoff_choice_id=None,
+            handoff_message="",
             emergency_flash_elapsed=0,
             data_block_directions={"A1": (1, 0), "A2": (1, 0)},
             data_block_overlap_warned=False,
@@ -555,7 +778,7 @@ class SecondaryRadarTests(unittest.TestCase):
         ):
             layouts = RadarDisplay.layout_secondary_returns(display)
         self.assertEqual(len(layouts), 3)
-        self.assertEqual((layouts[0].text_x, layouts[0].text_y), (540, 450))
+        self.assertEqual((layouts[0].text_x, layouts[0].text_y), (552, 450))
         for i, first in enumerate(layouts):
             for second in layouts[i + 1 :]:
                 self.assertTrue(
@@ -589,7 +812,7 @@ class SecondaryRadarTests(unittest.TestCase):
         restored = next(
             layout for layout in layouts if layout.snapshot.aircraft_id == "A2"
         )
-        self.assertEqual((restored.text_x, restored.text_y), (740, 450))
+        self.assertEqual((restored.text_x, restored.text_y), (752, 450))
         aircraft[1].lat = 1199
         RadarDisplay.capture_secondary_radar_returns(display)
         with patch(
@@ -599,6 +822,10 @@ class SecondaryRadarTests(unittest.TestCase):
             layouts = RadarDisplay.layout_secondary_returns(display)
         edge = next(layout for layout in layouts if layout.snapshot.aircraft_id == "A2")
         self.assertLessEqual(edge.text_x + edge.width / 2, display.width)
+        end_x, end_y = leader_line_end(
+            edge.x, edge.y, edge.text_x, edge.text_y, edge.width, edge.height
+        )
+        self.assertGreaterEqual(math.hypot(end_x - edge.x, end_y - edge.y), 12 - 1e-8)
 
 
 class RadarViewportTests(unittest.TestCase):

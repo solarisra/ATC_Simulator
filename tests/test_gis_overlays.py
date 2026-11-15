@@ -131,6 +131,7 @@ class OverlayControlTests(unittest.TestCase):
             gis_overlays=SimpleNamespace(toggle=unittest.mock.Mock()),
             selected_aircraft_id="A1",
             scratchpad_edit_id=None,
+            handoff_choice_id=None,
             data_block_directions={},
         )
         RadarDisplay.on_key_press(display, arcade.key.F7, 0)

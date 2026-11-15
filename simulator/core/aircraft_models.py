@@ -1,4 +1,4 @@
-from aircraft import AircraftModel
+from simulator.core.aircraft import AircraftModel
 
 # Sample Aircraft Models
 # Performance varies by configuration and flight conditions. Maneuver rates,

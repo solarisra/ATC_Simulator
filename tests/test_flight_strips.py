@@ -6,9 +6,10 @@ from unittest.mock import Mock, patch
 
 import arcade
 
-from atc import FlightPlan, FlightStrip
-from constants import SCREEN_WIDTH
-from flight_strips import (
+from Locations.Yuma.Scenarios.yuma import create_yuma_scenario
+from simulator.core.atc import FlightPlan, FlightStrip
+from simulator.core.constants import SCREEN_WIDTH
+from simulator.display.flight_strips import (
     CHECKINS_TOP,
     LIST_TOP,
     PANEL_WIDTH,
@@ -19,8 +20,7 @@ from flight_strips import (
     FlightStripPanel,
     terminal_strip_fields,
 )
-from radar import RadarDisplay, RadarViewport
-from sample_scenario import create_yuma_scenario
+from simulator.display.radar import RadarDisplay, RadarViewport
 
 
 def make_panel(count):
@@ -42,14 +42,14 @@ def make_panel(count):
         for item in aircraft
     ]
     aircraft_list = SimpleNamespace(aircraft_list=aircraft)
-    with patch("flight_strips.arcade.Text"):
+    with patch("simulator.display.flight_strips.arcade.Text"):
         panel = FlightStripPanel(strips, aircraft_list)
     return panel, aircraft, strips
 
 
 class FlightStripTests(unittest.TestCase):
     def test_departure_checkins_have_separate_area_above_strips(self):
-        with patch("flight_strips.arcade.Text") as text_factory:
+        with patch("simulator.display.flight_strips.arcade.Text") as text_factory:
             FlightStripPanel([], SimpleNamespace(aircraft_list=[]))
         checkin_args = text_factory.call_args_list[2]
         self.assertGreaterEqual(checkin_args.args[1], SCREEN_WIDTH)
@@ -200,10 +200,8 @@ class FlightStripTests(unittest.TestCase):
         self.assertIsNone(panel.hover_position)
 
     def test_startup_has_a_fictional_plan_for_each_sample_aircraft(self):
-        with patch("radar.RadarDisplay") as display, patch("arcade.run"):
-            runpy.run_path("main.py", run_name="__main__")
-        aircraft = display.call_args.args[0].aircraft_list
-        strips = display.call_args.kwargs["flight_strips"]
+        aircraft_list, facility, strips = create_yuma_scenario()
+        aircraft = aircraft_list.aircraft_list
         self.assertEqual(len(strips), len(aircraft))
         self.assertEqual({s.aircraft.id for s in strips}, {a.id for a in aircraft})
         self.assertTrue(
@@ -244,7 +242,7 @@ class FlightStripTests(unittest.TestCase):
             [areas[i] for i in ("A8", "A11", "A15")],
             ["03L", "03R", "03L"],
         )
-        self.assertEqual(display.call_args.args[1].active_runways, ("03L", "03R", "35"))
+        self.assertEqual(facility.active_runways, ("03L", "03R", "35"))
 
     def test_sample_runways_skip_overflights_without_consuming_the_rotation(self):
         create_strips = runpy.run_path("main.py")["create_sample_strips"]

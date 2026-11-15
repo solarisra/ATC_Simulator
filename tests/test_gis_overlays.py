@@ -1,17 +1,21 @@
 import csv
 import json
+import pickle
 import queue
+import subprocess
+import sys
 import tempfile
 import threading
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
+from unittest import mock
 
 import arcade
 import numpy as np
 
-from gis_overlays import GISOverlays, OverlayLoader
-from radar import RadarDisplay, RadarViewport
+from simulator.display.gis_overlays import GISOverlays, OverlayLoader
+from simulator.display.radar import RadarDisplay, RadarViewport
 
 
 class OverlayLoaderTests(unittest.TestCase):
@@ -38,6 +42,31 @@ class OverlayLoaderTests(unittest.TestCase):
             )
         lines, labels = self.loader.load(0, self.stop)
         self.assertEqual(len(lines), 4)
+        self.assertEqual(labels, [(0, 0, "CENTER")])
+
+    def test_map_worker_loads_a_layer_from_the_reorganized_package(self):
+        path = self.root / "GIS_CSV" / "Airports.csv"
+        with path.open("w", newline="", encoding="utf-8") as file:
+            writer = csv.DictWriter(file, fieldnames=["IDENT", "X", "Y"])
+            writer.writeheader()
+            writer.writerow({"IDENT": "CENTER", "X": "0", "Y": "0"})
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "simulator.display.gis_overlays",
+                "0",
+                "0",
+                "0",
+                "100",
+                str(self.root),
+            ],
+            cwd=Path(__file__).resolve().parents[1],
+            capture_output=True,
+            check=True,
+            timeout=30,
+        )
+        _, labels = pickle.loads(result.stdout)
         self.assertEqual(labels, [(0, 0, "CENTER")])
 
     def test_clips_crossing_lines_even_when_both_endpoints_are_outside(self):
@@ -128,7 +157,7 @@ class OverlayLoaderTests(unittest.TestCase):
 class OverlayControlTests(unittest.TestCase):
     def test_key_toggles_overlay_without_changing_aircraft_placement(self):
         display = SimpleNamespace(
-            gis_overlays=SimpleNamespace(toggle=unittest.mock.Mock()),
+            gis_overlays=SimpleNamespace(toggle=mock.Mock()),
             selected_aircraft_id="A1",
             scratchpad_edit_id=None,
             handoff_choice_id=None,
@@ -142,7 +171,7 @@ class OverlayControlTests(unittest.TestCase):
         overlays = SimpleNamespace(
             visible=set(),
             status=["off"],
-            requests=SimpleNamespace(put=unittest.mock.Mock()),
+            requests=SimpleNamespace(put=mock.Mock()),
         )
         overlays._request = lambda index: GISOverlays._request(overlays, index)
         GISOverlays.toggle(overlays, 0)
@@ -160,7 +189,7 @@ class OverlayControlTests(unittest.TestCase):
 
     def test_map_labels_follow_view_without_scaling_and_reappear(self):
         label = SimpleNamespace(visible=True, position=(0, 0))
-        batch = unittest.mock.Mock()
+        batch = mock.Mock()
         overlays = SimpleNamespace(
             visible={0},
             status=["ready"],

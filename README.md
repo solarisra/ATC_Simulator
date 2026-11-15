@@ -8,6 +8,33 @@ uv sync
 uv run python main.py
 ```
 
+The application starts without a scenario, with Yuma selected by default.
+Use **Location** to select an available facility; facilities with multiple
+sectors show a sector submenu. The **Scenario** menu lists scenarios for the
+selected location and sector. Currently only Yuma and its scenario are
+available. Wait for the default map layers to load, then choose **Scenario >
+Load Yuma**. A map loading error is shown on screen; use **Scenario > Retry
+failed maps** after correcting the cause. Loading Yuma again asks for
+confirmation before replacing the current traffic and strips.
+
+`simulator/core/location.py` defines location coordinates, elevation in feet MSL, active
+runways and pads, airport diagram, procedures, and emergency, internal and
+neighbor radio frequencies. Yuma's location data is in `Locations/Yuma/`;
+its scenario is in `Locations/Yuma/Scenarios/`. The Yuma scenario sets the
+active runways and pads when loaded. Diagram and procedure data are not yet
+provided, and weather is not generated or retrieved.
+
+`main.py` remains the launcher. Shared application code is organized under
+`simulator/` by application, core models, display, navigation and radio.
+`sample_scenario.py` retains compatibility imports for the Yuma scenario.
+
+The Arcade-drawn menu follows the system light/dark app preference on Windows
+and macOS, and the GNOME color-scheme or GTK theme on Linux. It checks for
+changes periodically. Other Linux desktops and accessibility themes may not
+be reflected. If detection fails, the menu retains its last appearance (dark
+at startup) and logs a warning; the simulator remains usable. This is a
+custom-styled menu, not a native operating-system menu.
+
 The project dependencies, including those used by the GIS data processor,
 are recorded in `pyproject.toml` and `uv.lock`. Run the tests with
 `uv run python -m unittest discover -s tests`.
@@ -42,14 +69,17 @@ The communications panel is above the radar. Click a frequency button to cycle
 it through On, Listen and Off. Multiple frequencies can be monitored at
 once. Hold the `HOLD TO TALK` button or the spacebar to make the simulated
 mic hot: all On frequencies transmit, while Listen frequencies do not.
+Buttons brighten while their frequency carries a controller transmission or
+an audible aircraft readback.
 Releasing a control stops its transmission; the mic remains hot while either
 control is held. Leaving the window releases the mouse control, and losing
 window focus releases both. Spacebar enters text instead of transmitting
 when supported during text entry; push-to-talk is disabled while editing a
 strip, scratchpad, clearance or coordination.
-Emergency frequencies initially listen; Yuma APP VHF starts On and all
-other frequencies start Off. Buttons use TWR, APP, DEP, ENR and SEC for
-tower, approach, departure, enroute and sector.
+Emergency frequencies initially listen. Loading the Yuma scenario sets both
+VHF and UHF for APP, DEP and ENR to On; tower and center frequencies start
+Off. Buttons use TWR, APP, DEP, ENR and SEC for tower, approach, departure,
+enroute and sector.
 
 The separate intrafacility section has lines for KNYL Tower (Local), Range
 Control, Approach/Departure and Enroute. Click a line to toggle it between
@@ -61,16 +91,69 @@ Its emergency, tower, approach and departure values are from the
 [FAA-derived Yuma listing](https://www.airnav.com/airport/KNYL), effective
 29 October 2026. KNYL enroute, ZLA sectors 9, 10 and 31 and ZAB sector 42
 use frequencies supplied for this scenario; the enroute values are provisional.
-Sector 31 is labeled for airspace above FL230, but the label does not automate
-sector assignment or handoffs. These values may change and are not for operational
-use. The panel only simulates communication state: there is no microphone,
-radio or intrafacility audio, and existing departure check-ins and controller
-clearances are not filtered by frequency or line.
+Sector 31 represents airspace above FL230, but does not automate sector
+assignment or handoffs. These values may change and are not for operational use.
 
 [RadioReference's Yuma airport listing](https://www.radioreference.com/db/aid/10632)
 lists departure VHF as 125.550 MHz, while the FAA-derived listing above gives
 125.500 MHz, which the simulator retains. RadioReference also lists an
 additional 336.400 MHz approach UHF frequency.
+
+### Voice radio
+
+Voice is optional and requires Python 3.12, an NVIDIA GPU with a compatible
+CUDA driver, and default microphone and speaker devices. Install the voice
+dependencies and start the application with:
+
+```shell
+uv sync --python 3.12 --extra voice
+uv run --python 3.12 --extra voice python main.py
+```
+
+Select **Audio > Enable voice** and wait for voice initialization before
+loading a scenario. **Audio > Disable voice** turns it off. Alternatively,
+pass `--voice` to initialize voice automatically at startup.
+
+The CUDA PyTorch download is several gigabytes; the Whisper and Kokoro models
+and pilot voice packs download on first use. Speech recognition and synthesis
+run locally. Voice initialization and errors appear in the window title and
+communications panel.
+The microphone stream is open while voice is enabled, but audio is captured in
+memory only while push-to-talk is held. A transmission over 60 seconds is
+rejected. Only frequencies that remain On for the entire transmission can
+receive the resulting instruction.
+
+Each sample aircraft is assigned one frequency by flight role: arrivals use
+APP, departures DEP and overflights ENR. Civilian aircraft use VHF and military
+aircraft use UHF. Select an aircraft to see its assigned frequency. These
+assignments do not automatically change on handoff. To reach a pilot, turn
+that frequency On and begin with the full callsign, for example:
+
+* `Devil two seven niner, fly heading two seven zero`
+* `November one three five tango charlie, turn right heading zero one zero`
+* `Devil two seven niner, climb and maintain thirteen thousand`
+* `Devil two seven niner, direct BZA`
+* `Devil two seven niner, resume route` or `resume filed altitude`
+* `Devil two seven niner, traffic twelve o'clock five miles`
+* `Devil two seven niner, say traffic`
+* `Devil two seven niner, radar contact bearing 240 altitude 13000 speed 400`
+
+The existing clearance restrictions still apply; headings are true and direct
+fixes must be on the remaining route. Heading instructions may specify a left
+or right turn; otherwise the aircraft takes the shorter turn. Rejected voice
+instructions, including their recognized text, are logged to the terminal.
+The parser recognizes the observed transcription variants "hitting" for
+"heading", "climbed" for "climb", and "turned" for "turn" in instruction
+positions.
+A pilot acknowledges an advisory without claiming to see traffic.
+On `say traffic`, the simulated pilot reports the nearest airborne aircraft
+using simulator positions, not a visual-detection model. Pilot audio is heard
+only while its frequency is monitored (On or Listen), and stops if the
+controller transmits. The window title displays recognized speech and errors.
+Recognition can be wrong; this is not for real-world ATC. Existing departure
+check-ins remain text-only, and intrafacility lines do not yet have audio.
+Aircraft are assigned distinct pilot voices when they first respond and keep
+them while voice is enabled. After 20 aircraft, voice presets are reused.
 
 The right-hand flight progress strip panel lists active scenario plans. Scroll
 over the panel to see additional strips; clicking a strip selects its radar
@@ -106,12 +189,13 @@ strips remain active while they wait. A simulated pilot check-in to Yuma
 Departure appears above the flight strips 15 seconds after liftoff; the most
 recent three check-ins remain visible. This assumes one person staffs approach, departure
 and enroute. Ground positions and runway headings are approximate, with no
-taxi, runway conflict, tower coordination, or voice simulation.
+taxi, runway conflict or tower coordination.
 The startup tracks and route legs are kept north of the U.S.–Mexico border
 using the included state boundary data; this is not a general border-monitoring
 or airspace-avoidance system.
-The aircraft and plan definitions are in `sample_data.py`; `sample_scenario.py`
-constructs the scenario. Additional inactive aircraft remain in the data file.
+The aircraft and plan definitions are in `Locations/Yuma/Scenarios/sample_data.py`;
+`Locations/Yuma/Scenarios/yuma.py` constructs the scenario. Additional inactive
+aircraft remain in the data file.
 Inactive local training and search examples use BZA as a placeholder route and
 retain their mission descriptions as strip remarks; they do not simulate
 restricted-area training or search operations.
@@ -297,7 +381,7 @@ These callwords can change and are not guarantees of current assignments.
 Sources: [military callsign list](https://henney.com/chm/callsign.htm) and
 [VMX-1](https://en.wikipedia.org/wiki/VMX-1).
 
-Additional aircraft models are defined in `aircraft_models.py`, with
+Additional aircraft models are defined in `simulator/core/aircraft_models.py`, with
 links to reference data. Unspecified performance and maneuver rates are
 estimates; the simulator does not model rotorcraft-specific flight dynamics.
 For helicopters, the model's `wing_span` is rotor diameter and `stall_speed`

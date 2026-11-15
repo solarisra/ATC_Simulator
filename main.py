@@ -1,13 +1,15 @@
+import argparse
+
 import arcade
 
-from radar import RadarDisplay
-from sample_data import (
+from Locations.Yuma.Scenarios.sample_data import (
     HELICOPTER_SAMPLES,
     RUNWAY_03_SAMPLES,
     SAMPLE_PLANS,
     SMALL_CIVILIAN_SAMPLES,
 )
-from sample_scenario import create_sample_strips, create_yuma_scenario
+from Locations.Yuma.Scenarios.yuma import create_sample_strips
+from simulator.app.application import ApplicationWindow
 
 __all__ = [
     "HELICOPTER_SAMPLES",
@@ -20,9 +22,13 @@ __all__ = [
 
 
 def main():
-    aircraft_list, facility, strips = create_yuma_scenario()
-    app = RadarDisplay(aircraft_list, facility, flight_strips=strips)
+    parser = argparse.ArgumentParser(description="Run the Yuma ATC simulator")
+    parser.add_argument("--voice", action="store_true", help="enable local voice radio")
+    args = parser.parse_args()
+    app = ApplicationWindow()
     app.setup()
+    if args.voice:
+        app.enable_voice()
     arcade.run()
 
 

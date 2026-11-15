@@ -4,7 +4,7 @@ import arcade
 import geopandas as gpd
 import polars as pl
 
-from navmath import NavigationalCoordinateSystem
+from simulator.navigation.navmath import NavigationalCoordinateSystem
 
 
 class GeoDataProcessor:

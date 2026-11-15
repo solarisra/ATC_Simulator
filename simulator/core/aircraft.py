@@ -1,8 +1,8 @@
 import math
 
-from atc import TrackOwnership
-from constants import FPS
-from navmath import NavigationalCoordinateSystem
+from simulator.core.atc import TrackOwnership
+from simulator.core.constants import FPS
+from simulator.navigation.navmath import NavigationalCoordinateSystem
 
 
 class AircraftModel:
@@ -100,10 +100,12 @@ class Aircraft:
         self.landed = landed
         self.flight_rules = flight_rules
         self.target_heading = None
+        self.target_turn_direction = None
         self.target_altitude = None
         self.target_speed = None
         self.flight_guidance = None
         self.departure = None
+        self.radio_channel = None
 
     @staticmethod
     def _validate_speed(speed, aircraft_model):
@@ -135,7 +137,7 @@ class Aircraft:
             self.update_position(delta_time)
         location = atc_facility.location
         self.distance = NavigationalCoordinateSystem.calculate_distance(
-            location["lat"], location["lon"], self.lat, self.lon
+            location.latitude, location.longitude, self.lat, self.lon
         )
 
     def update_position(self, delta_time=1 / FPS):
@@ -175,7 +177,9 @@ class Aircraft:
         average_heading = self.heading
         if self.target_heading is not None:
             difference = (self.target_heading - self.heading + 360) % 360
-            if difference > 180:
+            if (self.target_turn_direction == "LEFT" and difference) or (
+                self.target_turn_direction is None and difference > 180
+            ):
                 difference -= 360
             heading, average_heading = self._advance_toward(
                 self.heading,
@@ -187,6 +191,7 @@ class Aircraft:
             if abs(difference) <= self.aircraft_model.turn_rate * delta_time:
                 self.heading = self.target_heading
                 self.target_heading = None
+                self.target_turn_direction = None
 
         if self.target_altitude is not None:
             self.altitude, _ = self._advance_toward(
@@ -215,11 +220,14 @@ class Aircraft:
             self.lat, self.lon, average_speed, average_heading, delta_time
         )
 
-    def update_heading(self, target_heading):
+    def update_heading(self, target_heading, turn_direction=None):
         """Command a turn to the target heading in degrees."""
         if not math.isfinite(target_heading):
             raise ValueError("Target heading must be finite")
+        if turn_direction not in (None, "LEFT", "RIGHT"):
+            raise ValueError("Turn direction must be LEFT or RIGHT")
         self.target_heading = target_heading % 360
+        self.target_turn_direction = turn_direction
 
     def update_altitude(self, target_altitude):
         """Command an altitude in hundreds of feet."""

@@ -11,18 +11,7 @@ from shapely.geometry import LineString, Point, box, shape
 from shapely.ops import unary_union
 from shapely.prepared import prep
 
-from aircraft import AircraftList
-from atc import ATCFacility, FlightPlan, FlightStrip
-from flight_navigation import (
-    FlightPlanGuidance,
-    NavigationData,
-    Waypoint,
-    _bearing,
-    _initial_leg,
-)
-from navmath import NavigationalCoordinateSystem
-from radar import RadarDisplay, RadarReturnManager, RadarSweep
-from sample_data import (
+from Locations.Yuma.Scenarios.sample_data import (
     ACTIVE_SAMPLE_AIRCRAFT,
     CIVILIAN_AIRPORTS,
     CIVILIAN_ELIGIBLE_AIRPORTS,
@@ -30,7 +19,21 @@ from sample_data import (
     INACTIVE_SAMPLE_AIRCRAFT,
     SAMPLE_PLANS,
 )
-from sample_scenario import _choose_civilian_airports, create_yuma_scenario
+from Locations.Yuma.Scenarios.yuma import (
+    _choose_civilian_airports,
+    create_yuma_scenario,
+)
+from simulator.core.aircraft import AircraftList
+from simulator.core.atc import ATCFacility, FlightPlan, FlightStrip
+from simulator.display.radar import RadarDisplay, RadarReturnManager, RadarSweep
+from simulator.navigation.flight_navigation import (
+    FlightPlanGuidance,
+    NavigationData,
+    Waypoint,
+    _bearing,
+    _initial_leg,
+)
+from simulator.navigation.navmath import NavigationalCoordinateSystem
 from tests.test_aircraft import make_aircraft
 
 
@@ -459,7 +462,7 @@ class FlightNavigationTests(unittest.TestCase):
                     }
                     choices[identifier] = airport
                     with patch(
-                        "sample_scenario._choose_civilian_airports",
+                        "Locations.Yuma.Scenarios.yuma._choose_civilian_airports",
                         return_value=choices,
                     ):
                         _, _, strips = create_yuma_scenario()

@@ -1,6 +1,6 @@
 """Fictional aircraft and flight plans for the Yuma startup scenario."""
 
-from aircraft_models import (
+from simulator.core.aircraft_models import (
     airbus_a320,
     airbus_h135,
     av8b_harrier,
@@ -384,6 +384,7 @@ SAMPLE_REMARKS = {
 }
 
 SMALL_CIVILIAN_SAMPLES = {"A1", "A6", "A7"}
+CIVILIAN_SAMPLE_AIRCRAFT = {"A1", "A2", "A4", "A5", "A6", "A7", "A8", "A9"}
 HELICOPTER_SAMPLES = {"A9", "A12", "A17", "A18", "A20", "A21"}
 RUNWAY_03_SAMPLES = {
     "A2",

@@ -1,12 +1,13 @@
 """Simulated radio and intrafacility communications panel."""
 
 from dataclasses import dataclass
-from enum import StrEnum
 
 import arcade
 
-from constants import SCREEN_HEIGHT, SCREEN_WIDTH
-from flight_strips import PANEL_WIDTH
+from Locations.Yuma import create_location as create_yuma_location
+from simulator.core.constants import SCREEN_HEIGHT, SCREEN_WIDTH
+from simulator.core.location import RadioState
+from simulator.display.flight_strips import PANEL_WIDTH
 
 COMMUNICATIONS_HEIGHT = 120
 WINDOW_WIDTH = SCREEN_WIDTH + PANEL_WIDTH
@@ -19,12 +20,6 @@ BUTTON_WIDTH = (
 BUTTON_HEIGHT = 36
 ROW_TOPS = (SCREEN_HEIGHT + 94, SCREEN_HEIGHT + 50)
 LINE_WIDTH = (PANEL_WIDTH - 2 * PANEL_MARGIN - PANEL_GAP) / 2
-
-
-class RadioState(StrEnum):
-    OFF = "OFF"
-    LISTEN = "LISTEN"
-    ON = "ON"
 
 
 @dataclass
@@ -61,30 +56,18 @@ def _line_rect(column, row):
 
 
 class CommunicationsPanel:
-    def __init__(self):
+    def __init__(self, frequencies=None):
+        if frequencies is None:
+            frequencies = create_yuma_location().radio_frequencies
         self.channels = [
             RadioChannel(
-                "emergency_low", "EMERGENCY", "VHF", "121.500", RadioState.LISTEN
-            ),
-            RadioChannel(
-                "emergency_high", "EMERGENCY", "UHF", "243.000", RadioState.LISTEN
-            ),
-            RadioChannel("tower_low", "KNYL TWR", "VHF", "119.300"),
-            RadioChannel("tower_high", "KNYL TWR", "UHF", "377.075"),
-            RadioChannel("approach_low", "KNYL APP", "VHF", "124.700", RadioState.ON),
-            RadioChannel("approach_high", "KNYL APP", "UHF", "371.975"),
-            RadioChannel("departure_low", "KNYL DEP", "VHF", "125.500"),
-            RadioChannel("departure_high", "KNYL DEP", "UHF", "282.325"),
-            RadioChannel("enroute_low", "KNYL ENR", "VHF", "132.275"),
-            RadioChannel("enroute_high", "KNYL ENR", "UHF", "292.200"),
-            RadioChannel("zla9_low", "ZLA SEC 9", "VHF", "128.600"),
-            RadioChannel("zla9_high", "ZLA SEC 9", "UHF", "291.700"),
-            RadioChannel("zla10_low", "ZLA SEC 10", "VHF", "128.150"),
-            RadioChannel("zla10_high", "ZLA SEC 10", "UHF", "285.600"),
-            RadioChannel("zla31_low", "ZLA SEC 31", "VHF", "126.775"),
-            RadioChannel("zla31_high", "ZLA SEC 31", "UHF", "307.800"),
-            RadioChannel("zab42_low", "ZAB SEC 42", "VHF", "125.250"),
-            RadioChannel("zab42_high", "ZAB SEC 42", "UHF", "307.300"),
+                frequency.identifier,
+                frequency.label,
+                frequency.band,
+                frequency.frequency,
+                frequency.initial_state,
+            )
+            for frequency in frequencies
         ]
         self.channel_positions = tuple(
             (index // 2, index % 2) for index in range(len(self.channels))
@@ -97,6 +80,8 @@ class CommunicationsPanel:
         ]
         self.mouse_ptt = False
         self.keyboard_ptt = False
+        self.pilot_channel: str | None = None
+        self.voice_status: str | None = None
         self.header = arcade.Text(
             "",
             PANEL_MARGIN,
@@ -214,8 +199,9 @@ class CommunicationsPanel:
             ),
             (33, 40, 47),
         )
+        voice_status = self.voice_status or "SIMULATED ONLY"
         self.header.text = (
-            f"COMMUNICATIONS  |  SIMULATED ONLY  |  MIC {'HOT' if self.mic_hot else 'COLD'}"
+            f"COMMUNICATIONS  |  {voice_status}  |  MIC {'HOT' if self.mic_hot else 'COLD'}"
             f"  |  TRANSMITTING: {len(self.transmitting)}"
         )
         self.header.draw()
@@ -225,11 +211,17 @@ class CommunicationsPanel:
             RadioState.LISTEN: (46, 85, 116),
             RadioState.ON: (40, 108, 65),
         }
+        active = {channel.identifier for channel in self.transmitting}
+        if self.pilot_channel is not None:
+            active.add(self.pilot_channel)
         for channel, position, label in zip(
             self.channels, self.channel_positions, self.labels
         ):
             rect = _button_rect(*position)
-            arcade.draw_rect_filled(rect, colors[channel.state])
+            color = colors[channel.state]
+            if channel.state != RadioState.OFF and channel.identifier in active:
+                color = (color[0] + 45, color[1] + 45, color[2] + 45)
+            arcade.draw_rect_filled(rect, color)
             arcade.draw_rect_outline(rect, arcade.color.LIGHT_GRAY, 1)
             frequency = (
                 f"{channel.frequency} MHZ" if channel.frequency else "UNVERIFIED"

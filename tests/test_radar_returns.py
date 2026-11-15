@@ -6,16 +6,16 @@ from unittest.mock import Mock, patch
 
 import arcade
 
-from atc import ATCFacility, TrackingPosition, TrackOwnership
-from constants import DISPLAY_RADIUS, FULL_ROTATION_TIME_SECONDS
-from radar import (
+from Locations.Yuma.Scenarios.yuma import create_yuma_scenario
+from simulator.core.atc import ATCFacility, TrackingPosition, TrackOwnership
+from simulator.core.constants import DISPLAY_RADIUS, FULL_ROTATION_TIME_SECONDS
+from simulator.display.radar import (
     RadarDisplay,
     RadarReturnManager,
     RadarSweep,
     RadarViewport,
     leader_line_end,
 )
-from sample_scenario import create_yuma_scenario
 
 
 def enter_coordination(display, text="NONE"):
@@ -954,7 +954,7 @@ class SecondaryRadarTests(unittest.TestCase):
                 "get_data_block_label",
                 return_value=SimpleNamespace(width=200, height=120),
             ),
-            self.assertLogs("radar", level="WARNING"),
+            self.assertLogs("simulator.display.radar", level="WARNING"),
         ):
             layouts = RadarDisplay.layout_secondary_returns(display)
         self.assertTrue(display.data_block_overlap_warned)

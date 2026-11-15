@@ -14,9 +14,14 @@ import arcade
 import numpy as np
 import pyglet
 
-from constants import DISPLAY_RADIUS, MAX_DISTANCE_MILES, SCREEN_HEIGHT, SCREEN_WIDTH
+from simulator.core.constants import (
+    DISPLAY_RADIUS,
+    MAX_DISTANCE_MILES,
+    SCREEN_HEIGHT,
+    SCREEN_WIDTH,
+)
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[2]
 LAYERS = (
     ("Airports", "Airports.csv", "points", (100, 145, 130)),
     ("Waypoints", "Designated_Point.csv", "points", (95, 125, 115)),
@@ -275,7 +280,8 @@ class GISOverlays:
                     self.process = subprocess.Popen(
                         [
                             sys.executable,
-                            str(Path(__file__).resolve()),
+                            "-m",
+                            "simulator.display.gis_overlays",
                             str(index),
                             str(self.loader.latitude),
                             str(self.loader.longitude),
@@ -284,6 +290,7 @@ class GISOverlays:
                         ],
                         stdout=subprocess.PIPE,
                         stderr=subprocess.PIPE,
+                        cwd=ROOT,
                         creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
                     )
                     process = self.process

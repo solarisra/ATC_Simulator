@@ -4,29 +4,44 @@ from unittest.mock import Mock, patch
 
 import arcade
 
-from communications import (
+from simulator.core.constants import SCREEN_HEIGHT
+from simulator.core.location import RadioFrequency
+from simulator.display.radar import RadarDisplay
+from simulator.radio.communications import (
     CommunicationsPanel,
     RadioState,
     _button_rect,
     _line_rect,
 )
-from constants import SCREEN_HEIGHT
-from radar import RadarDisplay
 
 
 def make_panel():
     with patch(
-        "communications.arcade.Text", side_effect=lambda *args, **kwargs: Mock()
+        "simulator.radio.communications.arcade.Text",
+        side_effect=lambda *args, **kwargs: Mock(),
     ):
         return CommunicationsPanel()
 
 
 class CommunicationsTests(unittest.TestCase):
+    def test_panel_uses_location_frequencies_without_mutating_configuration(self):
+        frequencies = (
+            RadioFrequency("custom", "TEST", "VHF", "123.450", RadioState.LISTEN),
+        )
+        with patch("simulator.radio.communications.arcade.Text"):
+            panel = CommunicationsPanel(frequencies)
+        channel = panel.channels[0]
+        self.assertEqual((channel.identifier, channel.frequency), ("custom", "123.450"))
+        self.assertEqual(channel.state, RadioState.LISTEN)
+        channel.cycle()
+        self.assertEqual(frequencies[0].initial_state, RadioState.LISTEN)
+        self.assertEqual(panel.channels[0].state, RadioState.OFF)
+
     def test_draw_uses_compact_labels_and_identifies_each_radio_band(self):
         panel = make_panel()
         with (
-            patch("communications.arcade.draw_rect_filled"),
-            patch("communications.arcade.draw_rect_outline"),
+            patch("simulator.radio.communications.arcade.draw_rect_filled"),
+            patch("simulator.radio.communications.arcade.draw_rect_outline"),
         ):
             panel.draw()
         self.assertEqual(
@@ -88,11 +103,39 @@ class CommunicationsTests(unittest.TestCase):
         self.assertFalse(panel.mic_hot)
         self.assertEqual(panel.transmitting, ())
 
+    def test_only_active_radio_buttons_brighten_during_transmissions(self):
+        panel = make_panel()
+
+        def channel_colors():
+            with (
+                patch("simulator.radio.communications.arcade.draw_rect_filled") as fill,
+                patch("simulator.radio.communications.arcade.draw_rect_outline"),
+            ):
+                panel.draw()
+            return {
+                channel.identifier: fill.call_args_list[index + 2].args[1]
+                for index, channel in enumerate(panel.channels)
+            }
+
+        idle = channel_colors()
+        panel.keyboard_ptt = True
+        transmitting = channel_colors()
+        self.assertGreater(sum(transmitting["approach_low"]), sum(idle["approach_low"]))
+        self.assertEqual(transmitting["emergency_low"], idle["emergency_low"])
+        self.assertEqual(transmitting["enroute_low"], idle["enroute_low"])
+        panel.keyboard_ptt = False
+        panel.pilot_channel = "emergency_low"
+        receiving = channel_colors()
+        self.assertGreater(sum(receiving["emergency_low"]), sum(idle["emergency_low"]))
+        self.assertEqual(receiving["approach_low"], idle["approach_low"])
+        panel.pilot_channel = None
+        self.assertEqual(channel_colors(), idle)
+
     def test_scenario_frequencies_and_sector_31_transmission(self):
         panel = make_panel()
         with (
-            patch("communications.arcade.draw_rect_filled"),
-            patch("communications.arcade.draw_rect_outline"),
+            patch("simulator.radio.communications.arcade.draw_rect_filled"),
+            patch("simulator.radio.communications.arcade.draw_rect_outline"),
         ):
             panel.draw()
         labels = {

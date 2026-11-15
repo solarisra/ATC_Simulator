@@ -6,9 +6,9 @@ from dataclasses import dataclass
 from itertools import pairwise
 from pathlib import Path
 
-from navmath import NavigationalCoordinateSystem
+from simulator.navigation.navmath import NavigationalCoordinateSystem
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[2]
 
 
 @dataclass(frozen=True)
@@ -207,14 +207,18 @@ class FlightPlanGuidance:
         self.next_index = 1
         self.approach = False
         self.vector_heading = None
+        self.vector_turn_direction = None
         self.assigned_altitude = None
         self._refresh_route(strip.aircraft)
         strip.aircraft.target_speed = None
 
-    def assign_heading(self, heading):
+    def assign_heading(self, heading, turn_direction=None):
         if not isinstance(heading, int) or not 1 <= heading <= 360:
             raise ValueError("Heading must be 001 to 360 true")
+        if turn_direction not in (None, "LEFT", "RIGHT"):
+            raise ValueError("Turn direction must be LEFT or RIGHT")
         self.vector_heading = heading % 360
+        self.vector_turn_direction = turn_direction
         self._cancel_approach()
 
     def assign_altitude(self, altitude):
@@ -249,12 +253,14 @@ class FlightPlanGuidance:
             raise ValueError("Fix occurs more than once on the remaining route")
         self.next_index = matches[0]
         self.vector_heading = None
+        self.vector_turn_direction = None
         self._cancel_approach()
 
     def resume_route(self):
         if self.vector_heading is None:
             raise ValueError("Aircraft is not on a heading vector")
         self.vector_heading = None
+        self.vector_turn_direction = None
         self._cancel_approach()
 
     def _refresh_route(self, aircraft):
@@ -287,9 +293,11 @@ class FlightPlanGuidance:
                 if self.assigned_altitude is not None
                 else self.strip.flight_plan.altitude
             )
-            aircraft.update_heading(self.vector_heading)
+            aircraft.update_heading(self.vector_heading, self.vector_turn_direction)
             aircraft.update_altitude(altitude / 100)
             aircraft._advance_position(delta_time)
+            if aircraft.target_heading is None:
+                self.vector_turn_direction = None
             return
         turn_radius = aircraft.speed / (3600 * math.radians(turn_rate))
         capture_radius = max(0.15, turn_radius * 1.25)

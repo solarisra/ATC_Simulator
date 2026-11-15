@@ -1,14 +1,19 @@
 import logging
 import math
+import queue
 from dataclasses import dataclass
 from typing import NamedTuple
 
 import arcade
 import numpy as np
 
-from atc import CoordinationKind, TrackingPosition
-from communications import COMMUNICATIONS_HEIGHT, CommunicationsPanel
-from constants import (
+from simulator.core.atc import CoordinationKind, TrackingPosition
+from simulator.core.clearances import (
+    clearance_control_error,
+    execute_clearance,
+    is_airborne,
+)
+from simulator.core.constants import (
     DISPLAY_RADIUS,
     FPS,
     MAX_DISTANCE_MILES,
@@ -20,9 +25,16 @@ from constants import (
     SWEEP_SPEED,
     SWEEP_TRAIL_DEGREES,
 )
-from flight_strips import PANEL_WIDTH, FlightStripPanel, display_airport_identifier
-from gis_overlays import LAYER_KEYS, GISOverlays
-from navmath import NavigationalCoordinateSystem
+from simulator.display.flight_strips import (
+    PANEL_WIDTH,
+    FlightStripPanel,
+    display_airport_identifier,
+)
+from simulator.display.gis_overlays import LAYER_KEYS, GISOverlays
+from simulator.navigation.navmath import NavigationalCoordinateSystem
+from simulator.radio.communications import COMMUNICATIONS_HEIGHT, CommunicationsPanel
+from simulator.radio.voice_audio import VoiceAudio
+from simulator.radio.voice_commands import handle_transmission
 
 SWEEP_COLOR = arcade.color.ORANGE
 DATA_BLOCK_DISTANCE = 40
@@ -82,30 +94,6 @@ class CoordinationDraft:
 class ClearanceDraft:
     aircraft_id: str
     text: str = ""
-
-
-def is_airborne(aircraft):
-    departure = getattr(aircraft, "departure", None)
-    return not aircraft.landed and (departure is None or departure.airborne)
-
-
-def clearance_control_error(aircraft, facility):
-    if not is_airborne(aircraft):
-        return "Aircraft is not airborne"
-    if (
-        aircraft.track.owner != TrackingPosition.YUMA
-        or aircraft.track.communications_owner != TrackingPosition.YUMA
-    ):
-        return "Yuma must own track and communications"
-    if aircraft.track.identification_confirmation_due:
-        return "Confirm incoming identification first"
-    if aircraft.track.handoff_target is not None:
-        return "Complete or cancel the pending handoff"
-    if facility.above_control_limit(aircraft.altitude):
-        return "Aircraft is above Yuma control limit"
-    if aircraft.flight_guidance is None:
-        return "Aircraft has no flight plan guidance"
-    return None
 
 
 def leader_line_end(x, y, text_x, text_y, width, height):
@@ -296,7 +284,11 @@ class RadarDisplay(arcade.Window):
         arcade.set_background_color(arcade.color.BLACK)
         self.aircraft_list = aircraft_list
         self.atc_facility = atc_facility
-        self.communications_panel = CommunicationsPanel()
+        self.communications_panel = CommunicationsPanel(
+            atc_facility.location.radio_frequencies
+        )
+        self.voice_audio = None
+        self.voice_message = ""
         self.strip_panel = FlightStripPanel(
             flight_strips if flight_strips is not None else [],
             aircraft_list,
@@ -327,7 +319,7 @@ class RadarDisplay(arcade.Window):
         self.data_block_overlap_warned = False
         self.capture_secondary_radar_returns()
         self.gis_overlays = GISOverlays(
-            atc_facility.location["lat"], atc_facility.location["lon"]
+            atc_facility.location.latitude, atc_facility.location.longitude
         )
         self.radar_viewport = RadarViewport()
         self.map_camera = arcade.Camera2D(
@@ -468,6 +460,63 @@ class RadarDisplay(arcade.Window):
         Set up the radar display.
         """
 
+    def enable_voice(self):
+        if self.voice_audio is not None:
+            raise RuntimeError("Voice is already enabled")
+        self.communications_panel.voice_status = "VOICE LOADING"
+        self.voice_audio = VoiceAudio()
+
+    def sync_voice(self):
+        voice = self.__dict__.get("voice_audio")
+        if voice is not None:
+            panel = self.communications_panel
+            voice.sync(
+                panel.mic_hot,
+                {channel.identifier for channel in panel.transmitting},
+                {channel.identifier for channel in panel.monitored},
+            )
+            panel.pilot_channel = voice.playing_channel
+
+    def process_voice(self):
+        voice = self.voice_audio
+        if voice is None:
+            return
+        RadarDisplay.sync_voice(self)
+        while True:
+            try:
+                kind, item = voice.events.get_nowait()
+            except queue.Empty:
+                break
+            if kind == "status":
+                self.communications_panel.voice_status = item.upper()
+                if not self.voice_message:
+                    self.set_caption(f"{SCREEN_TITLE} - {item}")
+            elif kind == "error":
+                self.communications_panel.voice_status = "VOICE ERROR"
+                self.voice_message = item
+                self.set_caption(f"{SCREEN_TITLE} - {self.voice_message}")
+                logging.getLogger(__name__).warning("%s", item)
+            elif kind == "transcript":
+                text, channels = item
+                try:
+                    reply = handle_transmission(
+                        text,
+                        self.aircraft_list.aircraft_list,
+                        self.atc_facility,
+                        channels,
+                    )
+                except ValueError as error:
+                    self.communications_panel.voice_status = "VOICE ERROR"
+                    self.voice_message = f"{text}: {error}"
+                    self.set_caption(f"{SCREEN_TITLE} - {self.voice_message}")
+                    logging.getLogger(__name__).warning(
+                        "Voice instruction rejected: %s: %s", text, error
+                    )
+                else:
+                    self.voice_message = f"{text} | {reply.text}"
+                    self.set_caption(f"{SCREEN_TITLE} - {self.voice_message}")
+                    voice.speak(reply)
+
     def on_draw(self):
         """
         Render the screen.
@@ -553,6 +602,8 @@ class RadarDisplay(arcade.Window):
         """
         Advance the sweep, aircraft, and radar returns.
         """
+        if self.__dict__.get("voice_audio") is not None:
+            RadarDisplay.process_voice(self)
         previous_sweep_angle = self.sweep.angle
         self.sweep.update(delta_time)
         self.radar_return_manager.update(delta_time)
@@ -987,6 +1038,17 @@ class RadarDisplay(arcade.Window):
         if aircraft is not None:
             track = aircraft.track
             text += f"\nCOMMS {track.communications_owner}"
+            if self.__dict__.get("voice_audio") is not None:
+                channel = next(
+                    (
+                        channel
+                        for channel in self.communications_panel.channels
+                        if channel.identifier == aircraft.radio_channel
+                    ),
+                    None,
+                )
+                if channel is not None:
+                    text += f"\nRADIO {channel.frequency} {channel.band}"
             guidance = getattr(aircraft, "flight_guidance", None)
             if guidance is not None:
                 if guidance.vector_heading is not None:
@@ -1077,6 +1139,7 @@ class RadarDisplay(arcade.Window):
             return
         communications = self.__dict__.get("communications_panel")
         if communications is not None and communications.press(x, y):
+            RadarDisplay.sync_voice(self)
             return
         self.scratchpad_edit_id = None
         self.handoff_choice_id = None
@@ -1156,35 +1219,7 @@ class RadarDisplay(arcade.Window):
             self.handoff_message = "AIRCRAFT UNAVAILABLE"
             return
         try:
-            error = clearance_control_error(aircraft, self.atc_facility)
-            if error is not None:
-                raise ValueError(error)
-            guidance = aircraft.flight_guidance
-            guidance._refresh_route(aircraft)
-            parts = draft.text.upper().split()
-            if len(parts) == 2 and parts[0] == "HDG" and parts[1].isdigit():
-                heading = int(parts[1])
-                guidance.assign_heading(heading)
-                readback = f"HEADING {heading:03d} TRUE"
-            elif len(parts) == 2 and parts[0] == "ALT" and parts[1].isdigit():
-                altitude = int(parts[1])
-                if self.atc_facility.above_control_limit(altitude / 100):
-                    raise ValueError("Altitude is above Yuma control limit")
-                guidance.assign_altitude(altitude)
-                readback = f"MAINTAIN {altitude} FT"
-            elif parts == ["ALT", "CLR"]:
-                guidance.clear_altitude()
-                readback = (
-                    f"RESUME FILED ALTITUDE {guidance.strip.flight_plan.altitude} FT"
-                )
-            elif len(parts) == 2 and parts[0] == "DCT":
-                guidance.direct_to(parts[1])
-                readback = f"DIRECT {parts[1]}, THEN FLIGHT PLAN"
-            elif parts == ["RESUME"]:
-                guidance.resume_route()
-                readback = f"RESUME FLIGHT PLAN DIRECT {guidance.route[guidance.next_index].name}"
-            else:
-                raise ValueError("USE HDG nnn, ALT feet, ALT CLR, DCT fix OR RESUME")
+            readback = execute_clearance(aircraft, self.atc_facility, draft.text)
         except ValueError as error:
             self.handoff_message = str(error).upper()
             return
@@ -1370,6 +1405,7 @@ class RadarDisplay(arcade.Window):
             communications = self.__dict__.get("communications_panel")
             if communications is not None:
                 communications.keyboard_ptt = True
+                RadarDisplay.sync_voice(self)
                 return
         if self.handoff_choice_id is not None:
             if symbol == arcade.key.ESCAPE:
@@ -1599,6 +1635,7 @@ class RadarDisplay(arcade.Window):
             communications = self.__dict__.get("communications_panel")
             if communications is not None:
                 communications.keyboard_ptt = False
+                RadarDisplay.sync_voice(self)
 
     def on_mouse_scroll(self, x, y, scroll_x, scroll_y):
         if y >= SCREEN_HEIGHT:
@@ -1621,6 +1658,7 @@ class RadarDisplay(arcade.Window):
             communications = self.__dict__.get("communications_panel")
             if communications is not None and communications.mouse_ptt:
                 communications.release()
+                RadarDisplay.sync_voice(self)
                 return
             self.strip_panel.finish_drag(x, y)
 
@@ -1628,16 +1666,22 @@ class RadarDisplay(arcade.Window):
         communications = self.__dict__.get("communications_panel")
         if communications is not None:
             communications.release()
+            RadarDisplay.sync_voice(self)
         self.strip_panel.hover_position = None
 
     def on_deactivate(self):
         self.communications_panel.release_all()
+        RadarDisplay.sync_voice(self)
 
     def on_close(self):
+        if self.voice_audio is not None:
+            self.voice_audio.close()
         self.gis_overlays.close()
         super().on_close()
 
     def close(self):
+        if self.voice_audio is not None:
+            self.voice_audio.close()
         self.gis_overlays.close()
         super().close()
 

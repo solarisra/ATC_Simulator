@@ -1,144 +1,15 @@
-"""Build the Yuma startup scenario from the sample data."""
+"""Compatibility imports for the Yuma sample scenario."""
 
-import random
-from itertools import cycle
-
-from aircraft import Aircraft, AircraftList
-from atc import ATCFacility, FlightPlan, FlightStrip
-from departure import Departure
-from flight_navigation import FlightPlanGuidance, NavigationData
-from sample_data import (
-    ACTIVE_SAMPLE_AIRCRAFT,
-    CIVILIAN_AIRPORTS,
-    CIVILIAN_ARRIVAL_STARTS,
-    CIVILIAN_ELIGIBLE_AIRPORTS,
-    CIVILIAN_ROUTE_TEMPLATES,
-    HELICOPTER_SAMPLES,
-    RUNWAY_03_SAMPLES,
-    SAMPLE_PLANS,
-    SAMPLE_REMARKS,
-    SMALL_CIVILIAN_SAMPLES,
+from Locations.Yuma.Scenarios.yuma import (
+    _choose_civilian_airports,
+    create_sample_aircraft,
+    create_sample_strips,
+    create_yuma_scenario,
 )
 
-
-def create_sample_aircraft():
-    aircraft_list = AircraftList()
-    aircraft_list.add_aircraft([Aircraft(*fields) for fields in ACTIVE_SAMPLE_AIRCRAFT])
-    return aircraft_list
-
-
-def create_sample_strips(aircraft_list, facility, plans=None):
-    if plans is None:
-        plans = SAMPLE_PLANS
-    strips = [
-        FlightStrip(aircraft.id, aircraft, FlightPlan(aircraft.id, *plans[aircraft.id]))
-        for aircraft in aircraft_list.aircraft_list
-        if aircraft.id in plans
-    ]
-    for strip in strips:
-        strip.remarks = SAMPLE_REMARKS.get(strip.flight_id, "")
-    if facility.airport_code == "KNYL" and facility.active_runways:
-        if not {"03L", "03R", "35"}.issubset(facility.active_runways):
-            raise ValueError("Yuma sample traffic requires 03L, 03R and 35")
-        runway_cycle = cycle(("03L", "03R"))
-        pad_cycle = cycle(facility.helicopter_pads)
-        for strip in strips:
-            plan = strip.flight_plan
-            if (
-                not plan.origin
-                or not plan.destination
-                or facility.airport_code not in (plan.origin, plan.destination)
-            ):
-                continue
-            if strip.aircraft.id in SMALL_CIVILIAN_SAMPLES:
-                strip.operation_area = "35"
-            elif strip.aircraft.id in HELICOPTER_SAMPLES:
-                strip.operation_area = (
-                    next(pad_cycle) if facility.helicopter_pads else "PAD"
-                )
-            elif strip.aircraft.id in RUNWAY_03_SAMPLES:
-                strip.operation_area = next(runway_cycle)
-    return strips
-
-
-def _choose_civilian_airports(rng):
-    choices = {
-        aircraft_id: rng.choice(
-            [
-                airport
-                for airport in eligible
-                if CIVILIAN_AIRPORTS[airport][0] == "primary"
-            ]
-        )
-        for aircraft_id, eligible in CIVILIAN_ELIGIBLE_AIRPORTS.items()
-    }
-    tier = rng.choices(("primary", "occasional", "rare"), weights=(80, 15, 5))[0]
-    if tier != "primary":
-        airports = [
-            airport
-            for airport, (airport_tier, _) in CIVILIAN_AIRPORTS.items()
-            if airport_tier == tier
-            and any(
-                airport in eligible for eligible in CIVILIAN_ELIGIBLE_AIRPORTS.values()
-            )
-        ]
-        airport = rng.choice(airports)
-        aircraft_id = rng.choice(
-            [
-                identifier
-                for identifier, eligible in CIVILIAN_ELIGIBLE_AIRPORTS.items()
-                if airport in eligible
-            ]
-        )
-        choices[aircraft_id] = airport
-    return choices
-
-
-def create_yuma_scenario(rng=None):
-    facility = ATCFacility.get_atc_facility_by_name("KNYL")
-    if facility is None:
-        raise ValueError("The KNYL facility is not configured")
-    facility.active_runways = ("03L", "03R", "35")
-    facility.helicopter_pads = ("P1", "P2", "P3", "P5")
-
-    aircraft_list = create_sample_aircraft()
-    rng = rng if rng is not None else random
-    civilian_airports = _choose_civilian_airports(rng)
-    plans = dict(SAMPLE_PLANS)
-    for aircraft in aircraft_list.aircraft_list:
-        if aircraft.id not in CIVILIAN_ELIGIBLE_AIRPORTS:
-            continue
-        airport = civilian_airports[aircraft.id]
-        direction = CIVILIAN_AIRPORTS[airport][1]
-        route_key = airport if aircraft.id == "A8" else direction
-        route, altitude = CIVILIAN_ROUTE_TEMPLATES[aircraft.id][route_key]
-        if aircraft.id == "A1":
-            origin, destination = "KPHX", airport
-        elif aircraft.id == "A7":
-            origin, destination = airport, "KNYL"
-            aircraft.lat, aircraft.lon, aircraft.heading = CIVILIAN_ARRIVAL_STARTS[
-                direction
-            ]
-        else:
-            origin, destination = "KNYL", airport
-        plans[aircraft.id] = (
-            origin,
-            destination,
-            route,
-            altitude,
-            plans[aircraft.id][4],
-        )
-    aircraft_list.assign_to_atc_facility(facility)
-    strips = create_sample_strips(aircraft_list, facility, plans)
-    navigation_data = NavigationData()
-    departure_count = 0
-    for strip in strips:
-        if strip.flight_plan.origin == facility.airport_code:
-            departure_count += 1
-            strip.aircraft.departure = Departure(
-                strip,
-                navigation_data.airport(facility.airport_code),
-                30 * departure_count,
-            )
-        strip.aircraft.flight_guidance = FlightPlanGuidance(strip, navigation_data)
-    return aircraft_list, facility, strips
+__all__ = [
+    "_choose_civilian_airports",
+    "create_sample_aircraft",
+    "create_sample_strips",
+    "create_yuma_scenario",
+]

@@ -1,6 +1,9 @@
 from dataclasses import dataclass
 from enum import StrEnum
 
+from Locations.Yuma import create_location as create_yuma_location
+from simulator.core.location import AirportDiagram, FlightPlate, Location  # noqa: F401
+
 SIMULATED_HANDOFF_DELAY_SECONDS = 3.0
 
 
@@ -151,14 +154,32 @@ class ATCFacility:
         upper_control_center=None,
     ):
         self.name = name
-        self.location = location
+        self.location = (
+            location
+            if isinstance(location, Location)
+            else Location(name, location["lat"], location["lon"])
+        )
         self.airport_code = airport_code
         self.upper_control_flight_level = upper_control_flight_level
         self.upper_control_center = upper_control_center
-        self.active_runways: tuple[str, ...] = ()
-        self.helicopter_pads: tuple[str, ...] = ()
         self.facilities = facilities if facilities is not None else []
         self.aircraft_list = []
+
+    @property
+    def active_runways(self):
+        return self.location.active_runways
+
+    @active_runways.setter
+    def active_runways(self, runways):
+        self.location.active_runways = runways
+
+    @property
+    def helicopter_pads(self):
+        return self.location.helicopter_pads
+
+    @helicopter_pads.setter
+    def helicopter_pads(self, pads):
+        self.location.helicopter_pads = pads
 
     def above_control_limit(self, altitude):
         return (
@@ -194,7 +215,7 @@ class ATCFacility:
         facilities = {
             "KNYL": ATCFacility(
                 "MCAS Yuma",
-                {"lat": 32.6566, "lon": -114.6056},
+                create_yuma_location(),
                 airport_code="KNYL",
                 upper_control_flight_level=230,
                 upper_control_center=TrackingPosition.LOS_ANGELES,
@@ -236,17 +257,6 @@ class ATC:
         self.facility = ATCFacility.get_atc_facility_by_name(facility_name)
 
 
-class FlightPlate:
-    """
-    Represents a flight plate for navigation procedures.
-    """
-
-    def __init__(self, plate_type, airport, procedure):
-        self.plate_type = plate_type  # Approach, Departure, etc.
-        self.airport = airport
-        self.procedure = procedure
-
-
 class RadarMap:
     """
     Represents a radar map for a specific area.
@@ -255,16 +265,6 @@ class RadarMap:
     def __init__(self, area, map_data):
         self.area = area
         self.map_data = map_data
-
-
-class AirportDiagram:
-    """
-    Represents an airport diagram.
-    """
-
-    def __init__(self, airport, diagram_data):
-        self.airport = airport
-        self.diagram_data = diagram_data
 
 
 class NavigationAid:

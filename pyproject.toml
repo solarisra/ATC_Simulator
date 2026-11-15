@@ -4,6 +4,7 @@ version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
     "arcade>=3.3.3,<4",
+    "darkdetect>=0.8.0,<1",
     "geopandas>=1.2.0",
     "numpy>=2.5.4,<3",
     "polars>=2.1.0",
@@ -11,7 +12,29 @@ dependencies = [
     "pyglet>=2.1.19,<3",
 ]
 
+[project.optional-dependencies]
+voice = [
+    "en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl ; python_version < '3.13'",
+    "faster-whisper>=1.2.1,<2",
+    "kokoro>=0.9.4,<1; python_version < '3.13'",
+    "sounddevice>=0.5.1,<1",
+    "torch>=2.7,<3; python_version < '3.13'",
+]
+
 [dependency-groups]
 dev = [
     "ruff==0.17.5",
 ]
+
+[tool.ruff.lint.per-file-ignores]
+"Locations/**/__init__.py" = ["N999"]
+
+[tool.uv.sources]
+torch = [
+    { index = "pytorch-cu128", marker = "sys_platform == 'win32' or sys_platform == 'linux'" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true

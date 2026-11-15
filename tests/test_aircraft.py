@@ -3,8 +3,9 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from aircraft import Aircraft, AircraftList
-from aircraft_models import (
+from Locations.Yuma.Scenarios.yuma import create_yuma_scenario
+from simulator.core.aircraft import Aircraft, AircraftList
+from simulator.core.aircraft_models import (
     airbus_a320,
     airbus_h135,
     av8b_harrier,
@@ -25,9 +26,9 @@ from aircraft_models import (
     sikorsky_uh60,
     v22_osprey,
 )
-from atc import ATCFacility, TrackingPosition
-from navmath import NavigationalCoordinateSystem
-from radar import RadarDisplay, RadarReturnManager, RadarSweep
+from simulator.core.atc import ATCFacility, TrackingPosition
+from simulator.display.radar import RadarDisplay, RadarReturnManager, RadarSweep
+from simulator.navigation.navmath import NavigationalCoordinateSystem
 
 
 def make_aircraft(
@@ -287,12 +288,19 @@ class AircraftTests(unittest.TestCase):
                 self.assertEqual(altitude_field(), "050")
 
     def test_sample_aircraft_are_constructed_with_valid_speeds(self):
-        with patch("radar.RadarDisplay") as display, patch("arcade.run") as run:
-            runpy.run_path("main.py", run_name="__main__")
-        aircraft = display.call_args.args[0].aircraft_list
+        aircraft_list, _, _ = create_yuma_scenario()
+        aircraft = aircraft_list.aircraft_list
         self.assertEqual([item.speed for item in aircraft[:3]], [120, 600, 110])
         self.assertEqual([item.altitude for item in aircraft[:3]], [50, 40, 55])
-        display.return_value.setup.assert_called_once()
+
+    def test_voice_option_enables_voice_on_startup(self):
+        with (
+            patch("sys.argv", ["main.py", "--voice"]),
+            patch("simulator.app.application.ApplicationWindow") as display,
+            patch("arcade.run") as run,
+        ):
+            runpy.run_path("main.py", run_name="__main__")
+        display.return_value.enable_voice.assert_called_once()
         run.assert_called_once()
 
     def test_new_models_support_flight_and_maneuvers(self):
@@ -333,9 +341,7 @@ class AircraftTests(unittest.TestCase):
                 self.assertLess(aircraft.speed, model.cruise_speed)
 
     def test_startup_traffic_is_within_radar_coverage(self):
-        with patch("radar.RadarDisplay") as display, patch("arcade.run"):
-            runpy.run_path("main.py", run_name="__main__")
-        aircraft_list, facility = display.call_args.args
+        aircraft_list, facility, _ = create_yuma_scenario()
         aircraft = aircraft_list.aircraft_list
         self.assertEqual(
             {item.id for item in aircraft},
@@ -357,8 +363,8 @@ class AircraftTests(unittest.TestCase):
         for item in aircraft:
             with self.subTest(callsign=item.callsign):
                 distance = NavigationalCoordinateSystem.calculate_distance(
-                    facility.location["lat"],
-                    facility.location["lon"],
+                    facility.location.latitude,
+                    facility.location.longitude,
                     item.lat,
                     item.lon,
                 )

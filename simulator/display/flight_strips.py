@@ -2,8 +2,8 @@ from functools import cache
 
 import arcade
 
-from constants import SCREEN_HEIGHT, SCREEN_WIDTH
-from flight_navigation import NavigationData
+from simulator.core.constants import SCREEN_HEIGHT, SCREEN_WIDTH
+from simulator.navigation.flight_navigation import NavigationData
 
 PANEL_WIDTH = 440
 STRIP_HEIGHT = 76

@@ -102,6 +102,8 @@ class Aircraft:
         self.target_heading = None
         self.target_altitude = None
         self.target_speed = None
+        self.flight_guidance = None
+        self.departure = None
 
     @staticmethod
     def _validate_speed(speed, aircraft_model):
@@ -144,7 +146,32 @@ class Aircraft:
             raise ValueError("Elapsed time must be a non-negative finite number")
         if delta_time == 0:
             return
+        if self.departure is not None and self.departure.check_in is None:
+            if self.landed:
+                return
+            if self.flight_guidance is None:
+                raise RuntimeError("A departing aircraft requires flight guidance")
+            remaining = delta_time
+            while remaining > 0 and not self.landed:
+                step = min(remaining, 1.0)
+                airborne_time = self.departure.advance(self, step)
+                if airborne_time:
+                    self.flight_guidance.update(self, airborne_time)
+                    self.departure.record_airborne(self, airborne_time)
+                remaining -= step
+                if self.departure.check_in is not None:
+                    if remaining > 0:
+                        self.flight_guidance.update(self, remaining)
+                    return
+            return
+        if self.flight_guidance is not None:
+            if not self.landed:
+                self.flight_guidance.update(self, delta_time)
+            return
 
+        self._advance_position(delta_time)
+
+    def _advance_position(self, delta_time):
         average_heading = self.heading
         if self.target_heading is not None:
             difference = (self.target_heading - self.heading + 360) % 360

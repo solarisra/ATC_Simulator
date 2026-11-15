@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from enum import StrEnum
 
 SIMULATED_HANDOFF_DELAY_SECONDS = 3.0
@@ -9,23 +10,50 @@ class TrackingPosition(StrEnum):
     ALBUQUERQUE = "A"
 
 
+class CoordinationKind(StrEnum):
+    POINT_OUT = "POINT OUT"
+    TRAFFIC = "TRAFFIC"
+
+
+@dataclass
+class Coordination:
+    kind: CoordinationKind
+    source: TrackingPosition
+    target: TrackingPosition
+    information: str
+    approved: bool = False
+    elapsed: float = 0.0
+
+
 class TrackOwnership:
     def __init__(self):
         self.owner = TrackingPosition.YUMA
+        self.communications_owner = TrackingPosition.YUMA
         self.handoff_target = None
         self.handoff_elapsed = 0.0
+        self.handoff_information = ""
+        self.identification_confirmation_due = False
+        self.coordination = None
+        self.coordination_history = []
 
-    def offer(self, target):
+    def offer(self, target, information=""):
         if not isinstance(target, TrackingPosition):
             raise TypeError("Invalid tracking position")
         if self.handoff_target is not None:
             raise ValueError("A handoff is already pending")
+        if self.communications_owner != self.owner:
+            raise ValueError("Complete the communications transfer first")
+        if self.identification_confirmation_due:
+            raise ValueError("Confirm incoming identification first")
+        if self.coordination is not None and not self.coordination.approved:
+            raise ValueError("Coordination is already pending")
         if target == self.owner or (
             self.owner != TrackingPosition.YUMA and target != TrackingPosition.YUMA
         ):
             raise ValueError("Handoffs must be between Yuma and a neighboring center")
         self.handoff_target = target
         self.handoff_elapsed = 0.0
+        self.handoff_information = information
 
     def accept(self, position):
         if (
@@ -34,15 +62,69 @@ class TrackOwnership:
             or position != self.handoff_target
         ):
             raise ValueError("No handoff is pending for this position")
+        incoming = position == TrackingPosition.YUMA
         self.owner = position
         self.handoff_target = None
         self.handoff_elapsed = 0.0
+        self.identification_confirmation_due = incoming
 
     def cancel(self):
         if self.handoff_target is None:
             raise ValueError("No handoff is pending")
         self.handoff_target = None
         self.handoff_elapsed = 0.0
+        self.handoff_information = ""
+
+    def transfer_communications(self):
+        if self.handoff_target is not None or self.owner == self.communications_owner:
+            raise ValueError("No accepted handoff awaiting communications transfer")
+        self.communications_owner = self.owner
+
+    def confirm_identification(self):
+        if not self.identification_confirmation_due:
+            raise ValueError("No incoming identification confirmation due")
+        self.identification_confirmation_due = False
+
+    def offer_coordination(self, kind, target, information):
+        if not isinstance(kind, CoordinationKind) or not isinstance(
+            target, TrackingPosition
+        ):
+            raise TypeError("Invalid coordination kind or position")
+        if not information.strip():
+            raise ValueError("Enter coordination information")
+        if kind == CoordinationKind.TRAFFIC and information.strip().upper() == "NONE":
+            raise ValueError("Traffic coordination requires restrictions")
+        if self.coordination is not None:
+            raise ValueError("Close the existing coordination first")
+        if self.handoff_target is not None:
+            raise ValueError("A handoff is already pending")
+        if target == self.owner or (
+            self.owner != TrackingPosition.YUMA and target != TrackingPosition.YUMA
+        ):
+            raise ValueError("Coordinate between Yuma and a neighboring center")
+        self.coordination = Coordination(kind, self.owner, target, information.strip())
+
+    def accept_coordination(self, position):
+        item = self.coordination
+        if item is None or item.approved or position != item.target:
+            raise ValueError("No coordination is pending for this position")
+        item.approved = True
+
+    def close_coordination(self):
+        if self.coordination is None:
+            raise ValueError("No coordination to close")
+        self.coordination_history.append(self.coordination)
+        self.coordination = None
+
+    def advance_coordination(self, delta_time):
+        item = self.coordination
+        if item is None or item.approved or item.source != TrackingPosition.YUMA:
+            return False
+        item.elapsed += delta_time
+        if item.elapsed < SIMULATED_HANDOFF_DELAY_SECONDS:
+            return False
+        self.accept_coordination(item.target)
+        return True
 
     def advance(self, delta_time):
         if self.owner != TrackingPosition.YUMA or self.handoff_target is None:
@@ -59,11 +141,30 @@ class ATCFacility:
     Represents an ATC (Air Traffic Control) facility.
     """
 
-    def __init__(self, name, location, facilities=None):
+    def __init__(
+        self,
+        name,
+        location,
+        facilities=None,
+        airport_code=None,
+        upper_control_flight_level=None,
+        upper_control_center=None,
+    ):
         self.name = name
         self.location = location
+        self.airport_code = airport_code
+        self.upper_control_flight_level = upper_control_flight_level
+        self.upper_control_center = upper_control_center
+        self.active_runways: tuple[str, ...] = ()
+        self.helicopter_pads: tuple[str, ...] = ()
         self.facilities = facilities if facilities is not None else []
         self.aircraft_list = []
+
+    def above_control_limit(self, altitude):
+        return (
+            self.upper_control_flight_level is not None
+            and altitude > self.upper_control_flight_level
+        )
 
     def add_aircraft(self, aircraft):
         """
@@ -91,7 +192,13 @@ class ATCFacility:
         Get an ATC facility by its name.
         """
         facilities = {
-            "KNYL": ATCFacility("MCAS Yuma", {"lat": 32.6566, "lon": -114.6056}),
+            "KNYL": ATCFacility(
+                "MCAS Yuma",
+                {"lat": 32.6566, "lon": -114.6056},
+                airport_code="KNYL",
+                upper_control_flight_level=230,
+                upper_control_center=TrackingPosition.LOS_ANGELES,
+            ),
             # Add more facilities as needed
         }
         return facilities.get(name)
@@ -181,6 +288,12 @@ class FlightStrip:
         self.flight_id = flight_id
         self.aircraft = aircraft
         self.flight_plan = flight_plan
+        self.active = True
+        self.beacon_code = aircraft.squawk
+        self.operation_area = ""
+        self.assigned_altitude = ""
+        self.fix_time = ""
+        self.remarks = ""
 
 
 class FlightPlan:

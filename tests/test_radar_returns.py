@@ -6,7 +6,7 @@ from unittest.mock import Mock, patch
 
 import arcade
 
-from atc import TrackingPosition, TrackOwnership
+from atc import ATCFacility, TrackingPosition, TrackOwnership
 from constants import DISPLAY_RADIUS, FULL_ROTATION_TIME_SECONDS
 from radar import (
     RadarDisplay,
@@ -15,6 +15,55 @@ from radar import (
     RadarViewport,
     leader_line_end,
 )
+
+
+def enter_coordination(display, text="NONE"):
+    for character in text.lower():
+        RadarDisplay.on_key_press(display, ord(character), 0)
+    RadarDisplay.on_key_press(display, arcade.key.ENTER, 0)
+    RadarDisplay.on_key_press(display, arcade.key.Y, 0)
+
+
+def coordination_display(owner=TrackingPosition.YUMA):
+    track = TrackOwnership()
+    track.owner = owner
+    track.communications_owner = owner
+    aircraft = SimpleNamespace(
+        id="A1",
+        lat=32,
+        lon=-114,
+        callsign="TEST",
+        squawk="1200",
+        heading=90,
+        altitude=50,
+        speed=100,
+        scratchpad="",
+        aircraft_model=SimpleNamespace(aircraft_type="C172"),
+        track=track,
+        landed=False,
+        update_position=lambda delta_time: None,
+    )
+    display = Mock(
+        aircraft_list=SimpleNamespace(aircraft_list=[aircraft]),
+        atc_facility=ATCFacility.get_atc_facility_by_name("KNYL"),
+        secondary_radar_returns=[],
+        selected_aircraft_id="A1",
+        scratchpad_edit_id=None,
+        handoff_choice_id=None,
+        handoff_message="",
+        sweep=RadarSweep(),
+        radar_return_manager=RadarReturnManager(),
+        display_type=RadarDisplay.STARS,
+        ARTS_IIE=RadarDisplay.ARTS_IIE,
+        secondary_update_elapsed=0,
+        emergency_flash_elapsed=0,
+        calculate_range_and_bearing=lambda lat, lon: (10, 0),
+    )
+    display.capture_secondary_radar_returns = lambda: (
+        RadarDisplay.capture_secondary_radar_returns(display)
+    )
+    display.capture_secondary_radar_returns()
+    return display, aircraft
 
 
 class RadarSweepTests(unittest.TestCase):
@@ -133,13 +182,15 @@ class SecondaryRadarTests(unittest.TestCase):
             altitude=50,
             aircraft_model=SimpleNamespace(aircraft_type="C172"),
             speed=120,
-            landed=True,
+            landed=False,
+            update_position=lambda delta_time: None,
             distance=0,
             scratchpad="",
             track=TrackOwnership(),
         )
         display = SimpleNamespace(
             aircraft_list=SimpleNamespace(aircraft_list=[aircraft]),
+            atc_facility=ATCFacility("Test", {"lat": 0, "lon": 0}),
             sweep=RadarSweep(),
             radar_return_manager=RadarReturnManager(),
             display_type=RadarDisplay.ARTS_IIE,
@@ -178,6 +229,7 @@ class SecondaryRadarTests(unittest.TestCase):
                 heading=90,
                 altitude=altitude,
                 speed=100,
+                landed=False,
                 scratchpad="",
                 track=TrackOwnership(),
                 aircraft_model=SimpleNamespace(aircraft_type="C172"),
@@ -212,6 +264,7 @@ class SecondaryRadarTests(unittest.TestCase):
             altitude=50,
             aircraft_model=SimpleNamespace(aircraft_type="C172"),
             speed=120,
+            landed=False,
             scratchpad="",
             track=TrackOwnership(),
         )
@@ -347,6 +400,7 @@ class SecondaryRadarTests(unittest.TestCase):
                 heading=90,
                 altitude=50,
                 speed=100,
+                landed=False,
                 scratchpad="",
                 track=TrackOwnership(),
                 aircraft_model=SimpleNamespace(aircraft_type="C172"),
@@ -412,10 +466,12 @@ class SecondaryRadarTests(unittest.TestCase):
             scratchpad="KEEP",
             aircraft_model=SimpleNamespace(aircraft_type="C172"),
             track=TrackOwnership(),
-            landed=True,
+            landed=False,
+            update_position=lambda delta_time: None,
         )
         display = Mock(
             aircraft_list=SimpleNamespace(aircraft_list=[aircraft]),
+            atc_facility=ATCFacility.get_atc_facility_by_name("KNYL"),
             secondary_radar_returns=[],
             selected_aircraft_id="A1",
             scratchpad_edit_id=None,
@@ -435,6 +491,10 @@ class SecondaryRadarTests(unittest.TestCase):
         display.capture_secondary_radar_returns()
         RadarDisplay.on_key_press(display, arcade.key.H, 0)
         RadarDisplay.on_key_press(display, arcade.key.L, 0)
+        RadarDisplay.on_key_press(display, arcade.key.ENTER, 0)
+        self.assertIn("ENTER INFORMATION", display.handoff_message)
+        self.assertIsNone(aircraft.track.handoff_target)
+        enter_coordination(display)
         snapshot = display.secondary_radar_returns[0]
         self.assertEqual((snapshot.tracking_owner, snapshot.handoff_target), ("Y", "L"))
         self.assertIn(
@@ -442,39 +502,225 @@ class SecondaryRadarTests(unittest.TestCase):
         )
         RadarDisplay.on_key_press(display, arcade.key.A, 0)
         self.assertEqual(aircraft.track.owner, TrackingPosition.YUMA)
-        self.assertIn("NO HANDOFF", display.handoff_message)
+        self.assertIn("NO INCOMING", display.handoff_message)
         RadarDisplay.on_update(display, 2.9)
         self.assertEqual(aircraft.track.owner, TrackingPosition.YUMA)
         RadarDisplay.on_update(display, 0.1)
         self.assertEqual(aircraft.track.owner, TrackingPosition.LOS_ANGELES)
         self.assertEqual(display.secondary_radar_returns[0].tracking_owner, "L")
         self.assertEqual(display.secondary_radar_returns[0].scratchpad, "KEEP")
-        self.assertIn("ACCEPTED", display.handoff_message)
+        self.assertIn("RADAR CONTACT", display.handoff_message)
+        self.assertEqual(aircraft.track.communications_owner, TrackingPosition.YUMA)
+        RadarDisplay.on_key_press(display, arcade.key.C, 0)
+        RadarDisplay.on_key_press(display, arcade.key.Y, 0)
+        self.assertEqual(
+            aircraft.track.communications_owner, TrackingPosition.LOS_ANGELES
+        )
 
         RadarDisplay.on_key_press(display, arcade.key.I, 0)
+        enter_coordination(display)
         self.assertEqual(display.secondary_radar_returns[0].handoff_target, "Y")
         RadarDisplay.on_update(display, 5)
         self.assertEqual(aircraft.track.owner, TrackingPosition.LOS_ANGELES)
         RadarDisplay.on_key_press(display, arcade.key.X, 0)
         self.assertIsNone(display.secondary_radar_returns[0].handoff_target)
         RadarDisplay.on_key_press(display, arcade.key.I, 0)
+        enter_coordination(display)
         RadarDisplay.on_key_press(display, arcade.key.A, 0)
+        self.assertEqual(aircraft.track.owner, TrackingPosition.LOS_ANGELES)
+        RadarDisplay.on_key_press(display, arcade.key.Y, 0)
         self.assertEqual(display.secondary_radar_returns[0].tracking_owner, "Y")
         self.assertIsNone(display.secondary_radar_returns[0].handoff_target)
+        self.assertTrue(aircraft.track.identification_confirmation_due)
+        self.assertEqual(
+            aircraft.track.communications_owner, TrackingPosition.LOS_ANGELES
+        )
+        RadarDisplay.on_key_press(display, arcade.key.C, 0)
+        RadarDisplay.on_key_press(display, arcade.key.Y, 0)
+        RadarDisplay.on_key_press(display, arcade.key.V, 0)
+        self.assertFalse(aircraft.track.identification_confirmation_due)
 
         RadarDisplay.on_key_press(display, arcade.key.H, 0)
         RadarDisplay.on_key_press(display, arcade.key.A, 0)
+        enter_coordination(display)
         self.assertEqual(display.secondary_radar_returns[0].handoff_target, "A")
         RadarDisplay.on_key_press(display, arcade.key.X, 0)
         self.assertEqual(aircraft.track.owner, TrackingPosition.YUMA)
         self.assertIsNone(display.secondary_radar_returns[0].handoff_target)
         RadarDisplay.on_key_press(display, arcade.key.H, 0)
         RadarDisplay.on_key_press(display, arcade.key.A, 0)
+        enter_coordination(display)
         RadarDisplay.on_update(display, 3)
         self.assertEqual(display.secondary_radar_returns[0].tracking_owner, "A")
+        RadarDisplay.on_key_press(display, arcade.key.C, 0)
+        RadarDisplay.on_key_press(display, arcade.key.Y, 0)
         RadarDisplay.on_key_press(display, arcade.key.I, 0)
+        enter_coordination(display)
         RadarDisplay.on_key_press(display, arcade.key.A, 0)
+        RadarDisplay.on_key_press(display, arcade.key.Y, 0)
         self.assertEqual(display.secondary_radar_returns[0].tracking_owner, "Y")
+
+    def test_yuma_upper_limit_requires_manual_la_handoff(self):
+        aircraft = SimpleNamespace(
+            id="A1",
+            lat=32,
+            lon=-114,
+            callsign="TEST",
+            squawk="1200",
+            heading=90,
+            altitude=230,
+            speed=100,
+            scratchpad="",
+            aircraft_model=SimpleNamespace(aircraft_type="C172"),
+            track=TrackOwnership(),
+            landed=True,
+        )
+        display = Mock(
+            aircraft_list=SimpleNamespace(aircraft_list=[aircraft]),
+            atc_facility=ATCFacility.get_atc_facility_by_name("KNYL"),
+            secondary_radar_returns=[],
+            selected_aircraft_id="A1",
+            scratchpad_edit_id=None,
+            handoff_choice_id=None,
+            handoff_message="",
+            sweep=RadarSweep(),
+            radar_return_manager=RadarReturnManager(),
+            display_type=RadarDisplay.STARS,
+            ARTS_IIE=RadarDisplay.ARTS_IIE,
+            secondary_update_elapsed=0,
+            emergency_flash_elapsed=0,
+            calculate_range_and_bearing=lambda lat, lon: (10, 0),
+        )
+        display.capture_secondary_radar_returns = lambda: (
+            RadarDisplay.capture_secondary_radar_returns(display)
+        )
+        display.capture_secondary_radar_returns()
+        self.assertEqual(RadarDisplay.control_limit_warning(display), "")
+        RadarDisplay.on_key_press(display, arcade.key.H, 0)
+        RadarDisplay.on_key_press(display, arcade.key.A, 0)
+        enter_coordination(display)
+        self.assertEqual(aircraft.track.handoff_target, TrackingPosition.ALBUQUERQUE)
+
+        aircraft.landed = False
+        aircraft.update_position = lambda delta: setattr(aircraft, "altitude", 230.01)
+        RadarDisplay.on_update(display, 3)
+        aircraft.landed = True
+        self.assertEqual(aircraft.altitude, 230.01)
+        self.assertEqual(aircraft.track.owner, TrackingPosition.YUMA)
+        self.assertIsNone(aircraft.track.handoff_target)
+        self.assertIsNone(display.secondary_radar_returns[0].handoff_target)
+        self.assertIn("HANDOFF TO L REQUIRED", display.handoff_message)
+        self.assertIn("TEST", RadarDisplay.control_limit_warning(display))
+        RadarDisplay.on_key_press(display, arcade.key.H, 0)
+        RadarDisplay.on_key_press(display, arcade.key.A, 0)
+        self.assertIsNone(aircraft.track.handoff_target)
+        self.assertIn("HANDOFF TO L REQUIRED", display.handoff_message)
+
+        RadarDisplay.on_key_press(display, arcade.key.H, 0)
+        RadarDisplay.on_key_press(display, arcade.key.L, 0)
+        enter_coordination(display)
+        RadarDisplay.on_update(display, 2.9)
+        self.assertIn("TEST", RadarDisplay.control_limit_warning(display))
+        RadarDisplay.on_update(display, 0.1)
+        self.assertEqual(aircraft.track.owner, TrackingPosition.LOS_ANGELES)
+        self.assertEqual(RadarDisplay.control_limit_warning(display), "")
+        RadarDisplay.on_key_press(display, arcade.key.C, 0)
+        RadarDisplay.on_key_press(display, arcade.key.Y, 0)
+        RadarDisplay.on_key_press(display, arcade.key.I, 0)
+        self.assertIsNone(aircraft.track.handoff_target)
+        self.assertIn("YUMA CANNOT ACCEPT", display.handoff_message)
+
+        aircraft.altitude = 230
+        RadarDisplay.on_key_press(display, arcade.key.I, 0)
+        enter_coordination(display)
+        self.assertEqual(aircraft.track.handoff_target, TrackingPosition.YUMA)
+        aircraft.altitude = 231
+        RadarDisplay.on_key_press(display, arcade.key.A, 0)
+        self.assertEqual(aircraft.track.owner, TrackingPosition.LOS_ANGELES)
+        self.assertIn("YUMA CANNOT ACCEPT", display.handoff_message)
+        aircraft.altitude = 230
+        RadarDisplay.on_key_press(display, arcade.key.A, 0)
+        aircraft.altitude = 231
+        RadarDisplay.on_key_press(display, arcade.key.Y, 0)
+        self.assertEqual(aircraft.track.owner, TrackingPosition.LOS_ANGELES)
+        self.assertIn("YUMA CANNOT ACCEPT", display.handoff_message)
+        aircraft.altitude = 230
+        RadarDisplay.on_key_press(display, arcade.key.Y, 0)
+        self.assertEqual(aircraft.track.owner, TrackingPosition.YUMA)
+
+    def test_control_limit_warning_includes_all_overdue_tracks(self):
+        aircraft = [
+            SimpleNamespace(callsign=name, altitude=altitude, track=TrackOwnership())
+            for name, altitude in (("ONE", 231), ("TWO", 240), ("LEVEL", 230))
+        ]
+        display = SimpleNamespace(
+            aircraft_list=SimpleNamespace(aircraft_list=aircraft),
+            atc_facility=ATCFacility.get_atc_facility_by_name("KNYL"),
+        )
+        warning = RadarDisplay.control_limit_warning(display)
+        self.assertIn("ONE", warning)
+        self.assertIn("TWO", warning)
+        self.assertNotIn("LEVEL", warning)
+
+    def test_outgoing_point_out_and_traffic_coordination(self):
+        display, aircraft = coordination_display()
+        RadarDisplay.on_key_press(display, arcade.key.P, 0)
+        RadarDisplay.on_key_press(display, arcade.key.L, 0)
+        enter_coordination(display, "MAINTAIN 5000")
+        point_out = aircraft.track.coordination
+        self.assertEqual(point_out.information, "MAINTAIN 5000")
+        self.assertFalse(point_out.approved)
+        RadarDisplay.on_update(display, 3)
+        self.assertTrue(point_out.approved)
+        self.assertEqual(aircraft.track.owner, TrackingPosition.YUMA)
+        self.assertEqual(aircraft.track.communications_owner, TrackingPosition.YUMA)
+        RadarDisplay.on_key_press(display, arcade.key.D, 0)
+        self.assertIsNone(aircraft.track.coordination)
+        self.assertIs(aircraft.track.coordination_history[-1], point_out)
+
+        RadarDisplay.on_key_press(display, arcade.key.T, 0)
+        RadarDisplay.on_key_press(display, arcade.key.A, 0)
+        for key in "none":
+            RadarDisplay.on_key_press(display, ord(key), 0)
+        RadarDisplay.on_key_press(display, arcade.key.ENTER, 0)
+        self.assertIn("REQUIRES RESTRICTIONS", display.handoff_message)
+        self.assertIsNone(aircraft.track.coordination)
+        for _ in range(4):
+            RadarDisplay.on_key_press(display, arcade.key.BACKSPACE, 0)
+        enter_coordination(display, "ABC MAINTAIN 5000")
+        traffic = aircraft.track.coordination
+        RadarDisplay.on_update(display, 3)
+        self.assertTrue(traffic.approved)
+        self.assertIn("TRAFFIC OBSERVED", display.handoff_message)
+        self.assertEqual(aircraft.track.owner, TrackingPosition.YUMA)
+        self.assertEqual(aircraft.track.communications_owner, TrackingPosition.YUMA)
+
+    def test_incoming_point_out_and_traffic_need_acknowledgment(self):
+        display, aircraft = coordination_display(TrackingPosition.LOS_ANGELES)
+        RadarDisplay.on_key_press(display, arcade.key.P, 0)
+        enter_coordination(display, "MAINTAIN 6000")
+        RadarDisplay.on_update(display, 10)
+        self.assertFalse(aircraft.track.coordination.approved)
+        RadarDisplay.on_key_press(display, arcade.key.A, 0)
+        self.assertFalse(aircraft.track.coordination.approved)
+        RadarDisplay.on_key_press(display, arcade.key.Y, 0)
+        self.assertTrue(aircraft.track.coordination.approved)
+        self.assertEqual(aircraft.track.owner, TrackingPosition.LOS_ANGELES)
+        self.assertEqual(
+            aircraft.track.communications_owner, TrackingPosition.LOS_ANGELES
+        )
+        RadarDisplay.on_key_press(display, arcade.key.D, 0)
+        RadarDisplay.on_key_press(display, arcade.key.T, 0)
+        enter_coordination(display, "ABC MAINTAIN 6000")
+        RadarDisplay.on_key_press(display, arcade.key.X, 0)
+        self.assertIsNone(aircraft.track.coordination)
+        self.assertFalse(aircraft.track.coordination_history[-1].approved)
+        RadarDisplay.on_key_press(display, arcade.key.T, 0)
+        enter_coordination(display, "ABC MAINTAIN 6000")
+        RadarDisplay.on_key_press(display, arcade.key.A, 0)
+        RadarDisplay.on_key_press(display, arcade.key.Y, 0)
+        self.assertTrue(aircraft.track.coordination.approved)
+        self.assertEqual(display.handoff_message, "TRAFFIC OBSERVED")
 
     def test_selected_aircraft_details_show_extra_data(self):
         snapshot = SimpleNamespace(
@@ -491,10 +737,14 @@ class SecondaryRadarTests(unittest.TestCase):
         text = unittest.mock.Mock()
         text.text = ""
         display = SimpleNamespace(
+            aircraft_list=SimpleNamespace(
+                aircraft_list=[SimpleNamespace(id="A1", track=TrackOwnership())]
+            ),
             selected_aircraft_id="A1",
             secondary_radar_returns=[snapshot],
             scratchpad_edit_id=None,
             handoff_choice_id=None,
+            coordination_draft=None,
             handoff_message="",
             calculate_range_and_bearing=lambda lat, lon: (15.5, 0),
             selected_details_text=text,
@@ -502,12 +752,22 @@ class SecondaryRadarTests(unittest.TestCase):
         RadarDisplay.draw_selected_aircraft_details(display)
         self.assertEqual(
             text.text,
-            "SELECTED TEST\nHDG 090\nSQK 1200\nSPD 125 KT\nRNG 15.5 NM\nTRACK Y",
+            "SELECTED TEST\nHDG 090\nSQK 1200\nSPD 125 KT\nRNG 15.5 NM\nTRACK Y\nCOMMS Y",
         )
         text.draw.assert_called_once()
         display.selected_aircraft_id = None
         RadarDisplay.draw_selected_aircraft_details(display)
         text.draw.assert_called_once()
+
+    def test_coordination_position_uses_local_airport_identifier(self):
+        display, _ = coordination_display()
+        display.coordination_draft = SimpleNamespace(
+            aircraft_id="A1", stage="offer", kind="HANDOFF", target="L", text="NONE"
+        )
+        display.selected_details_text = Mock()
+        RadarDisplay.draw_selected_aircraft_details(display)
+        self.assertIn("10.0 NM FROM NYL", display.selected_details_text.text)
+        self.assertNotIn("KNYL", display.selected_details_text.text)
 
     def test_leader_lines_remain_visible_for_wide_blocks_in_all_directions(self):
         snapshot = SimpleNamespace(
@@ -634,6 +894,7 @@ class SecondaryRadarTests(unittest.TestCase):
                 altitude=50,
                 aircraft_model=SimpleNamespace(aircraft_type="C172"),
                 speed=120,
+                landed=False,
                 scratchpad="",
                 track=TrackOwnership(),
             )
@@ -748,6 +1009,7 @@ class SecondaryRadarTests(unittest.TestCase):
                 altitude=50,
                 aircraft_model=SimpleNamespace(aircraft_type="C172"),
                 speed=120,
+                landed=False,
                 scratchpad="",
                 track=TrackOwnership(),
             )

@@ -73,8 +73,10 @@ class AircraftTests(unittest.TestCase):
         self.assertEqual(track.owner, TrackingPosition.YUMA)
         self.assertTrue(track.advance(0.1))
         self.assertEqual(track.owner, TrackingPosition.LOS_ANGELES)
+        self.assertEqual(track.communications_owner, TrackingPosition.YUMA)
         with self.assertRaises(ValueError):
             track.offer(TrackingPosition.ALBUQUERQUE)
+        track.transfer_communications()
         track.offer(TrackingPosition.YUMA)
         self.assertFalse(track.advance(10))
         self.assertEqual(track.owner, TrackingPosition.LOS_ANGELES)
@@ -82,6 +84,8 @@ class AircraftTests(unittest.TestCase):
             track.accept(TrackingPosition.ALBUQUERQUE)
         track.accept(TrackingPosition.YUMA)
         self.assertEqual(track.owner, TrackingPosition.YUMA)
+        track.transfer_communications()
+        track.confirm_identification()
 
         track.offer(TrackingPosition.ALBUQUERQUE)
         track.cancel()
@@ -216,6 +220,7 @@ class AircraftTests(unittest.TestCase):
         aircraft.decelerate(90)
         display = SimpleNamespace(
             aircraft_list=SimpleNamespace(aircraft_list=[aircraft]),
+            atc_facility=ATCFacility("Test", {"lat": 0, "lon": 0}),
             sweep=RadarSweep(),
             radar_return_manager=RadarReturnManager(),
             display_type="STARS",
@@ -243,6 +248,7 @@ class AircraftTests(unittest.TestCase):
                 aircraft = make_aircraft()
                 display = SimpleNamespace(
                     aircraft_list=SimpleNamespace(aircraft_list=[aircraft]),
+                    atc_facility=ATCFacility("Test", {"lat": 0, "lon": 0}),
                     sweep=RadarSweep(),
                     radar_return_manager=RadarReturnManager(),
                     display_type=mode,
@@ -284,8 +290,8 @@ class AircraftTests(unittest.TestCase):
         with patch("radar.RadarDisplay") as display, patch("arcade.run") as run:
             runpy.run_path("main.py", run_name="__main__")
         aircraft = display.call_args.args[0].aircraft_list
-        self.assertEqual([item.speed for item in aircraft[:3]], [120, 600, 160])
-        self.assertEqual([item.altitude for item in aircraft[:3]], [50, 40, 75])
+        self.assertEqual([item.speed for item in aircraft[:3]], [120, 600, 110])
+        self.assertEqual([item.altitude for item in aircraft[:3]], [50, 40, 55])
         display.return_value.setup.assert_called_once()
         run.assert_called_once()
 
@@ -336,14 +342,12 @@ class AircraftTests(unittest.TestCase):
             {
                 "A1",
                 "A3",
-                "A6",
                 "A7",
                 "A8",
                 "A9",
                 "A10",
                 "A11",
                 "A12",
-                "A14",
                 "A15",
                 "A16",
             },

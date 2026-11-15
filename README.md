@@ -35,20 +35,171 @@ Click an aircraft or its data block to select it. Use the numeric keypad
 directions to position the selected aircraft's data block. The STARS-style
 block shows the callsign, altitude in hundreds of feet with speed in tens of
 knots, aircraft type, and scratchpad on four lines in both display modes. The selected
-aircraft's heading, squawk, exact speed and range appear at the right. This
-is a simplified full data block; flight-plan fields are not simulated.
+aircraft's heading, squawk, exact speed and range appear at the right of the
+radar. This is a simplified full data block.
+
+The right-hand flight progress strip panel lists active scenario plans. Scroll
+over the panel to see additional strips; clicking a strip selects its radar
+track, and selecting a radar track also highlights its visible strip. Drag a
+strip above or below another to reorder it; use the wheel while dragging to
+reach other strips. Release outside a strip or press Escape to cancel.
+Hover over a field for its purpose and the simulator's simplified annotations.
+With a strip selected, press `1` for assigned altitude in feet, `2` for a
+fix/time annotation, `3` for clearance/control remarks, `4` for its beacon
+code, or `5` for its runway/pad. Type letters, digits, spaces, hyphens, slashes or periods; Backspace
+edits, Enter saves, and Escape cancels. Beacon codes must be four octal digits
+(`0`-`7`). An empty field clears the annotation. Clicking elsewhere cancels
+an edit. The strip code starts as the aircraft's beacon code, but subsequent
+edits change only the strip, not the simulated radar return. Annotations and
+strip ordering are in memory only, do not change the filed plan, and do not
+command aircraft. A simulated landing deactivates the strip and removes the
+secondary radar return; existing ARTS primary traces fade normally. This does
+not represent actual flight-plan closure.
+
+The startup scenario has ten fictional plans: three IFR and one VFR
+overflight, three arrivals and three departures. Flight type is inferred from
+the plan endpoints relative to KNYL, not actual aircraft position or phase.
+Across startups, 80% of scenarios use only primary non-medical civilian
+airports (SAN, LAX and PHX), 15% have one occasional airport (LAS or ABQ),
+and 5% have one rare airport (SFO, PDX, SEA, ONT, SNA or DEN). In the latter
+two cases, other civilian choices remain primary. The airport is assigned to
+a flight suitable for its aircraft range and overflight corridor. The local
+medical helicopter is an exception. No additional traffic is generated during
+a session.
+The three KNYL departures begin stationary at field elevation and automatically
+begin takeoff after 30, 60, and 90 seconds, without a controller takeoff command. Their
+strips remain active while they wait. A simulated pilot check-in to Yuma
+Departure appears on the scope 15 seconds after liftoff; the most recent three
+check-ins remain visible. This assumes one person staffs approach, departure
+and enroute. Ground positions and runway headings are approximate, with no
+taxi, runway conflict, tower coordination, or voice simulation.
+The startup tracks and route legs are kept north of the U.S.–Mexico border
+using the included state boundary data; this is not a general border-monitoring
+or airspace-avoidance system.
+The aircraft and plan definitions are in `sample_data.py`; `sample_scenario.py`
+constructs the scenario. Additional inactive aircraft remain in the data file.
+Inactive local training and search examples use BZA as a placeholder route and
+retain their mission descriptions as strip remarks; they do not simulate
+restricted-area training or search operations.
+Routes use three- to five-character alphanumeric identifiers for airports,
+navaids, fixes and Victor airways, or `DCT` for a direct leg. VFR samples use
+airport identifiers and navigation fixes without implying a landing at each
+airport. For example, KIPL is an airport, while BZA and IPL are
+different VORTACs; KIPL and IPL are not interchangeable. The samples do not
+assert that these are charted visual reporting points.
+Strips omit the leading K from U.S. airport identifiers for display only; the
+underlying plans retain it. Consequently, an airport and a navaid can have
+the same displayed identifier, such as KIPL and the IPL VORTAC.
+The selected-strip route includes the destination airport after the listed
+enroute fixes, matching the route followed by the aircraft.
+
+The simulator assumes these plans are cleared and guides each aircraft from
+its nearest remaining route leg through the listed fixes toward the destination.
+Airway segments are expanded using the local navigation CSVs, and unsupported
+or disconnected routes raise an error instead of silently flying direct.
+Guidance uses aircraft turn and climb rates, flies toward the filed altitude,
+and retains the current speed until the simplified landing phase. It then
+descends and slows for an automatic landing at destination field elevation.
+IFR sample cruise altitudes use the odd/even convention for the overall
+magnetic direction of the flight. A flight has one filed cruise altitude;
+changes of direction along its route do not automatically change it. Local
+round-trip training has no single overall direction. ATC altitude exceptions
+and their required coordination are not simulated. See FAA Order 7110.65
+[4-5](documentation/ATC_7110.65BB/chapter_4/chap4_section_5.html).
+This is not a runway approach, terrain-avoidance system, or operational
+clearance. Route edits to the underlying plan are resolved again; strip
+annotations do not change the route.
+
+The Yuma scenario assumes 03L, 03R and 35 are active.
+Yuma-bound or departing military and commercial samples, including the
+Citation M2 and V-22, alternate between 03L/03R; small civilian fixed-wing
+samples use 35. Helicopter strips
+rotate through `P1`, `P2`, `P3` and `P5`, denoting the VTOL pads on the
+provided airport diagram; `PAD` means an unspecified pad. Pad 4 is excluded
+because the [FAA-derived Yuma listing](https://www.airnav.com/airport/KNYL)
+states that rotary-wing recovery there is unavailable. Overflights are not
+automatically assigned. Key `5` accepts an active runway, an included pad,
+`PAD`, or an empty field; it only changes the strip, not aircraft movement or
+clearance. The provided diagram depicts runway 17/35, while the online listing
+does not list it. This configuration is a simulator assumption, not current
+operational availability, and assignments are not suitability checks.
+
+The strip grid follows the terminal form in FAA Figure 2-3-4/5/6: the
+identity, type, beacon code and departure-specific requested altitude and
+airport occupy their corresponding fields. Field 10 shows the simulator's
+runway/pad annotation. Other unavailable operational fields remain blank or
+`--`. Routes, annotations and destinations use a
+simplified field 9; long entries are abbreviated there but shown in full in
+the selected-strip details below. Strip altitudes are in hundreds of feet;
+the editor and detailed view use feet. A plan originating at the facility,
+including a local round trip, is displayed as a departure; otherwise a plan
+ending there is an arrival, and other plans are overflights. This is not a
+determination of actual flight phase.
+
+These are simplified simulator strips, not operational FAA forms. Their
+fictional plans and annotations are not suitable for navigation or control.
+The sample routes are illustrative, not verified filings or operational
+clearances. Airway and procedure currency, terrain, equipment, and airspace
+availability are not checked. Times are not invented. Military examples include simulated arrivals and departures at
+El Centro (KNJK), North Island (KNZY), Miramar (KNKX), Camp Pendleton
+(KNFG), Fallon (KNFL), Luke (KLUF), and Yuma restricted areas. Plans do not
+represent actual restricted-area clearance or availability.
+Flight plan and control information guidance appears in FAA
+[2-2](documentation/ATC_7110.65BB/chapter_2/chap2_section_2.html), with strip
+guidance in [2-3](documentation/ATC_7110.65BB/chapter_2/chap2_section_3.html).
 
 The first line also shows simulated track ownership: `Y` for Yuma, `L` for
 Los Angeles Center, and `A` for Albuquerque Center. These are illustrative
 simulator identifiers, not verified operational position symbols. An offer
 appears as `Y>L`, `Y>A`, `L>Y`, or `A>Y`. All startup tracks belong to Yuma.
-For a selected Yuma-owned aircraft, press H and then L or A to offer a handoff;
-the simulated center accepts after three seconds. Press X to cancel a pending
-offer. To simulate an incoming offer for a center-owned aircraft, select it
-and press I, then A to accept or X to reject. Escape cancels the destination
-prompt. Handoffs are manual, with no geographic boundary checks or Mexican
-handoffs. The track ownership model does not simulate radio communications or
-the full operational transfer of control.
+For a selected Yuma-owned aircraft, press H and then L or A to offer a radar
+handoff. Enter pertinent coordination information and restrictions (or `NONE`
+if there are none), press Enter, review the target and coordination, and press
+Y to confirm. The simulated center accepts after three seconds. For a selected
+center-owned aircraft, press I and enter the simulated incoming information;
+press A, review the target and restrictions, and press Y to accept. X cancels
+or rejects a pending offer. Escape cancels a prompt.
+
+Radar identification and communications are separate in this simulation.
+After accepting a handoff, press C, review the coordination reminder, and press
+Y to record the communications transfer. Following an incoming handoff, V
+records the controller's confirmation of identification; the simulator cannot
+observe the code change, IDENT, standby squawk, or verbal exchange that may be
+required. Complete both steps before initiating another radar handoff.
+
+For a point-out, select the aircraft and press P; for traffic coordination,
+press T. A Yuma-owned track prompts for L or A; a center-owned track simulates
+an incoming request. Enter the pertinent information, review and confirm with
+Y. Traffic coordination requires a restriction, including the affected
+traffic where appropriate. Simulated centers respond after three seconds;
+for an incoming request, A then Y records approval or traffic observed, and X
+rejects it. D closes an approved coordination; its information remains in
+memory for the session. A point-out or traffic coordination does not transfer
+track or communications ownership. Only one such coordination can be open per
+aircraft at a time.
+
+These are simplified, controller-attested interactions informed by
+[5-4-3](documentation/ATC_7110.65BB/chapter_5/chap5_section_4.html#5-4-3),
+[5-4-4](documentation/ATC_7110.65BB/chapter_5/chap5_section_4.html#5-4-4),
+[5-4-5](documentation/ATC_7110.65BB/chapter_5/chap5_section_4.html#5-4-5),
+[5-4-6](documentation/ATC_7110.65BB/chapter_5/chap5_section_4.html#5-4-6),
+and [5-4-7](documentation/ATC_7110.65BB/chapter_5/chap5_section_4.html#5-4-7),
+not proof that coordination, identification, separation, or radio transfer
+actually occurred. The simulator does not verify conflicts or enforce entered
+restrictions, changes requiring receiving-controller approval, facility
+directives, AIT, or prearranged coordination. It has no geographic boundary
+checks or Mexican handoffs.
+
+The simulated Yuma control limit is FL230 inclusive; LA Center controls above
+it. Yuma-owned tracks above the limit produce a persistent warning until they
+descend to FL230 or are handed off. Offer the handoff manually to LA with H,
+then L; the simulated acceptance still takes three seconds. Above the limit,
+Yuma cannot accept incoming handoffs and outgoing handoffs must be to LA.
+An Albuquerque offer pending when the aircraft crosses the limit is canceled.
+Center-owned tracks do not automatically return to Yuma after descending.
+Aircraft are not prevented from climbing, and the simulator compares its
+altitude value in hundreds of feet directly with the flight level; it does not
+model pressure-altitude conversion or geographic airspace boundaries.
 
 The data blocks remain white rather than using unverified ownership colors.
 FAA Order 7110.65BB [5-14-4 and 5-14-5](documentation/ATC_7110.65BB/chapter_5/chap5_section_14.html)

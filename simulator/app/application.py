@@ -13,7 +13,6 @@ from datetime import UTC, datetime, timedelta
 import arcade
 
 from Locations.Yuma.Scenarios.generator import generate_yuma_scenario
-from Locations.Yuma.Scenarios.yuma import create_yuma_scenario
 from simulator.app.briefing import briefing_pages
 from simulator.app.menu_theme import system_theme
 from simulator.app.scenario_generator import (
@@ -119,11 +118,6 @@ LOCATIONS = (
     LocationChoice(
         "Yuma (KNYL)",
         "KNYL",
-        scenarios=(
-            ScenarioChoice(
-                "Load Yuma", lambda: create_yuma_scenario(), YUMA_ACTIVE_RADIOS
-            ),
-        ),
     ),
     LocationChoice(
         "Cascade Approach",
@@ -718,12 +712,13 @@ class ApplicationWindow(RadarDisplay):
             if self.selected_location is None:
                 return ("Select a location first",)
             scenarios = self.available_scenarios()
+            yuma = self.selected_location == LOCATIONS[0]
             return (
                 tuple(scenario.label for scenario in scenarios)
-                + (() if scenarios else ("No scenarios available",))
+                + (() if scenarios or yuma else ("No scenarios available",))
                 + (
-                    ("Generate Yuma...", "Save scenario...", "Load saved scenario...")
-                    if self.selected_location == LOCATIONS[0]
+                    ("Generate Yuma...", "Load saved scenario...", "Save scenario...")
+                    if yuma
                     else ()
                 )
                 + ("Retry failed maps",)
@@ -1115,12 +1110,12 @@ class ApplicationWindow(RadarDisplay):
                         self.selected_location == LOCATIONS[0]
                         and index == len(scenarios) + 1
                     ):
-                        self.open_saves("save")
+                        self.open_saves("load")
                     elif (
                         self.selected_location == LOCATIONS[0]
                         and index == len(scenarios) + 2
                     ):
-                        self.open_saves("load")
+                        self.open_saves("save")
                     elif self.gis_overlays is not None and index == len(entries) - 1:
                         self.retry_maps()
                 elif name == "options":

@@ -1,6 +1,6 @@
 """Shared validation and execution of simulated controller clearances."""
 
-from simulator.core.atc import TrackingPosition
+from simulator.core.atc import RadarControlState, TrackingPosition
 
 
 def is_airborne(aircraft):
@@ -11,9 +11,9 @@ def is_airborne(aircraft):
 def clearance_control_error(aircraft, facility):
     if not is_airborne(aircraft):
         return "Aircraft is not airborne"
-    if (
+    if aircraft.track.communications_owner != TrackingPosition.YUMA or (
         aircraft.track.owner != TrackingPosition.YUMA
-        or aircraft.track.communications_owner != TrackingPosition.YUMA
+        and aircraft.track.radar_control_state != RadarControlState.HANDED_OFF
     ):
         return "Yuma must own track and communications"
     if aircraft.track.identification_confirmation_due:

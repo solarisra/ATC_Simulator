@@ -97,6 +97,12 @@ SPOKEN_DIGITS = (
     "eight",
     "niner",
 )
+INSTRUCTION_STARTS = {
+    "HEADING", "HITTING", "FLY", "TURN", "TURNED", "CLIMB", "CLIMBED",
+    "DESCEND", "MAINTAIN", "ALTITUDE", "DIRECT", "RESUME", "SQUAWK",
+    "IDENT", "IDENTITY", "IDENTICAL", "SAY", "REPORT", "TRAFFIC",
+    "RADAR", "CONTACT",
+}
 
 
 @dataclass(frozen=True)
@@ -175,7 +181,9 @@ def spoken_callsign(aircraft):
         spoken = callsign
     else:
         prefix, number, suffix = match.groups()
-        prefix = {"AAL": "American", "UAL": "United"}.get(prefix, prefix)
+        prefix = {"AAL": "American", "UAL": "United", "AMF": "Am Flight"}.get(
+            prefix, prefix
+        )
         if len(prefix) == 1:
             prefix = PHONETIC[prefix]
         digits = _spoken_digits(number)
@@ -219,39 +227,8 @@ def _contact_frequency(words: list[str]) -> str:
     return f"{integer}.{fraction.ljust(3, '0')}"
 
 
-def _bearing_instruction(words, facility):
-    if words[:2] != ["MAINTAIN", "BEARING"]:
-        return None
-    remainder = words[2:]
-    contact = remainder.index("CONTACT") if "CONTACT" in remainder else len(remainder)
-    bearing = remainder[:contact]
-    destination = next(
-        (
-            index
-            for index, word in enumerate(bearing)
-            if word in ("TO", "TWO", "2")
-            and index > 0
-            and index + 1 < len(bearing)
-            and bearing[index + 1] not in DIGITS
-            and bearing[index + 1] not in NUMBER_WORDS
-            and bearing[index + 1] not in ("HUNDRED", "THOUSAND", "AND")
-            and not bearing[index + 1].isdigit()
-        ),
-        None,
-    )
-    if destination is not None:
-        if any(
-            word in {"TURN", "CLIMB", "DESCEND", "MAINTAIN", "DIRECT", "RESUME"}
-            for word in bearing[destination + 1 :]
-        ):
-            raise ValueError("Invalid bearing destination")
-        bearing = bearing[:destination]
-    heading = _number(bearing)
-    if not 1 <= heading <= 360:
-        raise ValueError("Heading must be 001 to 360")
-    if contact == len(remainder):
-        return heading, None, None, None
-    contact_words = remainder[contact + 1 :]
+def _center_contact(words, facility):
+    contact_words = words[1:]
     if contact_words[:3] == ["LOS", "ANGELES", "CENTER"]:
         target, label, prefix = (
             TrackingPosition.LOS_ANGELES,
@@ -268,6 +245,8 @@ def _bearing_instruction(words, facility):
         frequency_words = contact_words[2:]
     else:
         raise ValueError("Say Los Angeles Center or Albuquerque Center")
+    if frequency_words[:1] == ["ON"]:
+        frequency_words = frequency_words[1:]
     frequency = _contact_frequency(frequency_words)
     matching = [
         channel.identifier
@@ -276,7 +255,50 @@ def _bearing_instruction(words, facility):
     ]
     if len(matching) > 1:
         raise ValueError("Center frequency matches multiple channels")
-    return heading, target, label, (frequency, matching[0] if matching else None)
+    return target, label, frequency, matching[0] if matching else None
+
+
+def _bearing_destination(bearing):
+    return next(
+        (
+            index
+            for index, word in enumerate(bearing)
+            if word in ("TO", "TWO", "2")
+            and index > 0
+            and index + 1 < len(bearing)
+            and bearing[index + 1] not in DIGITS
+            and bearing[index + 1] not in NUMBER_WORDS
+            and bearing[index + 1] not in ("HUNDRED", "THOUSAND", "AND")
+            and not bearing[index + 1].isdigit()
+        ),
+        None,
+    )
+
+
+def _bearing_instruction(words, facility):
+    if words[:2] != ["MAINTAIN", "BEARING"]:
+        return None
+    remainder = words[2:]
+    contact = remainder.index("CONTACT") if "CONTACT" in remainder else len(remainder)
+    bearing = remainder[:contact]
+    destination = _bearing_destination(bearing)
+    if destination is not None:
+        if any(
+            word
+            in {"TURN", "CLIMB", "ASCEND", "DESCEND", "MAINTAIN", "DIRECT", "RESUME"}
+            for word in bearing[destination + 1 :]
+        ):
+            raise ValueError("Invalid bearing destination")
+        bearing = bearing[:destination]
+    heading = _number(bearing)
+    if not 1 <= heading <= 360:
+        raise ValueError("Heading must be 001 to 360")
+    contact_instruction = (
+        _center_contact(remainder[contact:], facility)
+        if contact < len(remainder)
+        else None
+    )
+    return heading, contact_instruction
 
 
 def _address(words, aircraft_list):
@@ -284,10 +306,24 @@ def _address(words, aircraft_list):
     alternatives = [words]
     if words and re.fullmatch(r"DOUBLE(?:[0-9]+[A-Z]*)?", words[0]):
         alternatives.append(["DEVIL" + words[0][len("DOUBLE") :], *words[1:]])
-    for spoken, prefix in (("AMERICAN", "AAL"), ("UNITED", "UAL")):
+    if (
+        len(words) >= 2
+        and words[0] == "AM"
+        and re.fullmatch(r"FLIGHT(?:[0-9]+[A-Z]*)?", words[1])
+    ):
+        alternatives.append(["AMF" + words[1][len("FLIGHT") :], *words[2:]])
+    for spoken, prefix in (
+        ("AMERICAN", "AAL"),
+        ("UNITED", "UAL"),
+        ("AMFLIGHT", "AMF"),
+    ):
         if words and re.fullmatch(rf"{spoken}(?:[0-9]+[A-Z]*)?", words[0]):
             rest = words[1:]
-            if words[0] == spoken and rest[:1] == ["AIRLINES"]:
+            if (
+                spoken in ("AMERICAN", "UNITED")
+                and words[0] == spoken
+                and rest[:1] == ["AIRLINES"]
+            ):
                 rest = rest[1:]
             alternatives.append([prefix + words[0][len(spoken) :], *rest])
     for candidate_words in alternatives:
@@ -318,6 +354,83 @@ def _address(words, aircraft_list):
     if len(matches) != 1:
         raise ValueError("Say one unambiguous aircraft callsign first")
     return matches[0]
+
+
+def _corrected_instruction(words: list[str], replacement: list[str]) -> list[str]:
+    if replacement[0] in INSTRUCTION_STARTS or replacement[:2] == ["I", "DENT"]:
+        return replacement
+    if words[:1] == ["CONTACT"] or (
+        words[:2] == ["MAINTAIN", "BEARING"] and "CONTACT" in words
+    ):
+        contact = words.index("CONTACT")
+        if "CENTER" in words[contact + 1 :]:
+            end = words.index("CENTER", contact + 1) + 1
+            if words[end : end + 1] == ["ON"]:
+                end += 1
+            return [*words[:end], *replacement]
+    if words[:2] == ["MAINTAIN", "BEARING"]:
+        if _bearing_destination(words[2:]) is not None:
+            raise ValueError("Repeat the full bearing instruction after correction")
+        return [*words[:2], *replacement]
+    if words[:1] in (["HEADING"], ["HITTING"], ["FLY"], ["TURN"], ["TURNED"]):
+        for index, word in enumerate(words):
+            if word in ("HEADING", "HITTING"):
+                return [*words[: index + 1], *replacement]
+    if words[:1] == ["SQUAWK"]:
+        return [words[0], *replacement]
+    if words[:1] == ["DIRECT"]:
+        end = 2 if words[1:2] in (["TO"], ["TWO"], ["2"]) else 1
+        return [*words[:end], *replacement]
+    if words[:1] in (["CLIMB"], ["CLIMBED"], ["DESCEND"], ["MAINTAIN"], ["ALTITUDE"]):
+        end = 1
+        if words[0] in ("CLIMB", "CLIMBED", "DESCEND"):
+            if words[1:3] == ["AND", "MAINTAIN"]:
+                end = 3
+            elif words[1:2] in (["TO"], ["TWO"], ["2"]):
+                end = 2
+        if words[end : end + 2] == ["FLIGHT", "LEVEL"]:
+            end += 2
+        return [*words[:end], *replacement]
+    raise ValueError("Repeat the full instruction after correction")
+
+
+def _corrected_address(words, aircraft_list):
+    if "CORRECTION" not in words:
+        return _address(words, aircraft_list)
+    segments = [[]]
+    for word in words:
+        if word == "CORRECTION":
+            segments.append([])
+        else:
+            segments[-1].append(word)
+    if any(not segment for segment in segments):
+        raise ValueError("Say the correction after the word correction")
+
+    try:
+        aircraft, instruction = _address(segments[0], aircraft_list)
+        address_error = None
+    except ValueError as error:
+        aircraft, instruction, address_error = None, [], error
+    for segment in segments[1:]:
+        if segment[0] in INSTRUCTION_STARTS or segment[:2] == ["I", "DENT"]:
+            corrected_aircraft, corrected_words = None, []
+        else:
+            try:
+                corrected_aircraft, corrected_words = _address(segment, aircraft_list)
+            except ValueError:
+                corrected_aircraft, corrected_words = None, []
+        if corrected_aircraft is not None and (not instruction or corrected_words):
+            aircraft, instruction = corrected_aircraft, corrected_words
+            address_error = None
+        elif aircraft is None:
+            if address_error is not None:
+                raise address_error
+            raise ValueError("Say one unambiguous aircraft callsign first")
+        else:
+            instruction = _corrected_instruction(instruction, segment)
+    if aircraft is None:
+        raise ValueError("Say one unambiguous aircraft callsign first")
+    return aircraft, instruction
 
 
 def _clearance(words):
@@ -395,17 +508,65 @@ def _traffic_reply(aircraft, aircraft_list):
 
 
 def handle_transmission(text, aircraft_list, facility, transmitting_channels):
-    aircraft, words = _address(_tokens(text), aircraft_list)
+    aircraft, words = _corrected_address(_tokens(text), aircraft_list)
+    normalized = []
+    index = 0
+    while index < len(words):
+        if words[index : index + 2] == ["I", "DENT"]:
+            normalized.append("IDENT")
+            index += 2
+        else:
+            normalized.append(
+                "IDENT" if words[index] in ("IDENTITY", "IDENTICAL") else words[index]
+            )
+            index += 1
+    words = normalized
     channel = aircraft.radio_channel
     if channel is None or channel not in transmitting_channels:
         raise ValueError(
             f"{display_callsign(aircraft)} is not on a transmitting frequency"
         )
-    error = clearance_control_error(aircraft, facility)
-    if error is not None:
-        raise ValueError(f"{display_callsign(aircraft)}: {error}")
     callsign = spoken_callsign(aircraft)
     bearing_instruction = _bearing_instruction(words, facility)
+    contact_instruction = (
+        _center_contact(words, facility)
+        if words[:1] == ["CONTACT"]
+        else bearing_instruction[1]
+        if bearing_instruction is not None
+        else None
+    )
+    if contact_instruction is not None:
+        track = aircraft.track
+        if (
+            not is_airborne(aircraft)
+            or track.communications_owner != TrackingPosition.YUMA
+            or track.owner == TrackingPosition.YUMA
+            or track.handoff_target is not None
+            or track.radar_control_state != RadarControlState.HANDED_OFF
+        ):
+            raise ValueError("Complete an outgoing handoff before directing contact")
+        target, center, frequency, destination_channel = contact_instruction
+        if track.owner != target:
+            raise ValueError("Contact the center that accepted the handoff")
+        sector = next(
+            (
+                identifier
+                for identifier, label in facility.location.interfacility_lines
+                if label == track.handoff_information
+            ),
+            None,
+        )
+        if (
+            sector is not None
+            and destination_channel is not None
+            and not destination_channel.startswith(sector.replace("_sector_", "") + "_")
+        ):
+            destination_channel = None
+        contact_instruction = target, center, frequency, destination_channel
+    else:
+        error = clearance_control_error(aircraft, facility)
+        if error is not None:
+            raise ValueError(f"{display_callsign(aircraft)}: {error}")
     if (words[:1] == ["TRAFFIC"] or words[:2] == ["RADAR", "CONTACT"]) and any(
         word
         in {
@@ -415,31 +576,25 @@ def handle_transmission(text, aircraft_list, facility, transmitting_channels):
             "CLIMB",
             "CLIMBED",
             "DESCEND",
+            "DESCENDED",
+            "ASCEND",
+            "ASCENDED",
             "MAINTAIN",
             "DIRECT",
             "RESUME",
             "IDENT",
-            "IDENTITY",
             "SQUAWK",
         }
         for word in words[1:]
     ):
         raise ValueError("Send the advisory and clearance separately")
     if bearing_instruction is not None:
-        heading, target, center, frequency_info = bearing_instruction
-        if frequency_info is not None and frequency_info[1] is not None:
-            aircraft.track.validate_offer(target)
+        heading, _ = bearing_instruction
         execute_clearance(aircraft, facility, f"HDG {heading}")
         response = f"Maintain bearing {_spoken_heading(heading)}."
-        if frequency_info is not None:
-            frequency, destination_channel = frequency_info
-            if destination_channel is None:
-                response += f" Verify {center} frequency {frequency}."
-            else:
-                aircraft.track.offer(target, f"Frequency {frequency}")
-                aircraft.track.pending_radio_channel = destination_channel
-                response += f" Contact {center} on {frequency}."
-    elif words in (["IDENT"], ["IDENTITY"]):
+    elif contact_instruction is not None:
+        response = ""
+    elif words == ["IDENT"]:
         aircraft.activate_ident()
         response = "Ident."
     elif words[:1] == ["SQUAWK"] and words[1:] != ["IDENT"]:
@@ -451,6 +606,8 @@ def handle_transmission(text, aircraft_list, facility, transmitting_channels):
     elif words[:1] == ["TRAFFIC"] and len(words) > 1:
         response = "Looking for traffic."
     elif words[:2] == ["RADAR", "CONTACT"]:
+        if aircraft.track.owner != TrackingPosition.YUMA:
+            raise ValueError("Yuma does not own this track")
         aircraft.track.radar_control_state = RadarControlState.CONTROLLED
         response = "Radar contact, roger."
     else:
@@ -477,4 +634,12 @@ def handle_transmission(text, aircraft_list, facility, transmitting_channels):
             )
         else:
             response = readback.replace(" FT", " feet").lower() + "."
-    return PilotReply(aircraft.id, channel, f"{response} {callsign}.")
+    if contact_instruction is not None:
+        _, center, frequency, destination_channel = contact_instruction
+        if destination_channel is None:
+            response += f" Verify {center} frequency {frequency}."
+        else:
+            aircraft.track.transfer_communications()
+            aircraft.radio_channel = destination_channel
+            response += f" Contact {center} on {frequency}."
+    return PilotReply(aircraft.id, channel, f"{response.strip()} {callsign}.")

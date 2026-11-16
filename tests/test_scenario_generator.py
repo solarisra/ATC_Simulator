@@ -61,6 +61,17 @@ class ScenarioGeneratorTests(unittest.TestCase):
             traffic(first), traffic(self.generate(GeneratorSettings(272, "heavy")))
         )
 
+    def test_generated_civilian_registrations_are_valid_and_unique(self):
+        types = dict.fromkeys(AIRCRAFT_TYPES, 0)
+        types["small fixed-wing"] = 1
+        _, _, strips, _ = self.generate(
+            GeneratorSettings(7, "heavy", aircraft_types=types)
+        )
+        registrations = [strip.aircraft.callsign for strip in strips]
+        self.assertEqual(len(set(registrations)), len(registrations))
+        for registration in registrations:
+            self.assertRegex(registration, r"^N[1-9][0-9]{2}[A-HJ-NP-Z]{2}$")
+
     def test_sample_incoming_ifr_starts_under_center_control(self):
         strips = create_yuma_scenario()[2]
         incoming = [

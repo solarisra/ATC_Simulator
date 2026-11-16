@@ -19,6 +19,7 @@ from simulator.app.application import (
     MENU_THEMES,
     MENU_WIDTH,
     THEME_CHECK_INTERVAL,
+    YUMA_ACTIVE_RADIOS,
     ApplicationWindow,
     LocationChoice,
     ScenarioChoice,
@@ -71,6 +72,12 @@ def make_application():
     app.atc_facility = ATCFacility.get_atc_facility_by_name("KNYL")
     app.set_caption = Mock()
     return app
+
+
+def add_test_scenario(app, create=create_yuma_scenario):
+    scenario = ScenarioChoice("Test scenario", create, YUMA_ACTIVE_RADIOS)
+    app.available_scenarios = lambda: (scenario,)
+    return scenario
 
 
 class ApplicationTests(unittest.TestCase):
@@ -256,7 +263,7 @@ class ApplicationTests(unittest.TestCase):
         with (
             patch("sys.argv", ["main.py"]),
             patch("simulator.app.application.ApplicationWindow") as window,
-            patch("simulator.app.application.create_yuma_scenario") as scenario,
+            patch("simulator.app.application.generate_yuma_scenario") as scenario,
             patch("arcade.run") as run,
         ):
             runpy.run_path("main.py", run_name="__main__")
@@ -317,7 +324,15 @@ class ApplicationTests(unittest.TestCase):
             app.on_mouse_press(10, MENU_BOTTOM - 5, arcade.MOUSE_BUTTON_LEFT, 0)
         self.assertIs(app.selected_location, LOCATIONS[0])
         self.assertEqual(app.atc_facility.airport_code, "KNYL")
-        self.assertEqual(app.menu_entries("scenario")[0], "Load Yuma")
+        self.assertEqual(
+            app.menu_entries("scenario"),
+            (
+                "Generate Yuma...",
+                "Load saved scenario...",
+                "Save scenario...",
+                "Retry failed maps",
+            ),
+        )
         gis.assert_called_once_with(32.6566, -114.6056)
         new_overlays.toggle.assert_not_called()
 
@@ -480,22 +495,24 @@ class ApplicationTests(unittest.TestCase):
 
     def test_scenario_waits_for_maps_and_enabled_voice(self):
         app = make_application()
+        create = Mock()
+        add_test_scenario(app, create)
         app.gis_overlays.status[0] = "loading"
-        with patch("simulator.app.application.create_yuma_scenario") as create:
-            app.request_scenario(app.available_scenarios()[0])
-            self.assertIn("LOADING MAPS", app.menu_message)
-            app.gis_overlays.status[0] = "ready"
-            app.voice_audio = Mock(ready=False)
-            app.request_scenario(app.available_scenarios()[0])
-            self.assertEqual(app.menu_message, "LOADING VOICE")
-            app.communications_panel.voice_status = "VOICE ERROR"
-            app.voice_message = "Microphone unavailable"
-            app.request_scenario(app.available_scenarios()[0])
-            self.assertIn("Microphone unavailable", app.menu_message)
-            create.assert_not_called()
+        app.request_scenario(app.available_scenarios()[0])
+        self.assertIn("LOADING MAPS", app.menu_message)
+        app.gis_overlays.status[0] = "ready"
+        app.voice_audio = Mock(ready=False)
+        app.request_scenario(app.available_scenarios()[0])
+        self.assertEqual(app.menu_message, "LOADING VOICE")
+        app.communications_panel.voice_status = "VOICE ERROR"
+        app.voice_message = "Microphone unavailable"
+        app.request_scenario(app.available_scenarios()[0])
+        self.assertIn("Microphone unavailable", app.menu_message)
+        create.assert_not_called()
 
     def test_menu_load_and_confirmed_replacement_reset_scenario(self):
         app = make_application()
+        add_test_scenario(app)
         app.voice_audio = Mock(ready=True)
         with patch("simulator.app.application.FlightStripPanel") as panel:
             app.on_mouse_press(
@@ -554,6 +571,7 @@ class ApplicationTests(unittest.TestCase):
 
     def test_scenario_briefing_pauses_until_acknowledged(self):
         app = make_application()
+        add_test_scenario(app)
         app.gis_overlays = Mock(visible={0}, status=["ready"])
         with patch("simulator.app.application.FlightStripPanel"):
             app.request_scenario(app.available_scenarios()[0])
@@ -628,7 +646,7 @@ class ApplicationTests(unittest.TestCase):
             )
             app.on_mouse_press(
                 MENU_WIDTH + 10,
-                MENU_BOTTOM - ITEM_HEIGHT - 5,
+                MENU_BOTTOM - 5,
                 arcade.MOUSE_BUTTON_LEFT,
                 0,
             )
@@ -683,6 +701,7 @@ class ApplicationTests(unittest.TestCase):
 
     def test_generator_cancel_and_invalid_settings_keep_existing_scenario(self):
         app = make_application()
+        add_test_scenario(app)
         app.gis_overlays = Mock(visible={0}, status=["ready"])
         with patch("simulator.app.application.FlightStripPanel"):
             app.request_scenario(app.available_scenarios()[0])
@@ -708,6 +727,7 @@ class ApplicationTests(unittest.TestCase):
 
     def test_generator_reports_unsupported_selection_without_replacing_traffic(self):
         app = make_application()
+        add_test_scenario(app)
         app.gis_overlays = Mock(visible={0}, status=["ready"])
         with patch("simulator.app.application.FlightStripPanel"):
             app.request_scenario(app.available_scenarios()[0])
@@ -735,6 +755,7 @@ class ApplicationTests(unittest.TestCase):
 
     def test_scenario_menu_saves_and_restores_running_state(self):
         app = make_application()
+        add_test_scenario(app)
         app.gis_overlays = Mock(visible={0}, status=["ready"])
 
         def panel(strips, *args):
@@ -747,6 +768,7 @@ class ApplicationTests(unittest.TestCase):
             patch.object(app, "update_menu_theme"),
         ):
             app.request_scenario(app.available_scenarios()[0])
+            del app.available_scenarios
             app.on_key_press(arcade.key.ENTER, 0)
             plane = app.aircraft_list.aircraft_list[0]
             plane.flight_guidance.assign_heading(230)
@@ -785,7 +807,7 @@ class ApplicationTests(unittest.TestCase):
             app.communications_panel.interfacility_lines[2].hot = False
             app.on_update(60)
             self.assertNotEqual((plane.lat, plane.lon), saved_position)
-            choose(3)
+            choose(1)
             self.assertEqual(app.saves_dialog.names, ["SAVE1"])
             app.on_key_press(arcade.key.ENTER, 0)
             self.assertTrue(app.confirm_replace)
@@ -806,6 +828,7 @@ class ApplicationTests(unittest.TestCase):
 
     def test_bad_save_and_cancelled_overwrite_preserve_existing_state(self):
         app = make_application()
+        add_test_scenario(app)
         app.gis_overlays = Mock(visible={0}, status=["ready"])
 
         def panel(strips, *args):

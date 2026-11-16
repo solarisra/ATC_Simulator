@@ -345,6 +345,10 @@ def generate_yuma_scenario(settings, start_time=None):
     pad_cycle = cycle(facility.helicopter_pads)
     departures = []
     direct_callsigns = []
+    registration_rng = random.Random(f"{settings.seed}:registrations")
+    registration_numbers = registration_rng.sample(
+        range(100, 1000), TRAFFIC_LEVELS[settings.volume]
+    )
     for index in range(TRAFFIC_LEVELS[settings.volume]):
         category, operation = rng.choices(supported, weights=weights, k=1)[0]
         profile, itineraries = rng.choice(candidates[(category, operation)])
@@ -378,7 +382,11 @@ def generate_yuma_scenario(settings, start_time=None):
             lat, lon, heading = origin_point.latitude, origin_point.longitude, 0
         else:
             lat, lon, heading = _airborne_position(route, router.anchor, rng)
-        callsign = f"{profile.callsign}{index + 1}"
+        if profile.callsign == "N":
+            letters = "".join(registration_rng.choices("ABCDEFGHJKLMNPQRSTUVWXYZ", k=2))
+            callsign = f"N{registration_numbers[index]}{letters}"
+        else:
+            callsign = f"{profile.callsign}{index + 1}"
         squawk = f"{0o2000 + index:04o}" if profile.rules == "IFR" else "1200"
         aircraft = Aircraft(
             identifier,

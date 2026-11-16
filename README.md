@@ -10,16 +10,16 @@ uv run python main.py
 
 The application starts without a selected location or scenario.
 Use **Location** to select an available facility; facilities with multiple
-sectors show a sector submenu. The **Scenario** menu lists scenarios for the
-selected location and sector. Yuma has a scenario; selecting **Cascade
-Approach** automatically selects its currently configured Medford sector,
-a map-only location with no traffic scenario. Selecting
+sectors show a sector submenu. The **Scenario** menu offers generation and
+saved scenarios for Yuma; selecting **Cascade Approach** automatically selects
+its currently configured Medford sector, a map-only location with no traffic
+scenario. Selecting
 another location while a scenario is running asks for confirmation before
 ending it. For Yuma traffic, select **Location > Yuma**, wait for the default
-map layers to load, then choose **Scenario > Load Yuma**. A map loading error
+map layers to load, then choose **Scenario > Generate Yuma...** or
+**Scenario > Load saved scenario...**. A map loading error
 is shown on screen; use **Scenario > Retry failed maps** after correcting the
-cause. Loading Yuma again asks for confirmation before replacing the current
-traffic and strips.
+cause. Replacing a running scenario asks for confirmation.
 After a scenario loads, it starts paused with a controller handoff briefing.
 Use Left and Right to review its pages and Enter to acknowledge it and start
 the simulation. Weather is not yet simulated; the briefing assumes an
@@ -33,7 +33,9 @@ a new seed. Enter generates the scenario; Escape cancels. The existing
 scenario is preserved until replacement is confirmed. The generator selects
 aircraft and suitable airports, checks approximate aircraft range, and builds
 routes through the Yuma area using connected Victor airways and fixes from
-the local navigation data. Direct airport connections are used; when an
+the local navigation data. Generated small fixed-wing aircraft use fictional
+U.S.-format N-numbers; they are not checked against the aircraft registry.
+Direct airport connections are used; when an
 airway route cannot be built, a safe direct fallback is identified in the
 briefing and strip remarks. The briefing also reports unavailable combinations
 and airports. Routes are fictional approximations, not operational flight
@@ -134,9 +136,11 @@ Click an aircraft or its data block to select it. Use the numeric keypad
 directions to position the selected aircraft's data block. Near the circular
 scope edge, blocks are repositioned to keep them inside the perimeter. The STARS-style
 block shows the callsign, altitude in hundreds of feet with speed in tens of
-knots, aircraft type, and scratchpad on four lines in both display modes. The selected
-aircraft's heading, squawk, exact speed and range appear at the right of the
-radar. This is a simplified full data block.
+knots, aircraft type and current squawk, and scratchpad on four lines in both
+display modes. A squawk change appears on the next secondary radar update; it
+does not automatically establish radar contact. The selected aircraft's heading,
+squawk, exact speed and range appear at the right of the radar. This is a
+simplified full data block.
 
 The communications panel is above the radar, with radio, intrafacility and
 interfacility controls grouped side by side. Click a frequency button to cycle
@@ -205,7 +209,7 @@ memory only while push-to-talk is held. A transmission over 60 seconds is
 rejected. Only frequencies that remain On for the entire transmission can
 receive the resulting instruction.
 
-Each sample aircraft is assigned one frequency by flight role: arrivals use
+Each generated aircraft is assigned one frequency by flight role: arrivals use
 APP, departures DEP and overflights ENR. Civilian aircraft use VHF and military
 aircraft use UHF. Select an aircraft to see its assigned frequency. These
 assignments do not automatically change on handoff. To reach a pilot, turn
@@ -216,12 +220,14 @@ that frequency On and begin with the full callsign, for example:
 * `Devil two seven niner, climb and maintain thirteen thousand`
 * `Devil two seven niner, maintain bearing two six five`
 * `Devil two seven niner, maintain bearing two six five to Imperial, contact Los Angeles Center 291.7`
+* `Devil two seven niner, contact Los Angeles Center on 291.7`
 * `Devil two seven niner, direct BZA`
 * `Devil two seven niner, resume route` or `resume filed altitude`
 * `Devil two seven niner, traffic twelve o'clock five miles`
 * `Devil two seven niner, say traffic`
 * `Devil two seven niner, ident`
 * `Devil two seven niner, squawk three zero zero zero`
+* `Devil two seven niner, heading two seven zero, correction two eight zero`
 * `Devil two seven niner, radar contact bearing 240 altitude 13000 speed 400`
 * `American Airlines three eight one heavy, squawk three zero zero zero`
 
@@ -233,27 +239,35 @@ The parser recognizes the observed transcription variants "hitting" for
 "heading", "climbed" for "climb", and "turned" for "turn" in instruction
 positions. It also recognizes the observed callsign transcription "double"
 for "Devil", but rejects the call if it could address more than one aircraft.
-It accepts "identity" as `ident` and handles the observed "two"/"to"
-transcription swaps in numeric values and supported instruction phrases.
-`AAL` callsigns may be spoken as "American" or "American Airlines", and `UAL`
-as "United". Pilot readbacks and departure check-ins use those names. Aircraft
-with a model maximum takeoff weight of at least 300,000 pounds show an `H` after
+It accepts the observed "identity", "identical", and "I dent" transcriptions
+as `ident` and handles "two"/"to" swaps in numeric values and supported
+instruction phrases. Within one transmission, "correction" can replace a
+callsign, a complete instruction, or the value in a heading, altitude, bearing,
+squawk, direct-fix or center-frequency instruction. Repeat the full instruction
+if a partial correction is ambiguous; only the corrected instruction executes.
+`AAL` callsigns may be spoken as "American" or "American Airlines", `UAL`
+as "United", and `AMF` as "Am Flight". Pilot readbacks and departure check-ins
+use those names. Aircraft with a model maximum takeoff weight of at least
+300,000 pounds show an `H` after
 the callsign on radar and strips and use "heavy" in radio calls. This weight-based
 classification is simplified; the saved callsign itself is unchanged.
 Squawk instructions require four octal digits and change the aircraft's
 transponder; the strip's independently editable beacon annotation is unchanged.
 A pilot acknowledges an advisory without claiming to see traffic.
-An IDENT request shows `ID` in the aircraft's data block and flashes its
-secondary return for 18 simulation seconds. A pending handoff also flashes
+An IDENT request shows `ID` and flashes the entire data block, leader line,
+and secondary return for 18 simulation seconds. A pending handoff also flashes
 the secondary return.
 After a callsign-addressed `radar contact`, the secondary return and data block
 turn green.
 `Maintain bearing` assigns a magnetic heading; an optional `to` location is
-informational and does not change the route. A combined bearing and center
-contact call automatically offers a handoff and transfers the aircraft to the
-specified configured center frequency when accepted. If the frequency is not
-configured for that center, the pilot maintains the bearing and asks for
-verification instead of handing off.
+informational and does not change the route. Initiate the radar handoff and
+wait for acceptance before telling the pilot to contact the center, either
+alone or with a bearing instruction. Until the frequency change, Yuma retains
+communications and may issue instructions subject to its control limits.
+A valid contact instruction transfers communications to the accepted center's
+configured frequency and queues the readback on the original frequency. A wrong
+frequency or one for a different selected sector prompts the pilot to ask for
+verification instead.
 On `say traffic`, the simulated pilot reports the nearest airborne aircraft
 using simulator positions, not a visual-detection model. Pilot audio is heard
 only while its frequency is monitored (On or Listen), and stops if the
@@ -268,7 +282,12 @@ The right-hand flight progress strip panel lists active scenario plans. Scroll
 over the panel to see additional strips; clicking a strip selects its radar
 track, and selecting a radar track also highlights its visible strip. Drag a
 strip above or below another to reorder it; use the wheel while dragging to
-reach other strips. Release outside a strip or press Escape to cancel.
+reach other strips. Release within the board outside a strip or press Escape to
+cancel. After both radar handoff and radio-frequency transfer are complete,
+drag a strip off the board (for example, onto the radar area) to discard it.
+Press `R` to show discarded strips, select one and press Enter to restore it;
+press `R` or Escape to return to the board. Discarding does not remove the
+aircraft or flight plan, and discarded strips remain discarded when saved.
 Drag a strip horizontally to offset it right or return it left; the offset is
 approximately 64 logical pixels, so its physical size depends on display
 scaling. Offsets are saved with the scenario.
@@ -285,10 +304,11 @@ command aircraft. A simulated landing deactivates the strip and removes the
 secondary radar return; existing ARTS primary traces fade normally. This does
 not represent actual flight-plan closure.
 
-The startup scenario has ten fictional plans: three IFR and one VFR
+The legacy sample scenario, no longer offered in the Scenario menu, has ten
+fictional plans: three IFR and one VFR
 overflight, three arrivals and three departures. Flight type is inferred from
 the plan endpoints relative to KNYL, not actual aircraft position or phase.
-Across startups, 80% of scenarios use only primary non-medical civilian
+Across sample constructions, 80% use only primary non-medical civilian
 airports (SAN, LAX and PHX), 15% have one occasional airport (LAS or ABQ),
 and 5% have one rare airport (SFO, PDX, SEA, ONT, SNA or DEN). In the latter
 two cases, other civilian choices remain primary. The airport is assigned to

@@ -22,6 +22,7 @@ from simulator.display.radar import (
     RadarViewport,
     leader_line_end,
 )
+from simulator.radio.voice_commands import handle_transmission
 
 
 def enter_coordination(display, text="NONE"):
@@ -205,6 +206,39 @@ class RadarReturnTests(unittest.TestCase):
 
 
 class SecondaryRadarTests(unittest.TestCase):
+    def test_ident_flashes_data_block_with_return_but_handoff_only_flashes_return(self):
+        display, _ = coordination_display()
+        snapshot = display.secondary_radar_returns[0]
+        for ident, handoff, visible, drawn in (
+            (True, None, False, False),
+            (True, None, True, True),
+            (True, TrackingPosition.LOS_ANGELES, False, False),
+            (True, TrackingPosition.LOS_ANGELES, True, True),
+            (False, TrackingPosition.LOS_ANGELES, False, True),
+            (False, None, False, True),
+        ):
+            with self.subTest(ident=ident, handoff=handoff, visible=visible):
+                label = Mock()
+                with (
+                    patch("arcade.draw_circle_filled") as circle,
+                    patch("arcade.draw_circle_outline") as selection,
+                    patch("arcade.draw_line") as line,
+                ):
+                    RadarDisplay.draw_secondary_return(
+                        snapshot._replace(ident=ident, handoff_target=handoff),
+                        100,
+                        200,
+                        10,
+                        selected=True,
+                        text_size=(50, 30),
+                        label=label,
+                        flash_visible=visible,
+                    )
+                self.assertEqual(label.draw.called, drawn)
+                self.assertEqual(line.called, drawn)
+                self.assertEqual(circle.called, visible or not (ident or handoff))
+                selection.assert_called_once()
+
     def test_heavy_marker_is_in_snapshot_not_aircraft_identity(self):
         display, aircraft = coordination_display()
         aircraft.callsign = "AAL381"
@@ -326,7 +360,7 @@ class SecondaryRadarTests(unittest.TestCase):
                 snapshot, 100, 200, 15.5, text_size=(50, 30)
             )
 
-        self.assertEqual(text.call_args.args[0], "TEST Y\n050  12\nC172\n ")
+        self.assertEqual(text.call_args.args[0], "TEST Y\n050  12\nC172 1200\n ")
         text.return_value.draw.assert_called_once()
         draw_line.assert_called_once_with(100, 200, 85, 200, arcade.color.WHITE, 1)
 
@@ -345,7 +379,7 @@ class SecondaryRadarTests(unittest.TestCase):
             ident=False,
         )
         text, _, _ = RadarDisplay.secondary_return_layout(snapshot, 0, 0, 10)
-        self.assertEqual(text, "N123 Y\n005  13\nC172\n ")
+        self.assertEqual(text, "N123 Y\n005  13\nC172 1200\n ")
 
     def test_data_block_label_is_reused_and_updates_with_aircraft_data(self):
         snapshot = SimpleNamespace(
@@ -373,7 +407,7 @@ class SecondaryRadarTests(unittest.TestCase):
 
         with patch("arcade.Text", side_effect=make_label) as create_text:
             cached = RadarDisplay.get_data_block_label(display, snapshot, 10)
-            self.assertEqual(cached.label.text, "TEST Y\n050  12\nC172\n ")
+            self.assertEqual(cached.label.text, "TEST Y\n050  12\nC172 1200\n ")
             self.assertEqual((cached.width, cached.height), (50, 45))
             self.assertIs(
                 RadarDisplay.get_data_block_label(display, snapshot, 10), cached
@@ -381,8 +415,12 @@ class SecondaryRadarTests(unittest.TestCase):
             create_text.assert_called_once()
             snapshot.altitude = 60
             updated = RadarDisplay.get_data_block_label(display, snapshot, 10)
-            self.assertEqual(updated.label.text, "TEST Y\n060  12\nC172\n ")
+            self.assertEqual(updated.label.text, "TEST Y\n060  12\nC172 1200\n ")
             self.assertEqual(create_text.call_count, 2)
+            snapshot.squawk = "0421"
+            updated = RadarDisplay.get_data_block_label(display, snapshot, 10)
+            self.assertEqual(updated.label.text, "TEST Y\n060  12\nC172 0421\n ")
+            self.assertEqual(create_text.call_count, 3)
 
     def test_emergency_flashes_only_em_and_keeps_layout_stable(self):
         snapshot = SimpleNamespace(
@@ -419,13 +457,13 @@ class SecondaryRadarTests(unittest.TestCase):
 
         with patch("arcade.Text", side_effect=FakeLabel):
             cached = RadarDisplay.get_data_block_label(display, snapshot, 10)
-            self.assertEqual(cached.label.text, "TEST Y EM\n050  12\nC172\nABC")
+            self.assertEqual(cached.label.text, "TEST Y EM\n050  12\nC172 7700\nABC")
             dimensions = cached.width, cached.height
             display.emergency_flash_elapsed = 0.5
             self.assertIs(
                 RadarDisplay.get_data_block_label(display, snapshot, 10), cached
             )
-            self.assertEqual(cached.label.text, "TEST Y\n050  12\nC172\nABC")
+            self.assertEqual(cached.label.text, "TEST Y\n050  12\nC172 7700\nABC")
             self.assertEqual((cached.width, cached.height), dimensions)
             display.emergency_flash_elapsed = 0
             RadarDisplay.get_data_block_label(display, snapshot, 10)
@@ -433,7 +471,9 @@ class SecondaryRadarTests(unittest.TestCase):
             for squawk in ("1200", "7500", "7600"):
                 snapshot.squawk = squawk
                 label = RadarDisplay.get_data_block_label(display, snapshot, 10)
-                self.assertEqual(label.label.text, "TEST Y\n050  12\nC172\nABC")
+                self.assertEqual(
+                    label.label.text, f"TEST Y\n050  12\nC172 {squawk}\nABC"
+                )
 
     def test_scratchpad_edit_save_cancel_clear_and_limits(self):
         aircraft = [
@@ -940,6 +980,31 @@ class SecondaryRadarTests(unittest.TestCase):
         RadarDisplay.on_key_press(display, arcade.key.ENTER, 0)
         self.assertIn("OWN TRACK AND COMMUNICATIONS", display.handoff_message)
         self.assertIsNone(guidance.vector_heading)
+
+    def test_clearances_remain_available_after_handoff_until_comms_transfer(self):
+        display, aircraft = clearance_display()
+        display.secondary_radar_returns = []
+        RadarDisplay.on_key_press(display, arcade.key.H, 0)
+        RadarDisplay.on_key_press(display, arcade.key.KEY_9, 0)
+        RadarDisplay.on_key_press(display, arcade.key.ENTER, 0)
+        self.assertEqual(aircraft.track.handoff_information, "ZLA SECTOR 9")
+        aircraft.track.advance(3)
+        type_clearance(display, "HDG 270")
+        self.assertIn("HEADING 270", display.handoff_message)
+        self.assertAlmostEqual(aircraft.flight_guidance.vector_heading, 280 + 14 / 60)
+        reply = handle_transmission(
+            "Devil 279 contact Los Angeles Center 291.7",
+            display.aircraft_list.aircraft_list,
+            display.atc_facility,
+            {"enroute_high"},
+        )
+        self.assertEqual(reply.channel, "enroute_high")
+        self.assertEqual(aircraft.radio_channel, "zla9_high")
+        self.assertEqual(
+            aircraft.track.communications_owner, TrackingPosition.LOS_ANGELES
+        )
+        RadarDisplay.on_key_press(display, arcade.key.G, 0)
+        self.assertIn("OWN TRACK AND COMMUNICATIONS", display.handoff_message)
 
     def test_ground_departure_cannot_begin_clearance_edit(self):
         display, _ = clearance_display()

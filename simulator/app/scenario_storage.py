@@ -159,6 +159,7 @@ def snapshot_scenario(
                 "strip": {
                     **_fields(strip, STRIP_FIELDS),
                     "offset_right": strip.offset_right,
+                    "discarded": strip.discarded,
                 },
                 "plan": _fields(
                     strip.flight_plan,
@@ -306,6 +307,8 @@ def _validate_record(record):
     }
     if "offset_right" in record["strip"]:
         strip_schema["offset_right"] = BOOL
+    if "discarded" in record["strip"]:
+        strip_schema["discarded"] = BOOL
     _validate_fields(record["strip"], strip_schema)
     _validate_fields(
         record["plan"],
@@ -514,6 +517,7 @@ def restore_scenario(data):
             strip, {name: record["strip"][name] for name in STRIP_FIELDS}, STRIP_FIELDS
         )
         strip.offset_right = record["strip"].get("offset_right", False)
+        strip.discarded = record["strip"].get("discarded", False)
         track = record["track"]
         _assign(plane.track, {name: track[name] for name in TRACK_FIELDS}, TRACK_FIELDS)
         plane.track.radar_control_state = RadarControlState(

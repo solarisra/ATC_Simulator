@@ -6,12 +6,15 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
+import arcade
+
 from Locations.Yuma.Scenarios.generator import (
     AIRCRAFT_TYPES,
     OPERATIONS,
     GeneratorSettings,
     generate_yuma_scenario,
 )
+from Locations.Yuma.Scenarios.yuma import create_yuma_scenario
 from simulator.app.briefing import briefing_pages
 from simulator.app.scenario_storage import (
     read_scenario,
@@ -24,11 +27,52 @@ from simulator.core.aircraft import display_callsign
 from simulator.core.aircraft_models import boeing_767_freighter
 from simulator.core.atc import CoordinationKind, RadarControlState, TrackingPosition
 from simulator.core.location import RadioState
+from simulator.display.flight_strips import FlightStripPanel
 from simulator.display.radar import RadarDisplay, RadarReturnManager, RadarSweep
 from simulator.radio.communications import CommunicationsPanel
+from simulator.radio.voice_commands import handle_transmission
 
 
 class ScenarioStorageTests(unittest.TestCase):
+    def test_accepted_handoff_keeps_radio_workflow_after_reload(self):
+        aircraft, facility, strips = create_yuma_scenario()
+        plane = next(item for item in aircraft.aircraft_list if item.id == "A1")
+        plane.track.offer(TrackingPosition.LOS_ANGELES, "ZLA SECTOR 9")
+        plane.track.advance(3)
+        with patch("simulator.radio.communications.arcade.Text"):
+            communications = CommunicationsPanel(
+                facility.location.radio_frequencies,
+                facility.location.coordination_lines,
+                facility.location.interfacility_lines,
+            )
+        snapshot = snapshot_scenario(
+            aircraft,
+            facility,
+            strips,
+            datetime.now(UTC),
+            None,
+            communications,
+            [],
+            set(),
+        )
+        with tempfile.TemporaryDirectory() as folder:
+            directory = Path(folder)
+            write_scenario("HANDOFF", snapshot, directory)
+            restored = read_scenario("HANDOFF", directory)
+        plane = next(
+            item for item in restored.aircraft.aircraft_list if item.id == "A1"
+        )
+        self.assertEqual(plane.track.owner, TrackingPosition.LOS_ANGELES)
+        self.assertEqual(plane.track.communications_owner, TrackingPosition.YUMA)
+        handle_transmission(
+            "N135TC contact Los Angeles Center 128.6",
+            restored.aircraft.aircraft_list,
+            restored.facility,
+            {"enroute_low"},
+        )
+        self.assertEqual(plane.radio_channel, "zla9_low")
+        self.assertEqual(plane.track.communications_owner, TrackingPosition.LOS_ANGELES)
+
     def test_round_trip_preserves_operational_state_and_continues(self):
         operations = dict.fromkeys(OPERATIONS, 0)
         operations["departures"] = 1
@@ -57,6 +101,7 @@ class ScenarioStorageTests(unittest.TestCase):
         )
         strips[0].remarks = "REMARK"
         strips[0].offset_right = True
+        strips[0].discarded = True
         strips.reverse()
         with patch("simulator.radio.communications.arcade.Text"):
             communications = CommunicationsPanel(
@@ -103,12 +148,17 @@ class ScenarioStorageTests(unittest.TestCase):
             invalid_offset["records"][0]["strip"]["offset_right"] = "yes"
             with self.assertRaises(ValueError):
                 write_scenario("INVALID", invalid_offset, directory)
+            invalid_discarded = json.loads(json.dumps(snapshot))
+            invalid_discarded["records"][0]["strip"]["discarded"] = "yes"
+            with self.assertRaises(ValueError):
+                write_scenario("INVALID", invalid_discarded, directory)
             legacy = json.loads(json.dumps(snapshot))
             for record in legacy["records"]:
                 del record["aircraft"]["ident_remaining"]
                 del record["track"]["radar_control_state"]
                 del record["track"]["pending_radio_channel"]
                 del record["strip"]["offset_right"]
+                del record["strip"]["discarded"]
             for line in communications.interfacility_lines:
                 del legacy["lines"][line.identifier]
             write_scenario("LEGACY", legacy, directory)
@@ -120,6 +170,9 @@ class ScenarioStorageTests(unittest.TestCase):
             self.assertTrue(
                 all(not strip.offset_right for strip in legacy_restored.strips)
             )
+            self.assertTrue(
+                all(not strip.discarded for strip in legacy_restored.strips)
+            )
         self.assertEqual(restored.time, time)
         self.assertEqual(restored.settings, settings)
         self.assertEqual(
@@ -128,6 +181,18 @@ class ScenarioStorageTests(unittest.TestCase):
         self.assertEqual(
             [s.offset_right for s in restored.strips], [s.offset_right for s in strips]
         )
+        self.assertEqual(
+            [s.discarded for s in restored.strips], [s.discarded for s in strips]
+        )
+        discarded = next(strip for strip in restored.strips if strip.discarded)
+        with patch("simulator.display.flight_strips.arcade.Text"):
+            panel = FlightStripPanel(restored.strips, restored.aircraft)
+        self.assertNotIn(discarded, panel.active_strips())
+        panel.on_key_press(arcade.key.R, None)
+        self.assertIn(discarded, panel.visible_strips())
+        panel.on_key_press(arcade.key.ENTER, discarded.aircraft.id)
+        self.assertIn(discarded, panel.active_strips())
+        self.assertIs(discarded.aircraft.flight_guidance.strip, discarded)
         self.assertEqual(
             restored.radios[communications.channels[0].identifier], RadioState.LISTEN
         )

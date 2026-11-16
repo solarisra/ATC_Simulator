@@ -7,7 +7,7 @@ import arcade
 
 from Locations.Yuma.Scenarios.yuma import create_yuma_scenario
 from simulator.core.aircraft_models import boeing_767_freighter, cessna_172
-from simulator.core.atc import CoordinationKind, TrackingPosition
+from simulator.core.atc import CoordinationKind, TrackingPosition, TrackOwnership
 from simulator.display.radar import RadarDisplay, RadarReturnManager, RadarSweep
 from simulator.radio.communications import CommunicationsPanel
 from simulator.radio.voice_commands import handle_transmission
@@ -65,6 +65,113 @@ class VoiceCommandTests(unittest.TestCase):
         )
         self.assertIsNone(aircraft.flight_guidance.assigned_altitude)
 
+    def test_correction_replaces_values_and_entire_instructions(self):
+        aircraft = self.by_id["A3"]
+        reply = handle_transmission(
+            "Devil 279 turn right heading 270 correction 280",
+            self.aircraft,
+            self.facility,
+            {"enroute_high"},
+        )
+        self.assertAlmostEqual(aircraft.flight_guidance.vector_heading, 290 + 14 / 60)
+        self.assertIn("turn right, heading two eight zero", reply.text.lower())
+        handle_transmission(
+            "Devil 279 climb and maintain 5000 correction 6000",
+            self.aircraft,
+            self.facility,
+            {"enroute_high"},
+        )
+        self.assertEqual(aircraft.flight_guidance.assigned_altitude, 6000)
+        handle_transmission(
+            "Devil 279 maintain two thousand correction five thousand",
+            self.aircraft,
+            self.facility,
+            {"enroute_high"},
+        )
+        self.assertEqual(aircraft.flight_guidance.assigned_altitude, 5000)
+        handle_transmission(
+            "Devil 279 maintain flight level 90 correction 100",
+            self.aircraft,
+            self.facility,
+            {"enroute_high"},
+        )
+        self.assertEqual(aircraft.flight_guidance.assigned_altitude, 10000)
+        fix = aircraft.flight_guidance.route[aircraft.flight_guidance.next_index].name
+        handle_transmission(
+            f"Devil 279 direct BAD correction {fix}",
+            self.aircraft,
+            self.facility,
+            {"enroute_high"},
+        )
+        self.assertEqual(
+            aircraft.flight_guidance.route[aircraft.flight_guidance.next_index].name,
+            fix,
+        )
+        handle_transmission(
+            "Devil 279 maintain bearing two six five correction two eight zero",
+            self.aircraft,
+            self.facility,
+            {"enroute_high"},
+        )
+        self.assertAlmostEqual(aircraft.flight_guidance.vector_heading, 290 + 14 / 60)
+        handle_transmission(
+            "Devil 279 squawk 3000 correction 4000 correction 5000",
+            self.aircraft,
+            self.facility,
+            {"enroute_high"},
+        )
+        self.assertEqual(aircraft.squawk, "5000")
+        handle_transmission(
+            "Devil 279 heading 270 correction squawk 3000",
+            self.aircraft,
+            self.facility,
+            {"enroute_high"},
+        )
+        self.assertEqual(aircraft.squawk, "3000")
+        self.assertAlmostEqual(aircraft.flight_guidance.vector_heading, 290 + 14 / 60)
+
+    def test_correction_can_replace_a_callsign(self):
+        aircraft = self.by_id["A3"]
+        for original in ("Devil 278", "N135TC"):
+            with self.subTest(original=original):
+                reply = handle_transmission(
+                    f"{original} correction Devil 279 heading 280",
+                    self.aircraft,
+                    self.facility,
+                    {"enroute_high"},
+                )
+                self.assertEqual(reply.aircraft_id, aircraft.id)
+                self.assertAlmostEqual(
+                    aircraft.flight_guidance.vector_heading, 290 + 14 / 60
+                )
+
+    def test_correction_replaces_contact_frequency_before_transfer(self):
+        aircraft = self.by_id["A1"]
+        aircraft.track.offer(TrackingPosition.LOS_ANGELES, "ZLA SECTOR 9")
+        self.assertTrue(aircraft.track.advance(3))
+        reply = handle_transmission(
+            "N135TC contact Los Angeles Center on 292.2 correction 128.6",
+            self.aircraft,
+            self.facility,
+            {"enroute_low"},
+        )
+        self.assertIn("Contact Los Angeles Center on 128.600", reply.text)
+        self.assertEqual(aircraft.radio_channel, "zla9_low")
+
+    def test_invalid_correction_never_executes_original_instruction(self):
+        aircraft = self.by_id["A3"]
+        original_heading = aircraft.flight_guidance.vector_heading
+        for text in (
+            "Devil 279 heading 270 correction",
+            "Devil 279 heading 270 correction 999",
+            "Devil 279 ident correction 280",
+            "Devil 279 maintain bearing 265 to Imperial correction 280",
+        ):
+            with self.subTest(text=text), self.assertRaises(ValueError):
+                handle_transmission(text, self.aircraft, self.facility, {"enroute_high"})
+            self.assertEqual(aircraft.flight_guidance.vector_heading, original_heading)
+            self.assertEqual(aircraft.ident_remaining, 0)
+
     def test_airline_callsigns_and_heavy_are_recognized_and_spoken(self):
         aircraft = self.by_id["A1"]
         aircraft.aircraft_model = boeing_767_freighter
@@ -91,6 +198,36 @@ class VoiceCommandTests(unittest.TestCase):
                 self.assertIn("heavy", reply.text.lower())
                 self.assertNotIn("hotel", reply.text.lower())
                 self.assertEqual(aircraft.callsign, callsign)
+
+    def test_amf_is_addressed_and_spoken_as_am_flight(self):
+        aircraft = self.by_id["A1"]
+        aircraft.callsign = "AMF123"
+        for spoken in ("Am Flight one two three", "AMF123", "AmFlight123", "Am Flight123"):
+            with self.subTest(spoken=spoken):
+                reply = handle_transmission(
+                    f"{spoken} squawk 3000",
+                    self.aircraft,
+                    self.facility,
+                    {"enroute_low"},
+                )
+                self.assertEqual(reply.aircraft_id, aircraft.id)
+                self.assertTrue(reply.text.endswith("Am Flight one two three."))
+                self.assertEqual(aircraft.callsign, "AMF123")
+        aircraft.aircraft_model = boeing_767_freighter
+        reply = handle_transmission(
+            "Am Flight 123 heavy ident", self.aircraft, self.facility, {"enroute_low"}
+        )
+        self.assertTrue(reply.text.endswith("Am Flight one two three heavy."))
+        ambiguous = SimpleNamespace(
+            callsign="AMFLIGHT123", aircraft_model=cessna_172
+        )
+        with self.assertRaisesRegex(ValueError, "unambiguous"):
+            handle_transmission(
+                "Am Flight 123 squawk 3000",
+                [aircraft, ambiguous],
+                self.facility,
+                {"enroute_low"},
+            )
 
     def test_airline_aliases_remain_unambiguous_and_heavy_is_not_for_light_aircraft(
         self,
@@ -244,6 +381,11 @@ class VoiceCommandTests(unittest.TestCase):
             RadarDisplay.capture_secondary_radar_returns(display)
         )
         display.capture_secondary_radar_returns()
+        previous = display.secondary_radar_returns[0]
+        self.assertIn(
+            f"{previous.aircraft_type} {previous.squawk}",
+            RadarDisplay.secondary_return_layout(previous, 0, 0, 10)[0],
+        )
         handle_transmission(
             "devil 279 squawk seven seven zero zero",
             self.aircraft,
@@ -251,7 +393,12 @@ class VoiceCommandTests(unittest.TestCase):
             {"enroute_high"},
         )
         RadarDisplay.on_update(display, 1)
-        self.assertEqual(display.secondary_radar_returns[0].squawk, "7700")
+        snapshot = display.secondary_radar_returns[0]
+        self.assertEqual(snapshot.squawk, "7700")
+        self.assertIn(
+            f"{snapshot.aircraft_type} 7700",
+            RadarDisplay.secondary_return_layout(snapshot, 0, 0, 10)[0],
+        )
 
     def test_to_as_two_in_callsign_squawk_and_heading(self):
         aircraft = self.by_id["A3"]
@@ -277,6 +424,8 @@ class VoiceCommandTests(unittest.TestCase):
 
     def test_two_transcribed_as_to_in_bearing_and_frequency(self):
         aircraft = self.by_id["A1"]
+        aircraft.track.offer(TrackingPosition.LOS_ANGELES, "ZLA SECTOR 9")
+        aircraft.track.advance(3)
         reply = handle_transmission(
             "N135TC maintain bearing to six five to Imperial contact Los Angeles Center 291.to",
             self.aircraft,
@@ -344,6 +493,8 @@ class VoiceCommandTests(unittest.TestCase):
         aircraft = self.by_id["A1"]
         aircraft.callsign = "SHEEP1"
         original_channel = aircraft.radio_channel
+        aircraft.track.offer(TrackingPosition.LOS_ANGELES, "ZLA SECTOR 9")
+        aircraft.track.advance(3)
         reply = handle_transmission(
             "Sheep 1 maintain bearing 265 to Imperial contact Los Angeles Center 292.2",
             self.aircraft,
@@ -356,6 +507,179 @@ class VoiceCommandTests(unittest.TestCase):
         self.assertEqual(aircraft.radio_channel, original_channel)
         self.assertIsNone(aircraft.track.handoff_target)
         self.assertIsNone(aircraft.track.pending_radio_channel)
+
+    def test_accepted_handoff_keeps_radio_until_pilot_is_told_to_contact_center(self):
+        aircraft = self.by_id["A1"]
+        aircraft.track.offer(TrackingPosition.LOS_ANGELES, "ZLA SECTOR 9")
+        self.assertTrue(aircraft.track.advance(3))
+        reply = handle_transmission(
+            "N135TC heading 270", self.aircraft, self.facility, {"enroute_low"}
+        )
+        self.assertIn("Heading two seven zero", reply.text)
+        self.assertEqual(aircraft.track.owner, TrackingPosition.LOS_ANGELES)
+        self.assertEqual(aircraft.track.communications_owner, TrackingPosition.YUMA)
+        self.assertEqual(aircraft.radio_channel, "enroute_low")
+        handle_transmission(
+            "N135TC squawk 0421", self.aircraft, self.facility, {"enroute_low"}
+        )
+        self.assertEqual(aircraft.squawk, "0421")
+        self.assertIn(
+            "Ident.",
+            handle_transmission(
+                "N135TC ident", self.aircraft, self.facility, {"enroute_low"}
+            ).text,
+        )
+        self.assertIn(
+            "Nearest traffic",
+            handle_transmission(
+                "N135TC say traffic", self.aircraft, self.facility, {"enroute_low"}
+            ).text,
+        )
+        with self.assertRaisesRegex(ValueError, "does not own this track"):
+            handle_transmission(
+                "N135TC radar contact", self.aircraft, self.facility, {"enroute_low"}
+            )
+
+        reply = handle_transmission(
+            "N135TC contact Los Angeles Center on 128.6",
+            self.aircraft,
+            self.facility,
+            {"enroute_low"},
+        )
+        self.assertIn("Contact Los Angeles Center on 128.600", reply.text)
+        self.assertEqual(reply.channel, "enroute_low")
+        self.assertEqual(aircraft.radio_channel, "zla9_low")
+        self.assertEqual(
+            aircraft.track.communications_owner, TrackingPosition.LOS_ANGELES
+        )
+        with self.assertRaises(ValueError):
+            handle_transmission(
+                "N135TC heading 180", self.aircraft, self.facility, {"enroute_low"}
+            )
+        with self.assertRaises(ValueError):
+            handle_transmission(
+                "N135TC heading 180", self.aircraft, self.facility, {"zla9_low"}
+            )
+
+    def test_contact_requires_accepted_matching_handoff_and_valid_sector_frequency(
+        self,
+    ):
+        aircraft = self.by_id["A1"]
+        for instruction in (
+            "contact Los Angeles Center 128.6",
+            "maintain bearing 265 contact Los Angeles Center 128.6",
+        ):
+            with (
+                self.subTest(instruction=instruction),
+                self.assertRaisesRegex(ValueError, "Complete an outgoing handoff"),
+            ):
+                handle_transmission(
+                    f"N135TC {instruction}",
+                    self.aircraft,
+                    self.facility,
+                    {"enroute_low"},
+                )
+        self.assertIsNone(aircraft.track.handoff_target)
+        self.assertIsNone(aircraft.flight_guidance.vector_heading)
+        aircraft.track.offer(TrackingPosition.LOS_ANGELES, "ZLA SECTOR 9")
+        with self.assertRaisesRegex(ValueError, "Complete an outgoing handoff"):
+            handle_transmission(
+                "N135TC contact Los Angeles Center 128.6",
+                self.aircraft,
+                self.facility,
+                {"enroute_low"},
+            )
+        aircraft.track.advance(3)
+        with self.assertRaisesRegex(ValueError, "center that accepted"):
+            handle_transmission(
+                "N135TC contact Albuquerque Center 125.25",
+                self.aircraft,
+                self.facility,
+                {"enroute_low"},
+            )
+        for frequency in ("128.15", "292.2"):
+            reply = handle_transmission(
+                f"N135TC contact Los Angeles Center {frequency}",
+                self.aircraft,
+                self.facility,
+                {"enroute_low"},
+            )
+            self.assertIn("Verify Los Angeles Center frequency", reply.text)
+            self.assertEqual(aircraft.track.communications_owner, TrackingPosition.YUMA)
+            self.assertEqual(aircraft.radio_channel, "enroute_low")
+        aircraft.altitude = 240
+        handle_transmission(
+            "N135TC contact Los Angeles Center 128.6",
+            self.aircraft,
+            self.facility,
+            {"enroute_low"},
+        )
+        self.assertEqual(aircraft.radio_channel, "zla9_low")
+
+    def test_contact_uses_frequency_for_each_configured_sector(self):
+        aircraft = self.by_id["A1"]
+        for target, label, center, frequency, channel in (
+            (
+                TrackingPosition.LOS_ANGELES,
+                "ZLA SECTOR 9",
+                "Los Angeles",
+                "128.6",
+                "zla9_low",
+            ),
+            (
+                TrackingPosition.LOS_ANGELES,
+                "ZLA SECTOR 10",
+                "Los Angeles",
+                "285.6",
+                "zla10_high",
+            ),
+            (
+                TrackingPosition.LOS_ANGELES,
+                "ZLA SECTOR 31",
+                "Los Angeles",
+                "126.775",
+                "zla31_low",
+            ),
+            (
+                TrackingPosition.ALBUQUERQUE,
+                "ZAB SECTOR 42",
+                "Albuquerque",
+                "307.3",
+                "zab42_high",
+            ),
+        ):
+            with self.subTest(sector=label):
+                aircraft.track = TrackOwnership()
+                aircraft.radio_channel = "enroute_low"
+                aircraft.track.offer(target, label)
+                aircraft.track.advance(3)
+                handle_transmission(
+                    f"N135TC contact {center} Center {frequency}",
+                    self.aircraft,
+                    self.facility,
+                    {"enroute_low"},
+                )
+                self.assertEqual(aircraft.track.communications_owner, target)
+                self.assertEqual(aircraft.radio_channel, channel)
+
+    def test_contact_readback_is_queued_on_the_original_channel(self):
+        aircraft = self.by_id["A1"]
+        aircraft.track.offer(TrackingPosition.LOS_ANGELES, "ZLA SECTOR 9")
+        aircraft.track.advance(3)
+        display = Mock(spec=RadarDisplay)
+        with patch("simulator.radio.communications.arcade.Text"):
+            display.communications_panel = CommunicationsPanel()
+        display.aircraft_list = Mock(aircraft_list=self.aircraft)
+        display.atc_facility = self.facility
+        display.voice_audio = Mock(events=queue.SimpleQueue())
+        display.voice_audio.events.put(
+            ("transcript", ("N135TC contact Los Angeles Center 128.6", {"enroute_low"}))
+        )
+        RadarDisplay.process_voice(display)
+        self.assertEqual(
+            display.voice_audio.speak.call_args.args[0].channel, "enroute_low"
+        )
+        self.assertEqual(aircraft.radio_channel, "zla9_low")
 
     def test_bearing_handoff_flashes_then_transfers_to_correct_frequency(self):
         aircraft = self.by_id["A1"]
@@ -379,14 +703,7 @@ class VoiceCommandTests(unittest.TestCase):
             RadarDisplay.capture_secondary_radar_returns(display)
         )
         display.capture_secondary_radar_returns()
-        reply = handle_transmission(
-            "Sheep 1 maintain bearing 265 to Imperial contact Los Angeles Center 291.7",
-            self.aircraft,
-            self.facility,
-            {"enroute_low"},
-        )
-        self.assertIn("Maintain bearing two six five.", reply.text)
-        self.assertEqual(aircraft.track.pending_radio_channel, "zla9_high")
+        aircraft.track.offer(TrackingPosition.LOS_ANGELES, "ZLA SECTOR 9")
         self.assertEqual(aircraft.radio_channel, "enroute_low")
         RadarDisplay.on_update(display, 1)
         snapshot = display.secondary_radar_returns[0]
@@ -406,6 +723,15 @@ class VoiceCommandTests(unittest.TestCase):
             circle.assert_called_once()
         RadarDisplay.on_update(display, 2)
         self.assertEqual(aircraft.track.owner, TrackingPosition.LOS_ANGELES)
+        self.assertEqual(aircraft.track.communications_owner, TrackingPosition.YUMA)
+        self.assertEqual(aircraft.radio_channel, "enroute_low")
+        reply = handle_transmission(
+            "Sheep 1 maintain bearing 265 to Imperial contact Los Angeles Center 291.7",
+            self.aircraft,
+            self.facility,
+            {"enroute_low"},
+        )
+        self.assertIn("Maintain bearing two six five.", reply.text)
         self.assertEqual(
             aircraft.track.communications_owner, TrackingPosition.LOS_ANGELES
         )
@@ -418,7 +744,7 @@ class VoiceCommandTests(unittest.TestCase):
         aircraft.track.offer_coordination(
             CoordinationKind.POINT_OUT, TrackingPosition.LOS_ANGELES, "TEST"
         )
-        with self.assertRaisesRegex(ValueError, "Coordination is already pending"):
+        with self.assertRaisesRegex(ValueError, "Complete an outgoing handoff"):
             handle_transmission(
                 "N135TC maintain bearing 265 contact Los Angeles Center 291.7",
                 self.aircraft,
@@ -741,19 +1067,30 @@ class VoiceCommandTests(unittest.TestCase):
                 self.facility,
                 {"enroute_low"},
             )
-        with self.assertRaisesRegex(ValueError, "separately"):
-            handle_transmission(
-                "N135TC radar contact identity",
-                self.aircraft,
-                self.facility,
-                {"enroute_low"},
-            )
+        for variant in ("identity", "identical", "i dent"):
+            with self.subTest(variant=variant):
+                with self.assertRaisesRegex(ValueError, "separately"):
+                    handle_transmission(
+                        f"N135TC radar contact {variant}",
+                        self.aircraft,
+                        self.facility,
+                        {"enroute_low"},
+                    )
+                with self.assertRaisesRegex(
+                    ValueError, "Unrecognized voice instruction"
+                ):
+                    handle_transmission(
+                        f"N135TC squawk {variant}",
+                        self.aircraft,
+                        self.facility,
+                        {"enroute_low"},
+                    )
         with self.assertRaisesRegex(ValueError, "Unrecognized voice instruction"):
             handle_transmission(
                 "N135TC squawk ident", self.aircraft, self.facility, {"enroute_low"}
             )
         self.assertEqual(aircraft.ident_remaining, 0)
-        for instruction in ("ident", "identity"):
+        for instruction in ("ident", "identity", "identical", "i dent"):
             reply = handle_transmission(
                 f"N135TC {instruction}", self.aircraft, self.facility, {"enroute_low"}
             )

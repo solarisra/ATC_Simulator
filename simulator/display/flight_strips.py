@@ -3,6 +3,7 @@ from functools import cache
 import arcade
 
 from simulator.core.aircraft import display_callsign
+from simulator.core.atc import RadarControlState, TrackingPosition
 from simulator.core.constants import SCREEN_HEIGHT, SCREEN_WIDTH
 from simulator.navigation.flight_navigation import NavigationData
 
@@ -123,6 +124,7 @@ class FlightStripPanel:
         self.active_runways = active_runways
         self.helicopter_pads = helicopter_pads
         self.offset = 0
+        self.show_discarded = False
         self.edit_strip = None
         self.edit_field = None
         self.edit_text = ""
@@ -186,18 +188,23 @@ class FlightStripPanel:
             width=TOOLTIP_WIDTH - 16,
         )
 
-    def active_strips(self):
+    def available_strips(self, discarded):
         active_aircraft = {
             id(aircraft) for aircraft in self.aircraft_list.aircraft_list
         }
         return [
             strip
             for strip in self.strips
-            if strip.active and id(strip.aircraft) in active_aircraft
+            if strip.active
+            and strip.discarded == discarded
+            and id(strip.aircraft) in active_aircraft
         ]
 
+    def active_strips(self):
+        return self.available_strips(False)
+
     def visible_strips(self):
-        strips = self.active_strips()
+        strips = self.available_strips(self.show_discarded)
         self.offset = min(max(self.offset, 0), max(0, len(strips) - VISIBLE_STRIPS))
         return strips[self.offset : self.offset + VISIBLE_STRIPS]
 
@@ -230,6 +237,23 @@ class FlightStripPanel:
     def strip_left(strip):
         return STRIP_LEFT + (STRIP_SHIFT if strip.offset_right else 0)
 
+    @staticmethod
+    def on_board(x, y):
+        return (
+            SCREEN_WIDTH <= x < SCREEN_WIDTH + PANEL_WIDTH
+            and LIST_BOTTOM <= y < LIST_TOP
+        )
+
+    @staticmethod
+    def can_discard(strip):
+        track = strip.aircraft.track
+        return (
+            track.owner != TrackingPosition.YUMA
+            and track.communications_owner == track.owner
+            and track.handoff_target is None
+            and track.radar_control_state == RadarControlState.HANDED_OFF
+        )
+
     def drag_target_at(self, x, y, require_strip=False):
         if not STRIP_LEFT <= x < STRIP_LEFT + STRIP_COLUMNS[-1] + STRIP_SHIFT:
             return None
@@ -253,6 +277,8 @@ class FlightStripPanel:
 
     def start_drag(self, x, y):
         self.cancel_drag()
+        if self.show_discarded:
+            return
         target = self.drag_target_at(x, y, require_strip=True)
         if target is not None:
             self.drag_strip = target[0]
@@ -283,6 +309,14 @@ class FlightStripPanel:
             return
         if source not in self.active_strips():
             self.error = "STRIP NO LONGER ACTIVE"
+            return
+        if not self.on_board(x, y):
+            if not self.can_discard(source):
+                self.error = "COMPLETE HANDOFF AND RADIO TRANSFER FIRST"
+            else:
+                source.discarded = True
+                self.error = f"DISCARDED {display_callsign(source.aircraft)}"
+                self.visible_strips()
             return
         dx, dy = x - start[0], y - start[1]
         if abs(dx) >= STRIP_SHIFT / 2 and abs(dx) > abs(dy):
@@ -416,6 +450,8 @@ class FlightStripPanel:
                 self.cancel_edit()
                 self.error = "STRIP NO LONGER ACTIVE"
                 return True
+            if self.edit_field is None:
+                raise RuntimeError("Strip edit field is missing")
             if symbol == arcade.key.ESCAPE:
                 self.cancel_edit()
             elif symbol in (arcade.key.ENTER, arcade.key.NUM_ENTER):
@@ -473,6 +509,37 @@ class FlightStripPanel:
                     self.edit_text += char
                     self.error = ""
             return True
+        if symbol == arcade.key.R or (
+            self.show_discarded and symbol == arcade.key.ESCAPE
+        ):
+            self.show_discarded = not self.show_discarded
+            self.offset = 0
+            self.error = ""
+            self.cancel_drag()
+            return True
+        if self.show_discarded:
+            if symbol in (arcade.key.ENTER, arcade.key.NUM_ENTER):
+                strip = next(
+                    (
+                        item
+                        for item in self.available_strips(True)
+                        if item.aircraft.id == selected_id
+                    ),
+                    None,
+                )
+                if strip is None:
+                    self.error = "SELECT A DISCARDED STRIP TO RESTORE"
+                else:
+                    strip.discarded = False
+                    self.show_discarded = False
+                    self.offset = self.active_strips().index(strip)
+                    self.visible_strips()
+                    self.error = f"RESTORED {display_callsign(strip.aircraft)}"
+                return True
+            if symbol in EDIT_FIELDS:
+                self.error = "RESTORE STRIP BEFORE EDITING"
+                return True
+            return False
         if symbol in EDIT_FIELDS:
             strip = self.selected_strip(selected_id)
             if strip is not None:
@@ -505,12 +572,17 @@ class FlightStripPanel:
             arcade.LBWH(SCREEN_WIDTH, 0, PANEL_WIDTH, SCREEN_HEIGHT),
             (32, 38, 42),
         )
-        strips = self.active_strips()
+        strips = self.available_strips(self.show_discarded)
         visible = self.visible_strips()
-        self.header.text = (
-            f"FLIGHT PROGRESS STRIPS   {len(strips)} ACTIVE\n"
-            f"SIM RWY {' '.join(self.active_runways) or '--'} / DRAG / SCROLL"
-        )
+        if self.show_discarded:
+            self.header.text = (
+                f"DISCARDED STRIPS   {len(strips)}\nSELECT / ENTER RESTORE / R BOARD"
+            )
+        else:
+            self.header.text = (
+                f"FLIGHT PROGRESS STRIPS   {len(strips)} ACTIVE\n"
+                f"SIM RWY {' '.join(self.active_runways) or '--'} / DRAG / SCROLL / R DISCARDED"
+            )
         self.header.draw()
         if departure_checkins:
             self.checkins.text = "DEPARTURE CHECK-INS\n" + "\n".join(departure_checkins)
@@ -629,6 +701,22 @@ class FlightStripPanel:
                     arcade.color.LIGHT_BLUE,
                     3,
                 )
+            if self.drag_strip is not None and not self.on_board(*self.drag_position):
+                x, y = self.drag_position
+                left = max(0, min(x - 70, SCREEN_WIDTH + PANEL_WIDTH - 140))
+                bottom = max(0, min(y - 16, SCREEN_HEIGHT - 32))
+                arcade.draw_rect_filled(
+                    arcade.LBWH(left, bottom, 140, 32),
+                    (255, 246, 196, 220)
+                    if self.can_discard(self.drag_strip)
+                    else (200, 150, 150, 220),
+                )
+                self.draw_field(
+                    display_callsign(self.drag_strip.aircraft),
+                    left + 4,
+                    bottom + 27,
+                    132,
+                )
         if self.edit_strip is not None:
             label = next(
                 field[1]
@@ -640,7 +728,9 @@ class FlightStripPanel:
                 f"{self.edit_text}_\nENTER SAVE / ESC CANCEL\n{self.error}"
             )
         else:
-            strip = self.selected_strip(selected_id)
+            strip = next(
+                (item for item in strips if item.aircraft.id == selected_id), None
+            )
             if strip:
                 plan = strip.flight_plan
                 kind = terminal_strip_fields(strip, self.airport_code)[0]
@@ -651,8 +741,12 @@ class FlightStripPanel:
                     f"FILED {plan.altitude if plan.altitude is not None else '?'} FT / {plan.speed if plan.speed is not None else '?'} KT\n"
                     f"ASSIGNED {strip.assigned_altitude or '?'} FT  FIX {strip.fix_time or '?'}\n"
                     f"REMARKS {strip.remarks or '-'}\n"
-                    "1 ALT  2 FIX  3 RMK  4 SQ  5 RWY/PAD\n"
-                    "ANNOTATIONS ONLY - NO AIRCRAFT COMMAND"
+                    + (
+                        "ENTER RESTORE / R BOARD"
+                        if self.show_discarded
+                        else "1 ALT  2 FIX  3 RMK  4 SQ  5 RWY/PAD\n"
+                        "DRAG OFF BOARD TO DISCARD AFTER HANDOFF AND RADIO TRANSFER"
+                    )
                 )
                 departure = getattr(strip.aircraft, "departure", None)
                 if departure is not None and departure.state == "waiting":
@@ -662,9 +756,24 @@ class FlightStripPanel:
                 elif departure is not None and departure.state == "takeoff":
                     footer += "\nDEPARTURE IN PROGRESS"
             else:
-                footer = "CLICK A STRIP TO SELECT\nNO STRIP FOR SELECTED AIRCRAFT"
+                footer = (
+                    "CLICK A DISCARDED STRIP TO SELECT\nENTER RESTORE / R BOARD"
+                    if self.show_discarded
+                    else "CLICK A STRIP TO SELECT\nNO STRIP FOR SELECTED AIRCRAFT"
+                )
             if self.error:
                 footer += f"\n{self.error}"
+            if (
+                self.dragging
+                and self.drag_strip is not None
+                and self.drag_position is not None
+                and not self.on_board(*self.drag_position)
+            ):
+                footer += (
+                    "\nRELEASE TO DISCARD"
+                    if self.can_discard(self.drag_strip)
+                    else "\nCOMPLETE HANDOFF AND RADIO TRANSFER FIRST"
+                )
         self.footer.text = footer
         self.footer.draw()
         self.draw_tooltip()

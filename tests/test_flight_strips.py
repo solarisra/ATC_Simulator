@@ -9,7 +9,7 @@ import arcade
 
 from Locations.Yuma.Scenarios.yuma import create_yuma_scenario
 from simulator.core.aircraft_models import boeing_767_freighter
-from simulator.core.atc import FlightPlan, FlightStrip
+from simulator.core.atc import FlightPlan, FlightStrip, TrackingPosition, TrackOwnership
 from simulator.core.constants import SCREEN_WIDTH
 from simulator.display.flight_strips import (
     CHECKINS_TOP,
@@ -24,6 +24,7 @@ from simulator.display.flight_strips import (
     terminal_strip_fields,
 )
 from simulator.display.radar import RadarDisplay, RadarViewport
+from simulator.radio.voice_commands import handle_transmission
 
 
 def make_panel(count):
@@ -37,6 +38,7 @@ def make_panel(count):
             flight_rules="VFR",
             squawk="1200",
             target_altitude=None,
+            track=TrackOwnership(),
         )
         for i in range(count)
     ]
@@ -53,6 +55,148 @@ def make_panel(count):
 
 
 class FlightStripTests(unittest.TestCase):
+    def test_drag_off_board_requires_completed_handoff_and_can_be_restored(self):
+        aircraft_list, facility, strips = create_yuma_scenario()
+        aircraft = next(item for item in aircraft_list.aircraft_list if item.id == "A1")
+        strip = next(item for item in strips if item.aircraft is aircraft)
+        with patch("simulator.display.flight_strips.arcade.Text"):
+            panel = FlightStripPanel(strips, aircraft_list)
+        x, y = STRIP_LEFT + 10, LIST_TOP - 10
+
+        def drag_off_board():
+            panel.start_drag(x, y)
+            panel.move_drag(SCREEN_WIDTH - 10, y)
+            panel.finish_drag(SCREEN_WIDTH - 10, y)
+
+        drag_off_board()
+        self.assertIn(strip, panel.active_strips())
+        self.assertIn("HANDOFF", panel.error)
+        aircraft.track.offer(TrackingPosition.LOS_ANGELES, "ZLA SECTOR 9")
+        self.assertTrue(aircraft.track.advance(3))
+        drag_off_board()
+        self.assertIn(strip, panel.active_strips())
+        self.assertIn("RADIO", panel.error)
+        handle_transmission(
+            "N135TC contact Los Angeles Center 128.6",
+            aircraft_list.aircraft_list,
+            facility,
+            {"enroute_low"},
+        )
+        guidance = aircraft.flight_guidance
+        drag_off_board()
+        self.assertNotIn(strip, panel.active_strips())
+        self.assertTrue(strip.discarded)
+        self.assertTrue(strip.active)
+        self.assertIn(aircraft, aircraft_list.aircraft_list)
+        self.assertIs(aircraft.flight_guidance, guidance)
+        self.assertIs(guidance.strip, strip)
+        self.assertEqual(
+            aircraft.track.communications_owner, TrackingPosition.LOS_ANGELES
+        )
+        self.assertEqual(aircraft.radio_channel, "zla9_low")
+
+        self.assertTrue(panel.on_key_press(arcade.key.R, aircraft.id))
+        self.assertEqual(panel.visible_strips(), [strip])
+        self.assertTrue(panel.on_key_press(arcade.key.ENTER, aircraft.id))
+        self.assertFalse(strip.discarded)
+        self.assertIn(strip, panel.active_strips())
+
+    def test_drag_and_restore_through_radar_input(self):
+        aircraft_list, _, strips = create_yuma_scenario()
+        aircraft = next(item for item in aircraft_list.aircraft_list if item.id == "A1")
+        strip = next(item for item in strips if item.aircraft is aircraft)
+        aircraft.track.offer(TrackingPosition.LOS_ANGELES, "ZLA SECTOR 9")
+        aircraft.track.advance(3)
+        aircraft.track.transfer_communications()
+        with patch("simulator.display.flight_strips.arcade.Text"):
+            panel = FlightStripPanel(strips, aircraft_list)
+        display = SimpleNamespace(
+            strip_panel=panel,
+            scratchpad_edit_id=None,
+            handoff_choice_id=None,
+            handoff_message="",
+            selected_aircraft_id=None,
+        )
+        x, y = STRIP_LEFT + 10, LIST_TOP - 10
+        RadarDisplay.on_mouse_press(display, x, y, arcade.MOUSE_BUTTON_LEFT, 0)
+        RadarDisplay.on_mouse_drag(
+            display, SCREEN_WIDTH - 10, y, -20, 0, arcade.MOUSE_BUTTON_LEFT, 0
+        )
+        with (
+            patch("arcade.draw_rect_filled"),
+            patch("arcade.draw_line"),
+            patch.object(panel, "draw_field") as fields,
+        ):
+            panel.draw(aircraft.id)
+        self.assertIn("RELEASE TO DISCARD", panel.footer.text)
+        self.assertIn(
+            (aircraft.callsign, SCREEN_WIDTH - 76),
+            [(call.args[0], call.args[1]) for call in fields.call_args_list],
+        )
+        RadarDisplay.on_mouse_release(
+            display, SCREEN_WIDTH - 10, y, arcade.MOUSE_BUTTON_LEFT, 0
+        )
+        self.assertTrue(strip.discarded)
+        self.assertEqual(display.selected_aircraft_id, aircraft.id)
+        RadarDisplay.on_key_press(display, arcade.key.R, 0)
+        self.assertEqual(panel.visible_strips(), [strip])
+        RadarDisplay.on_mouse_press(display, x, y, arcade.MOUSE_BUTTON_LEFT, 0)
+        RadarDisplay.on_key_press(display, arcade.key.ENTER, 0)
+        self.assertFalse(strip.discarded)
+        self.assertFalse(panel.show_discarded)
+        self.assertIn(strip, panel.visible_strips())
+
+    def test_drag_into_board_margin_does_not_discard(self):
+        aircraft_list, _, strips = create_yuma_scenario()
+        aircraft = next(item for item in aircraft_list.aircraft_list if item.id == "A1")
+        strip = next(item for item in strips if item.aircraft is aircraft)
+        aircraft.track.offer(TrackingPosition.LOS_ANGELES, "ZLA SECTOR 9")
+        aircraft.track.advance(3)
+        aircraft.track.transfer_communications()
+        with patch("simulator.display.flight_strips.arcade.Text"):
+            panel = FlightStripPanel(strips, aircraft_list)
+        x, y = STRIP_LEFT + 10, LIST_TOP - 10
+        panel.start_drag(x, y)
+        panel.move_drag(STRIP_LEFT - 1, y)
+        panel.finish_drag(STRIP_LEFT - 1, y)
+        self.assertFalse(strip.discarded)
+
+    def test_discarded_view_scrolls_and_restores_selected_strip(self):
+        panel, aircraft, strips = make_panel(VISIBLE_STRIPS + 3)
+        for strip in strips:
+            strip.discarded = True
+        panel.on_key_press(arcade.key.R, None)
+        panel.scroll(-100)
+        selected_id = panel.select_at(LIST_TOP - 1)
+        self.assertEqual(selected_id, aircraft[3].id)
+        panel.on_key_press(arcade.key.ENTER, selected_id)
+        self.assertEqual(panel.visible_strips(), [strips[3]])
+        self.assertFalse(strips[3].discarded)
+        self.assertTrue(
+            all(strip.discarded for strip in strips if strip is not strips[3])
+        )
+        self.assertEqual(
+            [strip.aircraft.id for strip in panel.strips],
+            [item.id for item in aircraft],
+        )
+
+    def test_incoming_handoff_prevents_discard(self):
+        aircraft_list, _, strips = create_yuma_scenario()
+        aircraft = next(item for item in aircraft_list.aircraft_list if item.id == "A1")
+        strip = next(item for item in strips if item.aircraft is aircraft)
+        with patch("simulator.display.flight_strips.arcade.Text"):
+            panel = FlightStripPanel(strips, aircraft_list)
+        aircraft.track.offer(TrackingPosition.LOS_ANGELES, "ZLA SECTOR 9")
+        aircraft.track.advance(3)
+        aircraft.track.transfer_communications()
+        aircraft.track.offer(TrackingPosition.YUMA)
+        x, y = STRIP_LEFT + 10, LIST_TOP - 10
+        panel.start_drag(x, y)
+        panel.move_drag(SCREEN_WIDTH - 10, y)
+        panel.finish_drag(SCREEN_WIDTH - 10, y)
+        self.assertFalse(strip.discarded)
+        self.assertIn(strip, panel.active_strips())
+
     def test_heavy_marker_is_drawn_on_strip(self):
         panel, aircraft, _ = make_panel(1)
         aircraft[0].callsign = "AAL381"
@@ -446,6 +590,13 @@ class FlightStripTests(unittest.TestCase):
         panel.on_key_press(arcade.key.ENTER, aircraft[0].id)
         self.assertEqual(panel.error, "STRIP NO LONGER ACTIVE")
         self.assertEqual(strips[0].fix_time, "")
+
+    def test_strip_edit_requires_a_field(self):
+        panel, aircraft, _ = make_panel(1)
+        panel.on_key_press(arcade.key.KEY_1, aircraft[0].id)
+        panel.edit_field = None
+        with self.assertRaisesRegex(RuntimeError, "Strip edit field is missing"):
+            panel.on_key_press(arcade.key.ENTER, aircraft[0].id)
 
     def test_strip_beacon_edit_validation_and_radar_independence(self):
         panel, aircraft, strips = make_panel(1)

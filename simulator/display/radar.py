@@ -838,7 +838,10 @@ class RadarDisplay(arcade.Window):
         position = snapshot.tracking_owner
         if snapshot.handoff_target is not None:
             position = f"{position}>{snapshot.handoff_target}"
-        text = f"{snapshot.callsign} {position}{emergency}{ident}\n{altitude}  {speed}\n{snapshot.aircraft_type}\n{snapshot.scratchpad or ' '}"
+        text = (
+            f"{snapshot.callsign} {position}{emergency}{ident}\n{altitude}  {speed}\n"
+            f"{snapshot.aircraft_type} {snapshot.squawk}\n{snapshot.scratchpad or ' '}"
+        )
         return text, text_x, text_y
 
     def get_data_block_label(self, snapshot, distance):
@@ -1071,17 +1074,18 @@ class RadarDisplay(arcade.Window):
             arcade.draw_circle_filled(x, y, 3, color)
         if selected:
             arcade.draw_circle_outline(x, y, 8, arcade.color.YELLOW, 2)
-        end_x, end_y = leader_line_end(x, y, text_x, text_y, width, height)
-        arcade.draw_line(
-            x,
-            y,
-            end_x,
-            end_y,
-            arcade.color.WHITE,
-            1,
-        )
-        label.position = (text_x - width / 2, text_y)
-        label.draw()
+        if not snapshot.ident or flash_visible:
+            end_x, end_y = leader_line_end(x, y, text_x, text_y, width, height)
+            arcade.draw_line(
+                x,
+                y,
+                end_x,
+                end_y,
+                arcade.color.WHITE,
+                1,
+            )
+            label.position = (text_x - width / 2, text_y)
+            label.draw()
 
     def draw_selected_aircraft_details(self):
         snapshot = next(

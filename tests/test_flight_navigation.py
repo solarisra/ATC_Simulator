@@ -410,35 +410,37 @@ class FlightNavigationTests(unittest.TestCase):
         self.assertIn("N380CJ", departure.departure.check_in)
 
     def test_heavy_airline_departure_checkin_is_displayed_and_spoken(self):
-        _, facility, strips = create_yuma_scenario()
-        aircraft = next(s.aircraft for s in strips if s.aircraft.id == "A8")
-        aircraft.callsign = "AAL381"
-        aircraft.aircraft_model = boeing_767_freighter
-        aircraft.departure.state = "airborne"
-        aircraft.departure.record_airborne(aircraft, 15)
-        aircraft.update_position = Mock()
-        display = SimpleNamespace(
-            aircraft_list=SimpleNamespace(aircraft_list=[aircraft]),
-            atc_facility=facility,
-            secondary_radar_returns=[],
-            departure_checkins=[],
-            reported_departures=set(),
-            selected_aircraft_id=None,
-            sweep=RadarSweep(),
-            radar_return_manager=RadarReturnManager(),
-            display_type=RadarDisplay.STARS,
-            ARTS_IIE=RadarDisplay.ARTS_IIE,
-            secondary_update_elapsed=0,
-            emergency_flash_elapsed=0,
-            calculate_range_and_bearing=lambda lat, lon: (0, 0),
-            voice_audio=Mock(),
-        )
-        with patch.object(RadarDisplay, "process_voice"):
-            RadarDisplay.on_update(display, 0)
-        self.assertTrue(display.departure_checkins[0].startswith("AAL381H:"))
-        reply = display.voice_audio.speak.call_args.args[0]
-        self.assertTrue(reply.text.startswith("American three eight one heavy:"))
-        self.assertEqual(aircraft.callsign, "AAL381")
+        for callsign, spoken in (("AAL381", "American"), ("AMF381", "Am Flight")):
+            with self.subTest(callsign=callsign):
+                _, facility, strips = create_yuma_scenario()
+                aircraft = next(s.aircraft for s in strips if s.aircraft.id == "A8")
+                aircraft.callsign = callsign
+                aircraft.aircraft_model = boeing_767_freighter
+                aircraft.departure.state = "airborne"
+                aircraft.departure.record_airborne(aircraft, 15)
+                aircraft.update_position = Mock()
+                display = SimpleNamespace(
+                    aircraft_list=SimpleNamespace(aircraft_list=[aircraft]),
+                    atc_facility=facility,
+                    secondary_radar_returns=[],
+                    departure_checkins=[],
+                    reported_departures=set(),
+                    selected_aircraft_id=None,
+                    sweep=RadarSweep(),
+                    radar_return_manager=RadarReturnManager(),
+                    display_type=RadarDisplay.STARS,
+                    ARTS_IIE=RadarDisplay.ARTS_IIE,
+                    secondary_update_elapsed=0,
+                    emergency_flash_elapsed=0,
+                    calculate_range_and_bearing=lambda lat, lon: (0, 0),
+                    voice_audio=Mock(),
+                )
+                with patch.object(RadarDisplay, "process_voice"):
+                    RadarDisplay.on_update(display, 0)
+                self.assertTrue(display.departure_checkins[0].startswith(f"{callsign}H:"))
+                reply = display.voice_audio.speak.call_args.args[0]
+                self.assertTrue(reply.text.startswith(f"{spoken} three eight one heavy:"))
+                self.assertEqual(aircraft.callsign, callsign)
 
     def test_departure_checkin_uses_controller_assigned_altitude(self):
         _, _, strips = create_yuma_scenario()

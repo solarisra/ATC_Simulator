@@ -323,6 +323,7 @@ class FlightStrip:
         self.aircraft = aircraft
         self.flight_plan = flight_plan
         self.active = True
+        self.discarded = False
         self.offset_right = False
         self.beacon_code = aircraft.squawk
         self.operation_area = ""

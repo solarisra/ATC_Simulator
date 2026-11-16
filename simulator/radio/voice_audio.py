@@ -249,10 +249,9 @@ class VoiceAudio:
             import sounddevice as sd
             import torch
 
-            if not torch.cuda.is_available():
-                raise RuntimeError(
-                    "CUDA-enabled PyTorch and an NVIDIA GPU are required"
-                )
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+            if device == "cpu":
+                self.events.put(("status", "Warning: Using CPU (slower). NVIDIA GPU recommended for better performance"))
             if os.name == "nt":
                 dll_directory = os.add_dll_directory(
                     str(Path(torch.__file__).parent / "lib")
@@ -263,9 +262,10 @@ class VoiceAudio:
 
             self.events.put(("status", "Loading speech models"))
             EspeakFallback(british=False)
-            whisper = WhisperModel("small.en", device="cuda", compute_type="float16")
+            compute_type = "float16" if device == "cuda" else "float32"
+            whisper = WhisperModel("small.en", device=device, compute_type=compute_type)
             kokoro = KPipeline(
-                lang_code="a", repo_id="hexgrad/Kokoro-82M", device="cuda"
+                lang_code="a", repo_id="hexgrad/Kokoro-82M", device=device
             )
             for index, pilot_voice in enumerate(PILOT_VOICES, start=1):
                 with self._condition:

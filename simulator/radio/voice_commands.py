@@ -327,6 +327,15 @@ def _address(words, aircraft_list):
             ):
                 rest = rest[1:]
             alternatives.append([prefix + words[0][len(spoken) :], *rest])
+        # Handle airline name followed by separate number words (e.g., "AMERICAN FOUR")
+        if words and words[0] == spoken and len(words) > 1 and words[1] in DIGITS:
+            rest = words[2:]
+            if (
+                spoken in ("AMERICAN", "UNITED")
+                and rest[:1] == ["AIRLINES"]
+            ):
+                rest = rest[1:]
+            alternatives.append([prefix + words[1], *rest])
     for candidate_words in alternatives:
         for aircraft in aircraft_list:
             callsign = aircraft.callsign.upper()

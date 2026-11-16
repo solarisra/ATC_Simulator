@@ -552,3 +552,22 @@ and no single stall speed is modeled. A zero takeoff distance represents
 vertical takeoff under suitable conditions, not a guarantee at every weight
 or altitude. The F-35 model is the carrier-capable F-35C used by the Navy and
 Marine Corps. Tiltrotor conversion and Harrier vertical flight are not modeled.
+
+## Licensing & Commercial Use
+
+**Copyright © 2024-2026. All rights reserved.**
+
+This software is proprietary. Unauthorized copying, distribution, or commercial 
+use without an explicit commercial license is prohibited.
+
+For commercial licensing inquiries or questions about permitted use, contact the 
+copyright holder.
+
+### Third-Party Licenses
+
+This project incorporates open-source libraries licensed under MIT, BSD, and 
+Apache 2.0 licenses. All third-party components are used in compliance with 
+their respective licenses.
+
+See [ATTRIBUTION.md](ATTRIBUTION.md) for complete attribution and license details 
+for all third-party dependencies.

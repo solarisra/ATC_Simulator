@@ -10,6 +10,7 @@ from locations.Yuma.Scenarios.sample_data import CIVILIAN_AIRPORTS
 from simulator.core import aircraft_models as models
 from simulator.core.aircraft import Aircraft, AircraftList, AircraftModel
 from simulator.core.atc import ATCFacility, FlightPlan, FlightStrip
+from simulator.core.separation_standards import SeparationMinima, map_model_to_category
 from simulator.navigation.departure import Departure
 from simulator.navigation.flight_navigation import (
     FlightPlanGuidance,
@@ -349,6 +350,54 @@ def generate_yuma_scenario(settings, start_time=None):
     registration_numbers = registration_rng.sample(
         range(100, 1000), TRAFFIC_LEVELS[settings.volume]
     )
+
+    def _has_adequate_separation(candidate: Aircraft, operation: str) -> bool:
+        """Check if candidate aircraft has adequate separation from all existing aircraft.
+        
+        Args:
+            candidate: Aircraft to check separation for
+            operation: Operation type (departures, approaches, enroute)
+            
+        Returns:
+            True if candidate has adequate separation, False otherwise
+        """
+        # Departures can share airport location initially (they haven't taken off)
+        # Only check separation for airborne traffic
+        if operation == "departures":
+            return True
+            
+        for existing in aircraft_list.aircraft_list:
+            # Skip separation checks with departures (not yet airborne)
+            # This would be indicated by checking if departure exists
+            # For now, we'll just ensure airborne traffic has separation
+            
+            # Calculate distance in nautical miles
+            distance = NavigationalCoordinateSystem.calculate_distance(
+                candidate.lat, candidate.lon, existing.lat, existing.lon
+            )
+            # Calculate vertical separation in feet
+            vertical_distance = abs(
+                (candidate.altitude - existing.altitude) * 100
+            )
+
+            # Get aircraft categories
+            cand_model = candidate.aircraft_model.aircraft_type
+            exist_model = existing.aircraft_model.aircraft_type
+            cand_category = map_model_to_category(cand_model)
+            exist_category = map_model_to_category(exist_model)
+
+            # For radar operations, ensure lateral or vertical separation
+            if vertical_distance >= SeparationMinima.radar_vertical_minima:
+                continue
+            # Need lateral separation if not vertically separated
+            required_lateral = SeparationMinima.get_radar_separation(
+                exist_category, cand_category
+            )
+            if distance < required_lateral:
+                return False
+
+        return True
+
     for index in range(TRAFFIC_LEVELS[settings.volume]):
         category, operation = rng.choices(supported, weights=weights, k=1)[0]
         profile, itineraries = rng.choice(candidates[(category, operation)])
@@ -402,6 +451,26 @@ def generate_yuma_scenario(settings, start_time=None):
             lon,
             profile.rules,
         )
+
+        # Ensure adequate separation from existing aircraft
+        for attempt in range(5):
+            if _has_adequate_separation(aircraft, operation):
+                break
+            # Try adjusting altitude to establish vertical separation
+            if attempt < 4:
+                altitude += rng.choice([-1000, 1000])
+                # Ensure altitude stays within reasonable bounds
+                min_alt = 1000 if profile.rules == "VFR" else 2000
+                max_alt = 18000 if category == "helicopters" else 20000
+                altitude = max(min_alt, min(max_alt, altitude))
+                aircraft.altitude = altitude / 100
+            else:
+                # Last attempt: shift position slightly if altitude adjustment failed
+                lat += rng.uniform(-0.01, 0.01)
+                lon += rng.uniform(-0.01, 0.01)
+                aircraft.lat = lat
+                aircraft.lon = lon
+
         strip = FlightStrip(identifier, aircraft, plan)
         # Generated airborne traffic starts locally, so retain Yuma ownership.
         if fallback:

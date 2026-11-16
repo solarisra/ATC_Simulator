@@ -14,8 +14,7 @@ def briefing_pages(facility, strips, communications):
     ]
     pages = [
         [
-            f"Location: {facility.name}",
-            f"Active runways: {', '.join(facility.active_runways) or 'none'}",
+            f"Location: {facility.name} ({', '.join(facility.active_runways) or 'none'})",
             f"Helicopter pads: {', '.join(facility.helicopter_pads) or 'none'}",
             "Weather: not simulated; altimeter 29.92 assumed",
             f"Traffic: {sum(strip.active for strip in strips)} active aircraft",

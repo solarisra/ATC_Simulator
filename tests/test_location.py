@@ -1,6 +1,6 @@
 import unittest
 
-from Locations.Yuma.Scenarios.yuma import create_yuma_scenario
+from locations.Yuma.Scenarios.yuma import create_yuma_scenario
 from simulator.core.atc import ATC, ATCFacility
 from simulator.core.location import AirportDiagram, FlightPlate, Location
 

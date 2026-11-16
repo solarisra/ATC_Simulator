@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 import arcade
 
-from Locations.Yuma import create_location as create_yuma_location
+from locations.Yuma import create_location as create_yuma_location
 from simulator.core.constants import SCREEN_HEIGHT, SCREEN_WIDTH
 from simulator.core.location import RadioState
 from simulator.display.flight_strips import PANEL_WIDTH

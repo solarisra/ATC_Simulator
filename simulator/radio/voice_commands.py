@@ -110,6 +110,7 @@ class PilotReply:
     aircraft_id: str
     channel: str
     text: str
+    pilot_voice: str | None = None
 
 
 def _tokens(text: str) -> list[str]:
@@ -330,9 +331,19 @@ def _address(words, aircraft_list):
         for aircraft in aircraft_list:
             callsign = aircraft.callsign.upper()
             for end in range(1, len(candidate_words) + 1):
-                candidate = _identifier(_callsign_tokens(candidate_words[:end]))
-                if candidate == callsign or (
-                    candidate == callsign + "H" and is_heavy(aircraft)
+                callsign_words = _callsign_tokens(candidate_words[:end])
+                candidates = {_identifier(callsign_words)}
+                if "MIC" in callsign_words:
+                    candidates.add(
+                        _identifier(
+                            [
+                                "MIKE" if word == "MIC" else word
+                                for word in callsign_words
+                            ]
+                        )
+                    )
+                if callsign in candidates or (
+                    callsign + "H" in candidates and is_heavy(aircraft)
                 ):
                     if (
                         candidate_words[end : end + 1] == ["OR"]
@@ -341,7 +352,7 @@ def _address(words, aircraft_list):
                     ):
                         end += 1
                     if (
-                        candidate == callsign
+                        callsign in candidates
                         and candidate_words[end : end + 1]
                         in (["HEAVY"], ["H"], ["HOTEL"])
                         and is_heavy(aircraft)
@@ -349,7 +360,7 @@ def _address(words, aircraft_list):
                         end += 1
                     matches.append((aircraft, candidate_words[end:]))
                     break
-                if not callsign.startswith(candidate):
+                if not any(callsign.startswith(candidate) for candidate in candidates):
                     break
     if len(matches) != 1:
         raise ValueError("Say one unambiguous aircraft callsign first")
@@ -642,4 +653,6 @@ def handle_transmission(text, aircraft_list, facility, transmitting_channels):
             aircraft.track.transfer_communications()
             aircraft.radio_channel = destination_channel
             response += f" Contact {center} on {frequency}."
-    return PilotReply(aircraft.id, channel, f"{response.strip()} {callsign}.")
+    return PilotReply(
+        aircraft.id, channel, f"{response.strip()} {callsign}.", aircraft.pilot_voice
+    )

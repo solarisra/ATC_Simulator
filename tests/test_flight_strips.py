@@ -7,7 +7,7 @@ from unittest.mock import Mock, patch
 
 import arcade
 
-from Locations.Yuma.Scenarios.yuma import create_yuma_scenario
+from locations.Yuma.Scenarios.yuma import create_yuma_scenario
 from simulator.core.aircraft_models import boeing_767_freighter
 from simulator.core.atc import FlightPlan, FlightStrip, TrackingPosition, TrackOwnership
 from simulator.core.constants import SCREEN_WIDTH

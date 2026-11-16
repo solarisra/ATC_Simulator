@@ -1,21 +1,84 @@
+import importlib.util
 import queue
+import random
 import threading
 import unittest
-from unittest.mock import Mock
+from types import SimpleNamespace
+from unittest.mock import Mock, patch
 
 import numpy as np
 
-from Locations.Yuma.Scenarios.yuma import create_yuma_scenario
+from locations.Yuma.Scenarios.yuma import create_yuma_scenario
 from simulator.radio.voice_audio import (
     MAX_RECORDING_SECONDS,
     PILOT_VOICES,
     SAMPLE_RATE,
     VoiceAudio,
     VoiceCapture,
+    _speech_text,
+    assign_pilot_voices,
 )
+from simulator.radio.voice_commands import PilotReply
 
 
 class VoiceCaptureTests(unittest.TestCase):
+    def test_pronunciation_override_only_changes_matching_speech_text(self):
+        reply = PilotReply(
+            "A1",
+            "enroute_low",
+            "Contact Los Angeles Center. Verify LOS ANGELES Center, not Albuquerque.",
+        )
+        speech = _speech_text(reply.text)
+        self.assertIn("[Los Angeles](/", speech)
+        self.assertIn("[LOS ANGELES](/", speech)
+        self.assertIn("not Albuquerque.", speech)
+        self.assertEqual(
+            reply.text,
+            "Contact Los Angeles Center. Verify LOS ANGELES Center, not Albuquerque.",
+        )
+        self.assertEqual(
+            _speech_text("Los AngelesX and EastLos Angeles"),
+            "Los AngelesX and EastLos Angeles",
+        )
+
+    @unittest.skipUnless(
+        importlib.util.find_spec("kokoro") is not None
+        and importlib.util.find_spec("en_core_web_sm") is not None,
+        "Optional voice dependencies are not installed",
+    )
+    def test_kokoro_pronounces_centers_and_preserves_reply_text(self):
+        from kokoro import KPipeline
+
+        pipeline = KPipeline(lang_code="a", repo_id="hexgrad/Kokoro-82M", model=False)
+        text = "Contact Los Angeles Center. Verify Albuquerque Center."
+        original = next(pipeline(text))
+        corrected = next(pipeline(_speech_text(text)))
+        self.assertEqual(corrected.graphemes, text)
+        self.assertIn("l\u0254s \u02c8\u00e6n\u02a4\u0259l\u0259s", corrected.phonemes)
+        original_tokens = original.tokens
+        corrected_tokens = corrected.tokens
+        if original_tokens is None or corrected_tokens is None:
+            self.fail("Kokoro did not return pronunciation tokens")
+        original_albuquerque = next(
+            token.phonemes for token in original_tokens if token.text == "Albuquerque"
+        )
+        corrected_albuquerque = next(
+            token.phonemes for token in corrected_tokens if token.text == "Albuquerque"
+        )
+        self.assertEqual(
+            original_albuquerque, "\u02c8\u00e6lb\u0259k\u02cc\u025c\u0279ki"
+        )
+        self.assertEqual(corrected_albuquerque, original_albuquerque)
+        for city, expected in (
+            ("Seattle", "si\u02c8\u00e6T\u1d4al"),
+            ("San Francisco", "s\u02c8\u00e6n f\u0279\u00e6ns\u02c8\u026askO"),
+        ):
+            with self.subTest(city=city):
+                phrase = f"Contact {city} Center."
+                result = next(pipeline(_speech_text(phrase)))
+                self.assertEqual(result.graphemes, phrase)
+                self.assertIn(expected, result.phonemes)
+
     def test_capture_requires_a_channel_on_for_the_entire_transmission(self):
         capture = VoiceCapture()
         capture.feed(np.array([[0.5]], dtype=np.float32))
@@ -101,25 +164,50 @@ class VoiceCaptureTests(unittest.TestCase):
 
     def test_pilot_voice_is_distinct_and_stable_for_each_scenario_aircraft(self):
         aircraft_list, _, _ = create_yuma_scenario()
-        voice = VoiceAudio.__new__(VoiceAudio)
-        voice._pilot_voices = {}
+        other_aircraft, _, _ = create_yuma_scenario()
+        with patch(
+            "simulator.radio.voice_audio.random.SystemRandom",
+            side_effect=(random.Random(1), random.Random(2)),
+        ):
+            assign_pilot_voices(aircraft_list.aircraft_list)
+            assign_pilot_voices(other_aircraft.aircraft_list)
         assigned = {
-            aircraft.id: voice._pilot_voice(aircraft.id)
+            aircraft.id: aircraft.pilot_voice
             for aircraft in aircraft_list.aircraft_list
         }
         self.assertEqual(len(set(assigned.values())), len(assigned))
-        for aircraft_id, selected_voice in reversed(list(assigned.items())):
-            self.assertEqual(voice._pilot_voice(aircraft_id), selected_voice)
+        self.assertNotEqual(
+            list(assigned.values()),
+            [aircraft.pilot_voice for aircraft in other_aircraft.aircraft_list],
+        )
+        assign_pilot_voices(list(reversed(aircraft_list.aircraft_list)))
+        self.assertEqual(
+            assigned,
+            {
+                aircraft.id: aircraft.pilot_voice
+                for aircraft in aircraft_list.aircraft_list
+            },
+        )
 
     def test_voice_reuse_is_reported_when_presets_are_exhausted(self):
-        voice = VoiceAudio.__new__(VoiceAudio)
-        voice._pilot_voices = {}
-        for index in range(len(PILOT_VOICES)):
-            voice._pilot_voice(str(index))
+        planes = [
+            SimpleNamespace(pilot_voice=None) for _ in range(len(PILOT_VOICES) + 1)
+        ]
         with self.assertLogs("simulator.radio.voice_audio", level="WARNING") as logs:
-            reused = voice._pilot_voice("additional")
-        self.assertEqual(reused, voice._pilot_voices["0"])
+            assign_pilot_voices(planes)
+        self.assertEqual(
+            len({plane.pilot_voice for plane in planes}), len(PILOT_VOICES)
+        )
         self.assertIn("reusing voice presets", logs.output[0])
+
+    def test_speak_requires_and_queues_the_assigned_voice(self):
+        voice = VoiceAudio.__new__(VoiceAudio)
+        voice._submit = Mock()
+        with self.assertRaisesRegex(ValueError, "No valid pilot voice"):
+            voice.speak(PilotReply("A1", "enroute_low", "Ident."))
+        reply = PilotReply("A1", "enroute_low", "Ident.", PILOT_VOICES[9])
+        voice.speak(reply)
+        voice._submit.assert_called_once_with(("speak", reply))
 
 
 if __name__ == "__main__":

@@ -7,6 +7,7 @@ import sys
 import tempfile
 import threading
 import unittest
+from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
@@ -14,6 +15,7 @@ from unittest import mock
 import arcade
 import numpy as np
 
+from simulator.core.atc import ATCFacility
 from simulator.display.gis_overlays import (
     DEFAULT_VISIBLE,
     LAYER_KEYS,
@@ -55,7 +57,7 @@ class OverlayLoaderTests(unittest.TestCase):
         with path.open("w", newline="", encoding="utf-8") as file:
             writer = csv.DictWriter(file, fieldnames=["IDENT", "X", "Y"])
             writer.writeheader()
-            writer.writerow({"IDENT": "CENTER", "X": "0", "Y": "0"})
+            writer.writerow({"IDENT": "NORTH", "X": "0", "Y": "0.5"})
         result = subprocess.run(
             [
                 sys.executable,
@@ -66,6 +68,7 @@ class OverlayLoaderTests(unittest.TestCase):
                 "0",
                 "100",
                 str(self.root),
+                "30",
             ],
             cwd=Path(__file__).resolve().parents[1],
             capture_output=True,
@@ -73,7 +76,36 @@ class OverlayLoaderTests(unittest.TestCase):
             timeout=30,
         )
         _, labels = pickle.loads(result.stdout)
-        self.assertEqual(labels, [(0, 0, "CENTER")])
+        self.assertEqual(labels[0][2], "NORTH")
+        self.assertLess(labels[0][0], 0)
+        self.assertGreater(labels[0][1], 0)
+        np.testing.assert_allclose(
+            labels[0][:2],
+            OverlayLoader(0, 0, magnetic_declination_degrees=30).project([[0, 0.5]])[0],
+        )
+
+    def test_map_worker_receives_configured_declination(self):
+        requests = queue.Queue()
+        requests.put(0)
+        requests.put(None)
+        overlays = SimpleNamespace(
+            requests=requests,
+            results=queue.Queue(),
+            stop=threading.Event(),
+            process_lock=threading.Lock(),
+            loader=OverlayLoader(
+                0, 0, root=self.root, magnetic_declination_degrees=-15
+            ),
+            process=None,
+        )
+        process = mock.Mock(returncode=0)
+        process.communicate.return_value = (pickle.dumps(([], [])), b"")
+        with mock.patch(
+            "simulator.display.gis_overlays.subprocess.Popen", return_value=process
+        ) as popen:
+            GISOverlays._load_layers(overlays)
+        self.assertEqual(popen.call_args.args[0][-1], "-15")
+        self.assertEqual(overlays.results.get_nowait(), (0, ([], [])))
 
     def test_clips_crossing_lines_even_when_both_endpoints_are_outside(self):
         lines = self.loader.geometry_lines(
@@ -95,29 +127,52 @@ class OverlayLoaderTests(unittest.TestCase):
         self.assertEqual(lines, [])
 
     def test_projection_matches_radar_coordinates(self):
-        display = SimpleNamespace(
-            atc_facility=SimpleNamespace(location={"lat": 32.65, "lon": -114.6}),
-            calculate_range_and_bearing=lambda lat, lon: (
+        location = ATCFacility.get_atc_facility_by_name("KNYL").location
+        for declination in (0, 10 + 14 / 60, -15):
+            location = replace(location, magnetic_declination_degrees=declination)
+            display = SimpleNamespace(
+                atc_facility=SimpleNamespace(location=location),
+                display_type=RadarDisplay.ARTS_IIE,
+                ARTS_IIE=RadarDisplay.ARTS_IIE,
+                radar_viewport=RadarViewport(),
+            )
+            display.calculate_range_and_bearing = lambda lat, lon, display=display: (
                 RadarDisplay.calculate_range_and_bearing(display, lat, lon)
-            ),
-            display_type=RadarDisplay.ARTS_IIE,
-            ARTS_IIE=RadarDisplay.ARTS_IIE,
-            center_x=600,
-            center_y=450,
-            radar_viewport=RadarViewport(),
-        )
-        display.transform_position = lambda x, y: RadarDisplay.transform_position(
-            display, x, y
-        )
-        loader = OverlayLoader(32.65, -114.6)
-        for lat, lon in ((32.65, -114.6), (33.0, -114.1), (32.0, -115.2)):
-            x, y = loader.project([[lon, lat]])[0]
-            radar_x, radar_y = RadarDisplay.convert_to_display_coordinates(
-                display, lat, lon
             )
-            np.testing.assert_allclose(
-                [600 + x * 400, 450 + y * 400], [radar_x, radar_y]
+            display.transform_position = lambda x, y, display=display: (
+                RadarDisplay.transform_position(display, x, y)
             )
+            loader = OverlayLoader(
+                location.latitude,
+                location.longitude,
+                magnetic_declination_degrees=declination,
+            )
+            for mode, radius in (
+                (RadarDisplay.ARTS_IIE, 400),
+                (RadarDisplay.STARS, 450),
+            ):
+                display.display_type = mode
+                display.radar_viewport.zoom_by(4)
+                display.radar_viewport.pan(1, -1)
+                for lat, lon in (
+                    (location.latitude, location.longitude),
+                    (33.0, -114.1),
+                    (32.0, -115.2),
+                    (33.0, location.longitude),
+                ):
+                    x, y = loader.project([[lon, lat]])[0]
+                    radar_x, radar_y = RadarDisplay.convert_to_display_coordinates(
+                        display, lat, lon
+                    )
+                    expected = display.radar_viewport.transform(
+                        600 + x * radius, 450 + y * radius, 600, 450, radius
+                    )
+                    np.testing.assert_allclose(expected, [radar_x, radar_y])
+            x, _ = loader.project([[location.longitude, 33.0]])[0]
+            if declination == 0:
+                self.assertAlmostEqual(x, 0)
+            else:
+                self.assertEqual(np.sign(x), -np.sign(declination))
 
     def test_state_csv_polygon_and_companion_route_geometry(self):
         state = self.root / "GIS_CSV" / "us-state-boundaries.csv"

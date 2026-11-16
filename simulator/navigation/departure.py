@@ -41,9 +41,15 @@ class Departure:
         aircraft.altitude = airport.elevation / 100
         aircraft.speed = 0
         aircraft.distance = 0
-        if strip.operation_area in ("03L", "03R"):
+        self.align_runway_heading(location)
+
+    def align_runway_heading(self, location):
+        aircraft = self.strip.aircraft
+        if self.strip.operation_area in ("03L", "03R"):
             aircraft.heading = location.magnetic_to_true(30)
-        elif strip.operation_area == "35":
+        elif self.strip.operation_area in ("21L", "21R"):
+            aircraft.heading = location.magnetic_to_true(210)
+        elif self.strip.operation_area == "35":
             aircraft.heading = location.magnetic_to_true(350)
 
     @property

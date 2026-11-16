@@ -35,7 +35,7 @@ from simulator.display.flight_strips import (
 from simulator.display.gis_overlays import LAYER_KEYS, SHIFT_LAYER_KEYS, GISOverlays
 from simulator.navigation.navmath import NavigationalCoordinateSystem
 from simulator.radio.communications import COMMUNICATIONS_HEIGHT, CommunicationsPanel
-from simulator.radio.voice_audio import VoiceAudio
+from simulator.radio.voice_audio import VoiceAudio, assign_pilot_voices
 from simulator.radio.voice_commands import (
     PilotReply,
     handle_transmission,
@@ -51,6 +51,8 @@ DATA_BLOCK_FONT_SIZE = 11
 EMERGENCY_FLASH_SECONDS = 1.0
 SCRATCHPAD_MAX_LENGTH = 16
 COORDINATION_MAX_LENGTH = 120
+RANGE_RING_INTERVAL_NM = 10
+DEFAULT_RANGE_RING_BRIGHTNESS = 30
 RADAR_RETURN_COLORS = {
     RadarControlState.UNCONTROLLED: arcade.color.WHITE,
     RadarControlState.INCOMING: arcade.color.GOLD,
@@ -322,6 +324,10 @@ class RadarDisplay(arcade.Window):
         self.sweep = RadarSweep()
         self.radar_return_manager = RadarReturnManager()
         self.display_type = self.ARTS_IIE
+        self.range_ring_brightness = DEFAULT_RANGE_RING_BRIGHTNESS
+        self.range_ring_geometry: (
+            tuple[tuple[float, int], arcade.shape_list.ShapeElementList] | None
+        ) = None
         self.secondary_update_elapsed = 0.0
         self.emergency_flash_elapsed = 0.0
         self.secondary_radar_returns = []
@@ -343,7 +349,11 @@ class RadarDisplay(arcade.Window):
         self.data_block_overlap_warned = False
         self.capture_secondary_radar_returns()
         self.gis_overlays = (
-            GISOverlays(atc_facility.location.latitude, atc_facility.location.longitude)
+            GISOverlays(
+                atc_facility.location.latitude,
+                atc_facility.location.longitude,
+                atc_facility.location.magnetic_to_true(0),
+            )
             if atc_facility is not None
             else None
         )
@@ -491,6 +501,7 @@ class RadarDisplay(arcade.Window):
     def enable_voice(self):
         if self.voice_audio is not None:
             raise RuntimeError("Voice is already enabled")
+        assign_pilot_voices(self.aircraft_list.aircraft_list)
         self.communications_panel.voice_status = "VOICE LOADING"
         self.voice_audio = VoiceAudio()
 
@@ -565,6 +576,7 @@ class RadarDisplay(arcade.Window):
         self.map_camera.zoom = self.radar_viewport.zoom
         self.map_camera.use()
         overlays.draw_map(radius)
+        self.draw_range_rings(radius)
         self.ui_camera.use()
         if self.display_type == self.ARTS_IIE:
             visible = self.is_visible_scope_position
@@ -664,6 +676,7 @@ class RadarDisplay(arcade.Window):
                         departure.check_in,
                         aircraft.radio_channel,
                         spoken_callsign(aircraft),
+                        aircraft.pilot_voice,
                     )
                 )
             if not is_airborne(aircraft):
@@ -722,7 +735,7 @@ class RadarDisplay(arcade.Window):
             if self.display_type == self.ARTS_IIE and is_airborne(aircraft):
                 PrimaryRadarReturn(
                     self.radar_return_manager,
-                    bearing,
+                    np.radians(facility.location.true_to_magnetic(np.degrees(bearing))),
                     distance,
                     previous_sweep_angle,
                     self.sweep.angle,
@@ -742,7 +755,7 @@ class RadarDisplay(arcade.Window):
             else snapshot
             for snapshot in self.secondary_radar_returns
         ]
-        for _, aircraft_id, message, channel, spoken in sorted(checkins):
+        for _, aircraft_id, message, channel, spoken, pilot_voice in sorted(checkins):
             self.reported_departures.add(aircraft_id)
             self.departure_checkins.append(message)
             voice = self.__dict__.get("voice_audio")
@@ -759,6 +772,7 @@ class RadarDisplay(arcade.Window):
                         (spoken + ":" + details)
                         .replace(" ON ", " on ")
                         .replace(" FT", " feet"),
+                        pilot_voice,
                     )
                 )
         if checkins:
@@ -910,6 +924,11 @@ class RadarDisplay(arcade.Window):
             scope_width = min(self.width / self.ui_scale, SCREEN_WIDTH)
             scope_height = min(self.height / self.ui_scale, SCREEN_HEIGHT)
             direction = self.data_block_directions.get(snapshot.aircraft_id)
+            if direction is None:
+                heading = np.radians(
+                    self.atc_facility.location.true_to_magnetic(snapshot.heading)
+                )
+                direction = (-np.sin(heading), -np.cos(heading))
             _, preferred_x, preferred_y = self.secondary_return_layout(
                 snapshot, x, y, distance, direction
             )
@@ -1897,6 +1916,27 @@ class RadarDisplay(arcade.Window):
             SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, DISPLAY_RADIUS + 24
         )
 
+    def draw_range_rings(self, radius):
+        if self.range_ring_brightness == 0:
+            return
+        key = (radius, self.range_ring_brightness)
+        if self.range_ring_geometry is None or self.range_ring_geometry[0] != key:
+            intensity = round(255 * self.range_ring_brightness / 100)
+            color = (intensity, intensity, intensity, 255)
+            shapes = arcade.shape_list.ShapeElementList()
+            for distance in range(
+                RANGE_RING_INTERVAL_NM, MAX_DISTANCE_MILES + 1, RANGE_RING_INTERVAL_NM
+            ):
+                diameter = 2 * radius * distance / MAX_DISTANCE_MILES
+                shapes.append(
+                    arcade.shape_list.create_ellipse_outline(
+                        0, 0, diameter, diameter, color
+                    )
+                )
+            shapes.position = SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2
+            self.range_ring_geometry = (key, shapes)
+        self.range_ring_geometry[1].draw()
+
     def draw_sweep(self):
         self.map_camera.use()
         self.sweep_sector.angle = np.degrees(self.sweep.angle)
@@ -1929,14 +1969,12 @@ class RadarDisplay(arcade.Window):
         """
         Draw the degree markings around the display.
         """
-        location = self.atc_facility.location
-        declination = location.magnetic_declination_degrees
-        key = (center_x, center_y, width, height, declination)
+        key = (center_x, center_y, width, height)
         if key not in self.degree_markings:
             batch = pyglet.graphics.Batch()
             labels = []
             for angle in range(0, 360, 15):
-                angle_radians = np.radians(location.magnetic_to_true(angle))
+                angle_radians = np.radians(angle)
                 if height:
                     x = center_x + width * np.sin(angle_radians) / 2
                     y = center_y + height * np.cos(angle_radians) / 2
@@ -1972,6 +2010,9 @@ class RadarDisplay(arcade.Window):
         Convert a geographic position to display coordinates relative to the facility.
         """
         distance, bearing = self.calculate_range_and_bearing(lat, lon)
+        bearing = np.radians(
+            self.atc_facility.location.true_to_magnetic(np.degrees(bearing))
+        )
         if self.display_type == self.ARTS_IIE:
             pixels_per_mile = DISPLAY_RADIUS / MAX_DISTANCE_MILES
         else:

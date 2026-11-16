@@ -124,6 +124,7 @@ class Aircraft:
         self.flight_guidance: FlightPlanGuidance | None = None
         self.departure: Departure | None = None
         self.radio_channel: str | None = None
+        self.pilot_voice: str | None = None
         self.ident_remaining = 0.0
 
     def activate_ident(self):

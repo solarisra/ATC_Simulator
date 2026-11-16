@@ -8,13 +8,13 @@ from unittest.mock import patch
 
 import arcade
 
-from Locations.Yuma.Scenarios.generator import (
+from locations.Yuma.Scenarios.generator import (
     AIRCRAFT_TYPES,
     OPERATIONS,
     GeneratorSettings,
     generate_yuma_scenario,
 )
-from Locations.Yuma.Scenarios.yuma import create_yuma_scenario
+from locations.Yuma.Scenarios.yuma import create_yuma_scenario
 from simulator.app.briefing import briefing_pages
 from simulator.app.scenario_storage import (
     read_scenario,
@@ -30,10 +30,75 @@ from simulator.core.location import RadioState
 from simulator.display.flight_strips import FlightStripPanel
 from simulator.display.radar import RadarDisplay, RadarReturnManager, RadarSweep
 from simulator.radio.communications import CommunicationsPanel
+from simulator.radio.voice_audio import PILOT_VOICES, assign_pilot_voices
 from simulator.radio.voice_commands import handle_transmission
 
 
 class ScenarioStorageTests(unittest.TestCase):
+    def test_pilot_voice_survives_scenario_save_and_reload(self):
+        aircraft, facility, strips = create_yuma_scenario()
+        assign_pilot_voices(aircraft.aircraft_list)
+        plane = aircraft.aircraft_list[0]
+        voices = [item.pilot_voice for item in aircraft.aircraft_list]
+        with patch("simulator.radio.communications.arcade.Text"):
+            communications = CommunicationsPanel(
+                facility.location.radio_frequencies,
+                facility.location.coordination_lines,
+                facility.location.interfacility_lines,
+            )
+        snapshot = snapshot_scenario(
+            aircraft,
+            facility,
+            strips,
+            datetime.now(UTC),
+            None,
+            communications,
+            [],
+            set(),
+        )
+        with tempfile.TemporaryDirectory() as folder:
+            directory = Path(folder)
+            write_scenario("VOICES", snapshot, directory)
+            restored = read_scenario("VOICES", directory)
+        self.assertEqual(
+            restored.aircraft.aircraft_list[0].pilot_voice, plane.pilot_voice
+        )
+        assign_pilot_voices(restored.aircraft.aircraft_list)
+        self.assertEqual(
+            [item.pilot_voice for item in restored.aircraft.aircraft_list], voices
+        )
+        reply = handle_transmission(
+            "N135TC ident",
+            restored.aircraft.aircraft_list,
+            restored.facility,
+            {"enroute_low"},
+        )
+        self.assertEqual(reply.pilot_voice, plane.pilot_voice)
+        legacy = json.loads(json.dumps(snapshot))
+        for record in legacy["records"]:
+            del record["aircraft"]["pilot_voice"]
+        with tempfile.TemporaryDirectory() as folder:
+            directory = Path(folder)
+            write_scenario("LEGACY VOICES", legacy, directory)
+            restored_legacy = read_scenario("LEGACY VOICES", directory)
+        self.assertTrue(
+            all(
+                item.pilot_voice is None
+                for item in restored_legacy.aircraft.aircraft_list
+            )
+        )
+        assign_pilot_voices(restored_legacy.aircraft.aircraft_list)
+        self.assertTrue(
+            all(
+                item.pilot_voice in PILOT_VOICES
+                for item in restored_legacy.aircraft.aircraft_list
+            )
+        )
+        invalid = json.loads(json.dumps(snapshot))
+        invalid["records"][0]["aircraft"]["pilot_voice"] = "not-a-voice"
+        with tempfile.TemporaryDirectory() as folder, self.assertRaises(ValueError):
+            write_scenario("INVALID VOICE", invalid, Path(folder))
+
     def test_accepted_handoff_keeps_radio_workflow_after_reload(self):
         aircraft, facility, strips = create_yuma_scenario()
         plane = next(item for item in aircraft.aircraft_list if item.id == "A1")

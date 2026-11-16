@@ -2,17 +2,20 @@
 
 import logging
 import math
+import os
 import queue
 import subprocess
+import sys
 import textwrap
 import threading
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import arcade
 
-from Locations.Yuma.Scenarios.generator import generate_yuma_scenario
+from locations.Yuma.Scenarios.generator import generate_yuma_scenario
 from simulator.app.briefing import briefing_pages
 from simulator.app.menu_theme import system_theme
 from simulator.app.scenario_generator import (
@@ -58,12 +61,15 @@ from simulator.radio.communications import (
     CommunicationsPanel,
     RadioState,
 )
+from simulator.radio.voice_audio import assign_pilot_voices
 
 MENU_HEIGHT = 28
 MENU_BOTTOM = SCREEN_HEIGHT + COMMUNICATIONS_HEIGHT
 MENU_WIDTH = 150
 ITEM_HEIGHT = 32
 MENU_ITEM_WIDTH = 220
+PUBS_MENU_WIDTH = 400
+PUBS_PAGE_SIZE = 20
 THEME_CHECK_INTERVAL = 5.0
 MENU_THEMES = {
     "Dark": {
@@ -104,6 +110,7 @@ class ScenarioChoice:
 class SectorChoice:
     label: str
     scenarios: tuple[ScenarioChoice, ...]
+    pubs_directory: Path | None = None
 
 
 @dataclass(frozen=True)
@@ -112,21 +119,34 @@ class LocationChoice:
     facility_code: str
     scenarios: tuple[ScenarioChoice, ...] = ()
     sectors: tuple[SectorChoice, ...] = ()
+    pubs_directory: Path | None = None
 
 
+LOCATIONS_ROOT = Path(__file__).resolve().parents[2] / "locations"
+FAA_7110_65 = LOCATIONS_ROOT / "pubs" / "FAA JO 7110.65BB.pdf"
 LOCATIONS = (
     LocationChoice(
         "Yuma (KNYL)",
         "KNYL",
+        pubs_directory=LOCATIONS_ROOT / "Yuma" / "pubs",
     ),
     LocationChoice(
         "Cascade Approach",
         "KMFR",
-        sectors=(SectorChoice("Medford", ()),),
+        sectors=(
+            SectorChoice(
+                "Medford",
+                (),
+                LOCATIONS_ROOT / "Cascade" / "Sectors" / "Medford" / "pubs",
+            ),
+        ),
+        pubs_directory=LOCATIONS_ROOT / "Cascade" / "pubs",
     ),
 )
-MENU_NAMES = ("location", "scenario", "options")
-OPTION_MENUS = ("audio", "display")
+MENU_NAMES = ("location", "scenario", "options", "pubs")
+OPTION_MENUS = ("audio", "display", "range_rings", "runways")
+YUMA_RUNWAY_CONFIGURATIONS = (("03L", "03R", "35"), ("21R", "21L", "35"))
+RECIPROCAL_RUNWAYS = {"03L": "21R", "03R": "21L", "21R": "03L", "21L": "03R"}
 
 
 class ApplicationWindow(RadarDisplay):
@@ -160,6 +180,11 @@ class ApplicationWindow(RadarDisplay):
         self.submenu_location = None
         self.submenu_option = None
         self.menu_hover = None
+        self.pubs_root: Path | None = None
+        self.pubs_directory: Path | None = None
+        self.pubs_items: tuple[Path, ...] = ()
+        self.pubs_page = 0
+        self.pubs_results = queue.Queue()
         self.confirm_replace = False
         self.menu_message = ""
         self.menu_theme = "Dark"
@@ -308,7 +333,9 @@ class ApplicationWindow(RadarDisplay):
                 facility.location.interfacility_lines,
             )
             new_overlays = GISOverlays(
-                facility.location.latitude, facility.location.longitude
+                facility.location.latitude,
+                facility.location.longitude,
+                facility.location.magnetic_to_true(0),
             )
             if self.gis_overlays is not None:
                 for index in new_overlays.visible ^ self.gis_overlays.visible:
@@ -602,6 +629,7 @@ class ApplicationWindow(RadarDisplay):
         self.briefing_page = 0
 
     def install_traffic(self, aircraft, facility, panel):
+        assign_pilot_voices(aircraft.aircraft_list)
         self.aircraft_list = aircraft
         self.atc_facility = facility
         self.strip_panel = panel
@@ -628,7 +656,51 @@ class ApplicationWindow(RadarDisplay):
         self.data_block_overlap_warned = False
         self.capture_secondary_radar_returns()
 
+    def select_yuma_runways(self, index):
+        facility = self.atc_facility
+        if (
+            not self.scenario_loaded
+            or facility is None
+            or facility.airport_code != "KNYL"
+        ):
+            self.menu_message = "Load a Yuma scenario before changing runways"
+            return
+        runways = YUMA_RUNWAY_CONFIGURATIONS[index]
+        if facility.active_runways == runways:
+            return
+        for strip in self.strip_panel.strips:
+            departure = strip.aircraft.departure
+            if (
+                departure is not None
+                and departure.state == "takeoff"
+                and strip.operation_area not in runways
+            ):
+                self.menu_message = "Wait for the departure to become airborne"
+                return
+        facility.active_runways = runways
+        self.strip_panel.active_runways = runways
+        for strip in self.strip_panel.strips:
+            departure = strip.aircraft.departure
+            replacement = RECIPROCAL_RUNWAYS.get(strip.operation_area)
+            if (
+                departure is not None
+                and departure.state == "waiting"
+                and replacement in runways
+            ):
+                strip.operation_area = replacement
+                departure.align_runway_heading(facility.location)
+        self.menu_message = f"ACTIVE RUNWAYS: {' / '.join(runways)}"
+
     def on_update(self, delta_time):
+        while True:
+            try:
+                path, error = self.pubs_results.get_nowait()
+            except queue.Empty:
+                break
+            self.menu_message = f"PUBLICATION ERROR: {error}"
+            logging.getLogger(__name__).error(
+                "Could not open publication %s: %s", path, error
+            )
         self.update_menu_theme(delta_time)
         if (
             self.__dict__.get("briefing")
@@ -692,13 +764,115 @@ class ApplicationWindow(RadarDisplay):
         else:
             results.put((theme, None))
 
-    def _draw_text(self, text, x, y, anchor_x="left"):
+    def _draw_text(self, text, x, y, anchor_x="left", color=None):
         self.menu_text.text = text
         self.menu_text.x = x
         self.menu_text.y = y
         self.menu_text.anchor_x = anchor_x
-        self.menu_text.color = MENU_THEMES[self.menu_theme]["text"]
+        self.menu_text.color = (
+            MENU_THEMES[self.menu_theme]["text"] if color is None else color
+        )
         self.menu_text.draw()
+
+    def load_pubs_directory(self, directory):
+        try:
+            items = sorted(
+                directory.iterdir(),
+                key=lambda item: (not item.is_dir(), item.name.casefold()),
+            )
+        except FileNotFoundError:
+            if directory == self.pubs_root:
+                items = []
+            else:
+                self.menu_message = f"PUBLICATION ERROR: Folder not found: {directory}"
+                logging.getLogger(__name__).warning(self.menu_message)
+                return
+        except OSError as error:
+            self.menu_message = f"PUBLICATION ERROR: {error}"
+            logging.getLogger(__name__).exception(
+                "Could not list publications in %s", directory
+            )
+            return
+        self.pubs_directory = directory
+        self.pubs_items = tuple(items)
+        self.pubs_page = 0
+
+    def open_pubs_menu(self):
+        self.pubs_root = (
+            self.selected_sector.pubs_directory
+            if self.selected_sector is not None
+            and self.selected_sector.pubs_directory is not None
+            else self.selected_location.pubs_directory
+            if self.selected_location is not None
+            else None
+        )
+        self.pubs_directory = None
+        self.pubs_items = ()
+        self.pubs_page = 0
+        if self.pubs_root is not None:
+            self.load_pubs_directory(self.pubs_root)
+
+    def pubs_menu_items(self):
+        entries = []
+        if self.pubs_directory is None or self.pubs_directory == self.pubs_root:
+            entries.append(("FAA JO 7110.65BB", "item", FAA_7110_65))
+        if self.selected_location is None:
+            entries.append(("Select a location first", "none", None))
+            return tuple(entries)
+        if self.pubs_directory is None:
+            entries.append(("No publications available", "none", None))
+            return tuple(entries)
+        if self.pubs_directory != self.pubs_root:
+            entries.append(("< Back", "back", None))
+        if self.pubs_page:
+            entries.append(("< Previous page", "previous", None))
+        start = self.pubs_page * PUBS_PAGE_SIZE
+        for item in self.pubs_items[start : start + PUBS_PAGE_SIZE]:
+            label = item.name + ("  >" if item.is_dir() else "")
+            if len(label) > 48:
+                label = label[:45] + "..."
+            entries.append((label, "item", item))
+        if start + PUBS_PAGE_SIZE < len(self.pubs_items):
+            entries.append(("Next page >", "next", None))
+        if not self.pubs_items:
+            entries.append(("No publications available", "none", None))
+        return tuple(entries)
+
+    @staticmethod
+    def launch_publication(path, results):
+        try:
+            if sys.platform == "win32":
+                os.startfile(path)
+            else:
+                command = "open" if sys.platform == "darwin" else "xdg-open"
+                subprocess.run([command, str(path)], check=True, capture_output=True)
+        except (OSError, subprocess.SubprocessError) as error:
+            results.put((path, str(error)))
+
+    def select_pub(self, index):
+        _, action, path = self.pubs_menu_items()[index]
+        if action == "back" and self.pubs_directory is not None:
+            self.load_pubs_directory(self.pubs_directory.parent)
+        elif action == "previous":
+            self.pubs_page -= 1
+        elif action == "next":
+            self.pubs_page += 1
+        elif action == "item" and path is not None:
+            if path.is_dir():
+                self.load_pubs_directory(path)
+            elif path.suffix.casefold() != ".pdf":
+                self.menu_message = (
+                    f"PUBLICATION ERROR: Only PDF files can be opened: {path.name}"
+                )
+            elif not path.is_file():
+                self.menu_message = f"PUBLICATION ERROR: File not found: {path.name}"
+            else:
+                self.open_menu = None
+                threading.Thread(
+                    target=self.launch_publication,
+                    args=(path, self.pubs_results),
+                    daemon=True,
+                ).start()
 
     def menu_entries(self, name):
         if name == "location":
@@ -723,17 +897,36 @@ class ApplicationWindow(RadarDisplay):
                 )
                 + ("Retry failed maps",)
             )
+        if name == "pubs":
+            return tuple(label for label, _, _ in self.pubs_menu_items())
         if name == "audio":
             return (
                 "Disable voice" if self.voice_audio is not None else "Enable voice",
             )
         if name == "options":
-            return ("Audio  >", "Display  >")
+            return ("Audio  >", "Display  >", "Range rings  >", "Runways  >")
         if name == "display":
             return (
                 ("* " if self.display_type == self.ARTS_IIE else "  ") + "ARTS IIE",
                 "  FDAD (unavailable)",
                 "  ACD (unavailable)",
+            )
+        if name == "range_rings":
+            return tuple(
+                ("* " if brightness == self.range_ring_brightness else "  ")
+                + ("Off" if brightness == 0 else f"{brightness}%")
+                for brightness in range(0, 101, 10)
+            )
+        if name == "runways":
+            facility = self.atc_facility
+            if facility is None or facility.airport_code != "KNYL":
+                return ("Yuma scenarios only",)
+            return tuple(
+                ("* " if runway in facility.active_runways else "  ") + label
+                for runway, label in (
+                    ("03L", "03L / 03R / 35"),
+                    ("21R", "21R / 21L / 35"),
+                )
             )
         raise ValueError(f"Unknown menu: {name}")
 
@@ -741,17 +934,17 @@ class ApplicationWindow(RadarDisplay):
     def menu_index(top, y):
         return math.ceil((top - y) / ITEM_HEIGHT) - 1
 
-    def draw_menu(self, x, top, entries, hover_kind):
+    def draw_menu(self, x, top, entries, hover_kind, width=MENU_ITEM_WIDTH):
         colors = MENU_THEMES[self.menu_theme]
         height = len(entries) * ITEM_HEIGHT
-        bounds = arcade.LBWH(x, top - height, MENU_ITEM_WIDTH, height)
+        bounds = arcade.LBWH(x, top - height, width, height)
         arcade.draw_rect_filled(bounds, colors["menu"])
         arcade.draw_rect_outline(bounds, colors["border"], 1)
         for index, label in enumerate(entries):
             y = top - (index + 1) * ITEM_HEIGHT
             if self.menu_hover == (hover_kind, index):
                 arcade.draw_rect_filled(
-                    arcade.LBWH(x + 1, y + 1, MENU_ITEM_WIDTH - 2, ITEM_HEIGHT - 2),
+                    arcade.LBWH(x + 1, y + 1, width - 2, ITEM_HEIGHT - 2),
                     colors["highlight"],
                 )
             self._draw_text(label, x + 10, y + 9)
@@ -798,7 +991,7 @@ class ApplicationWindow(RadarDisplay):
             location_label, (SCREEN_WIDTH + PANEL_WIDTH) / 2, MENU_BOTTOM + 7, "center"
         )
         self._draw_text(
-            status, SCREEN_WIDTH + PANEL_WIDTH - 10, MENU_BOTTOM + 7, "right"
+            status, SCREEN_WIDTH - 10, 10, "right", color=arcade.color.WHITE
         )
         current_time = self.__dict__.get("scenario_utc") or self.utc_now()
         self._draw_text(
@@ -815,7 +1008,13 @@ class ApplicationWindow(RadarDisplay):
             self._draw_text(self.menu_message, 10, SCREEN_HEIGHT - 20)
         if self.open_menu:
             x = MENU_NAMES.index(self.open_menu) * MENU_WIDTH
-            self.draw_menu(x, MENU_BOTTOM, self.menu_entries(self.open_menu), "item")
+            self.draw_menu(
+                x,
+                MENU_BOTTOM,
+                self.menu_entries(self.open_menu),
+                "item",
+                PUBS_MENU_WIDTH if self.open_menu == "pubs" else MENU_ITEM_WIDTH,
+            )
             if self.open_menu == "location" and self.submenu_location is not None:
                 location = LOCATIONS[self.submenu_location]
                 self.draw_menu(
@@ -1042,6 +1241,8 @@ class ApplicationWindow(RadarDisplay):
             self.open_menu = None if self.open_menu == name else name
             self.submenu_location = None
             self.submenu_option = None
+            if self.open_menu == "pubs":
+                self.open_pubs_menu()
             return
         if self.open_menu:
             name = self.open_menu
@@ -1072,6 +1273,10 @@ class ApplicationWindow(RadarDisplay):
                             self.enable_voice()
                         else:
                             self.disable_voice()
+                    elif option == "range_rings":
+                        self.range_ring_brightness = index * 10
+                    elif option == "runways":
+                        self.select_yuma_runways(index)
                     elif index == 0:
                         self.display_type = self.ARTS_IIE
                         if self.menu_message in (
@@ -1087,8 +1292,9 @@ class ApplicationWindow(RadarDisplay):
                     return
             left = MENU_NAMES.index(name) * MENU_WIDTH
             entries = self.menu_entries(name)
+            width = PUBS_MENU_WIDTH if name == "pubs" else MENU_ITEM_WIDTH
             if (
-                left <= x < left + MENU_ITEM_WIDTH
+                left <= x < left + width
                 and MENU_BOTTOM - len(entries) * ITEM_HEIGHT <= y < MENU_BOTTOM
             ):
                 index = self.menu_index(MENU_BOTTOM, y)
@@ -1120,6 +1326,9 @@ class ApplicationWindow(RadarDisplay):
                         self.retry_maps()
                 elif name == "options":
                     self.submenu_option = OPTION_MENUS[index]
+                    return
+                elif name == "pubs":
+                    self.select_pub(index)
                     return
             self.open_menu = None
             self.submenu_location = None
@@ -1164,8 +1373,11 @@ class ApplicationWindow(RadarDisplay):
                         and top - submenu_count * ITEM_HEIGHT <= y < top
                     ):
                         self.menu_hover = ("option", self.menu_index(top, y))
+                menu_width = (
+                    PUBS_MENU_WIDTH if self.open_menu == "pubs" else MENU_ITEM_WIDTH
+                )
                 if (
-                    left <= x < left + MENU_ITEM_WIDTH
+                    left <= x < left + menu_width
                     and MENU_BOTTOM - count * ITEM_HEIGHT <= y < MENU_BOTTOM
                 ):
                     index = self.menu_index(MENU_BOTTOM, y)

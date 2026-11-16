@@ -3,7 +3,7 @@
 import random
 from itertools import cycle
 
-from Locations.Yuma.Scenarios.sample_data import (
+from locations.Yuma.Scenarios.sample_data import (
     ACTIVE_SAMPLE_AIRCRAFT,
     CIVILIAN_AIRPORTS,
     CIVILIAN_ARRIVAL_STARTS,

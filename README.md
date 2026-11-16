@@ -65,11 +65,18 @@ strip annotations and order, tracking, radar contact, coordination, radios and g
 settings are restored. Finish any in-progress edit before saving. Radar
 trails, the selected aircraft and active audio transmissions are not saved.
 
-The menu bar centers the selected location and shows voice status at the
-right. Map and other application messages appear just below the radar's top edge.
+The menu bar centers the selected location. Voice status appears in the
+radar display's lower-right corner. Map and other application messages appear
+just below the radar's top edge.
 **Options > Display** selects the radar scope: ARTS IIE is available, while
 FDAD and ACD are not yet implemented.
 The window can be resized or maximized; the interface scales proportionally.
+**Pubs** browses the selected location or sector's `pubs` folder. Choose a
+folder to enter it, use **Back** to return, and select a PDF to open it in
+the system's default viewer. Reopen the menu to refresh its contents.
+FAA Order JO 7110.65BB (including changes 1–3, effective July 9, 2026) is
+available in Pubs even without a location selected; its local PDF must be
+updated when the FAA publishes a newer edition.
 
 Medford uses KMFR runway 32 as the simulator's initial active runway. The map
 shows nearby airports from the GIS dataset; it does not define which airports
@@ -84,16 +91,19 @@ No Medford interfacility coordination lines have been configured.
 
 `simulator/core/location.py` defines location coordinates, elevation in feet MSL, active
 runways and pads, airport diagram, procedures, and emergency, internal and
-neighbor radio frequencies. Yuma's location data is in `Locations/Yuma/`;
-its scenario is in `Locations/Yuma/Scenarios/`. The Yuma scenario sets the
+neighbor radio frequencies. Yuma's location data is in `locations/Yuma/`;
+its scenario is in `locations/Yuma/Scenarios/`. The Yuma scenario sets the
 active runways and pads when loaded. Diagram and procedure data are not yet
 provided, and weather is not generated or retrieved.
+Medford's sector data is in `locations/Cascade/Sectors/Medford/`; its
+publications can be placed in that folder's `pubs` subfolder.
 Locations also specify magnetic declination, positive east. The simulator uses
 the configured fixed variation throughout each coverage area: Yuma 10°14′E
 and Medford 13°15′E. These values do not update automatically or vary with
 aircraft position.
 Controller-facing headings, position bearings and radar azimuth markings are
-magnetic; geographic movement and map projection use true bearings internally.
+magnetic. The radar and its map overlays are magnetic-north-up; geographic
+movement and navigation continue to use true bearings internally.
 
 `main.py` remains the launcher. Shared application code is organized under
 `simulator/` by application, core models, display, navigation and radio.
@@ -113,6 +123,9 @@ Check lint and formatting with `uv run ruff check .` and
 `uv run ruff format --check .`. Run `uv run ruff format .` to format files.
 
 The ARTS sweep has a bright leading edge and an 18-degree fading sector.
+Range rings are centered on the radar origin at 10-nautical-mile intervals.
+Use **Options > Range rings** to select their brightness from 10% to 100%,
+or turn them off. The default is 30%.
 
 The radar map has individually switchable GIS overlays. Press F1 through F12
 to toggle the layers shown in the legend; Shift+F9, Shift+F10 and Shift+F11
@@ -198,7 +211,8 @@ pass `--voice` to initialize voice automatically at startup.
 The CUDA PyTorch download is several gigabytes; the Whisper and Kokoro models
 and pilot voice packs download on first use. Speech recognition and synthesis
 run locally. Voice initialization and errors appear in the window title and
-communications panel.
+communications panel. Pilot audio uses an explicit pronunciation for Los
+Angeles; the displayed readback text is unchanged.
 Hugging Face model downloads work without a token but may be rate-limited; to
 authenticate, use `uv run --python 3.12 --extra voice hf auth login` or set
 `HF_TOKEN` in your environment. Do not put tokens in project files.
@@ -239,6 +253,8 @@ The parser recognizes the observed transcription variants "hitting" for
 "heading", "climbed" for "climb", and "turned" for "turn" in instruction
 positions. It also recognizes the observed callsign transcription "double"
 for "Devil", but rejects the call if it could address more than one aircraft.
+In a callsign, it also accepts the observed "mic" transcription for "Mike"
+while retaining literal callsign matching and rejecting ambiguity.
 It accepts the observed "identity", "identical", and "I dent" transcriptions
 as `ident` and handles "two"/"to" swaps in numeric values and supported
 instruction phrases. Within one transmission, "correction" can replace a
@@ -275,8 +291,9 @@ controller transmits. The window title displays recognized speech and errors.
 Recognition can be wrong; this is not for real-world ATC. Departure check-ins
 are also spoken when voice is enabled and their assigned frequency is
 monitored. Intrafacility lines do not yet have audio.
-Aircraft are assigned distinct pilot voices when they first respond and keep
-them while voice is enabled. After 20 aircraft, voice presets are reused.
+Pilot voices are assigned randomly when a scenario loads and remain associated
+with their aircraft, including after saving and reloading or disabling and
+reenabling voice. After 20 aircraft, voice presets are reused.
 
 The right-hand flight progress strip panel lists active scenario plans. Scroll
 over the panel to see additional strips; clicking a strip selects its radar
@@ -326,8 +343,8 @@ taxi, runway conflict or tower coordination.
 The startup tracks and route legs are kept north of the U.S.–Mexico border
 using the included state boundary data; this is not a general border-monitoring
 or airspace-avoidance system.
-The aircraft and plan definitions are in `Locations/Yuma/Scenarios/sample_data.py`;
-`Locations/Yuma/Scenarios/yuma.py` constructs the scenario. Additional inactive
+The aircraft and plan definitions are in `locations/Yuma/Scenarios/sample_data.py`;
+`locations/Yuma/Scenarios/yuma.py` constructs the scenario. Additional inactive
 aircraft remain in the data file.
 Inactive local training and search examples use BZA as a placeholder route and
 retain their mission descriptions as strip remarks; they do not simulate

@@ -103,11 +103,19 @@ def read_features(path, stop):
 
 
 class OverlayLoader:
-    def __init__(self, latitude, longitude, radius_nm=MAX_DISTANCE_MILES, root=ROOT):
+    def __init__(
+        self,
+        latitude: float,
+        longitude: float,
+        radius_nm: float = MAX_DISTANCE_MILES,
+        root: str | Path = ROOT,
+        magnetic_declination_degrees: float = 0,
+    ) -> None:
         self.latitude = latitude
         self.longitude = longitude
         self.radius_nm = radius_nm
         self.root = Path(root)
+        self.magnetic_declination_degrees = magnetic_declination_degrees
 
     def project(self, coordinates):
         coords = np.asarray(coordinates, dtype=float)
@@ -125,6 +133,7 @@ class OverlayLoader:
             np.sin(lon) * np.cos(lat),
             math.cos(lat0) * np.sin(lat) - math.sin(lat0) * np.cos(lat) * np.cos(lon),
         )
+        bearing -= math.radians(self.magnetic_declination_degrees)
         return (
             np.column_stack((distance * np.sin(bearing), distance * np.cos(bearing)))
             / self.radius_nm
@@ -259,8 +268,12 @@ class OverlayLoader:
 
 
 class GISOverlays:
-    def __init__(self, latitude, longitude):
-        self.loader = OverlayLoader(latitude, longitude)
+    def __init__(self, latitude, longitude, magnetic_declination_degrees):
+        self.loader = OverlayLoader(
+            latitude,
+            longitude,
+            magnetic_declination_degrees=magnetic_declination_degrees,
+        )
         self.visible = set(DEFAULT_VISIBLE)
         self.status = ["off"] * len(LAYERS)
         self.data = {}
@@ -306,6 +319,7 @@ class GISOverlays:
                             str(self.loader.longitude),
                             str(self.loader.radius_nm),
                             str(self.loader.root),
+                            str(self.loader.magnetic_declination_degrees),
                         ],
                         stdout=subprocess.PIPE,
                         stderr=subprocess.PIPE,
@@ -426,6 +440,10 @@ class GISOverlays:
 if __name__ == "__main__":
     layer_index = int(sys.argv[1])
     loader = OverlayLoader(
-        float(sys.argv[2]), float(sys.argv[3]), float(sys.argv[4]), sys.argv[5]
+        float(sys.argv[2]),
+        float(sys.argv[3]),
+        float(sys.argv[4]),
+        sys.argv[5],
+        float(sys.argv[6]),
     )
     pickle.dump(loader.load(layer_index, threading.Event()), sys.stdout.buffer)

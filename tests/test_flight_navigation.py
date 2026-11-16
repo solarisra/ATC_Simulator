@@ -11,7 +11,7 @@ from shapely.geometry import LineString, Point, box, shape
 from shapely.ops import unary_union
 from shapely.prepared import prep
 
-from Locations.Yuma.Scenarios.sample_data import (
+from locations.Yuma.Scenarios.sample_data import (
     ACTIVE_SAMPLE_AIRCRAFT,
     CIVILIAN_AIRPORTS,
     CIVILIAN_ELIGIBLE_AIRPORTS,
@@ -19,7 +19,7 @@ from Locations.Yuma.Scenarios.sample_data import (
     INACTIVE_SAMPLE_AIRCRAFT,
     SAMPLE_PLANS,
 )
-from Locations.Yuma.Scenarios.yuma import (
+from locations.Yuma.Scenarios.yuma import (
     _choose_civilian_airports,
     create_yuma_scenario,
 )
@@ -416,6 +416,7 @@ class FlightNavigationTests(unittest.TestCase):
                 aircraft = next(s.aircraft for s in strips if s.aircraft.id == "A8")
                 aircraft.callsign = callsign
                 aircraft.aircraft_model = boeing_767_freighter
+                aircraft.pilot_voice = "am_adam"
                 aircraft.departure.state = "airborne"
                 aircraft.departure.record_airborne(aircraft, 15)
                 aircraft.update_position = Mock()
@@ -437,9 +438,14 @@ class FlightNavigationTests(unittest.TestCase):
                 )
                 with patch.object(RadarDisplay, "process_voice"):
                     RadarDisplay.on_update(display, 0)
-                self.assertTrue(display.departure_checkins[0].startswith(f"{callsign}H:"))
+                self.assertTrue(
+                    display.departure_checkins[0].startswith(f"{callsign}H:")
+                )
                 reply = display.voice_audio.speak.call_args.args[0]
-                self.assertTrue(reply.text.startswith(f"{spoken} three eight one heavy:"))
+                self.assertTrue(
+                    reply.text.startswith(f"{spoken} three eight one heavy:")
+                )
+                self.assertEqual(reply.pilot_voice, aircraft.pilot_voice)
                 self.assertEqual(aircraft.callsign, callsign)
 
     def test_departure_checkin_uses_controller_assigned_altitude(self):
@@ -517,7 +523,7 @@ class FlightNavigationTests(unittest.TestCase):
                     }
                     choices[identifier] = airport
                     with patch(
-                        "Locations.Yuma.Scenarios.yuma._choose_civilian_airports",
+                        "locations.Yuma.Scenarios.yuma._choose_civilian_airports",
                         return_value=choices,
                     ):
                         _, _, strips = create_yuma_scenario()

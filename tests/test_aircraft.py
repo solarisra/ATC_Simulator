@@ -3,7 +3,7 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from Locations.Yuma.Scenarios.yuma import create_yuma_scenario
+from locations.Yuma.Scenarios.yuma import create_yuma_scenario
 from simulator.core.aircraft import Aircraft, AircraftList, display_callsign, is_heavy
 from simulator.core.aircraft_models import (
     airbus_a320,
@@ -260,7 +260,7 @@ class AircraftTests(unittest.TestCase):
                 aircraft = make_aircraft()
                 display = SimpleNamespace(
                     aircraft_list=SimpleNamespace(aircraft_list=[aircraft]),
-                    atc_facility=ATCFacility("Test", {"lat": 0, "lon": 0}),
+                    atc_facility=ATCFacility.get_atc_facility_by_name("KNYL"),
                     sweep=RadarSweep(),
                     radar_return_manager=RadarReturnManager(),
                     display_type=mode,

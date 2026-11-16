@@ -10,8 +10,9 @@ from unittest.mock import Mock, patch
 
 import arcade
 
-from Locations.Yuma.Scenarios.yuma import create_yuma_scenario
+from locations.Yuma.Scenarios.yuma import create_yuma_scenario
 from simulator.app.application import (
+    FAA_7110_65,
     ITEM_HEIGHT,
     LOCATIONS,
     MENU_BOTTOM,
@@ -29,7 +30,7 @@ from simulator.app.menu_theme import system_theme
 from simulator.core.atc import ATCFacility
 from simulator.core.constants import SCREEN_HEIGHT, SCREEN_WIDTH
 from simulator.display.flight_strips import PANEL_WIDTH
-from simulator.display.radar import RadarDisplay
+from simulator.display.radar import DEFAULT_RANGE_RING_BRIGHTNESS, RadarDisplay
 from simulator.radio.communications import CommunicationsPanel, RadioState
 
 
@@ -51,6 +52,11 @@ def make_application():
     app.submenu_location = None
     app.submenu_option = None
     app.menu_hover = None
+    app.pubs_root = None
+    app.pubs_directory = None
+    app.pubs_items = ()
+    app.pubs_page = 0
+    app.pubs_results = queue.Queue()
     app.confirm_replace = False
     app.menu_message = ""
     app.menu_theme = "Dark"
@@ -62,6 +68,7 @@ def make_application():
     app.voice_audio = None
     app.voice_message = ""
     app.display_type = RadarDisplay.ARTS_IIE
+    app.range_ring_brightness = DEFAULT_RANGE_RING_BRIGHTNESS
     app.ui_camera = Mock()
     app.ui_offset_x = app.ui_offset_y = 0
     app.ui_scale = app.ui_scale_x = app.ui_scale_y = 1.0
@@ -180,7 +187,7 @@ class ApplicationTests(unittest.TestCase):
         self.assertIn(MENU_THEMES["Light"]["highlight"], colors)
         self.assertEqual(app.menu_text.color, MENU_THEMES["Light"]["text"])
 
-    def test_menu_bar_centers_location_and_right_aligns_voice(self):
+    def test_menu_centers_location_and_voice_status_is_on_radar(self):
         app = make_application()
         app._ctx = Mock()
         app.startup_text = Mock()
@@ -193,13 +200,30 @@ class ApplicationTests(unittest.TestCase):
                 app.menu_text.x,
                 app.menu_text.y,
                 app.menu_text.anchor_x,
+                app.menu_text.color,
             )
         )
         with patch("simulator.app.application.arcade.draw_rect_filled"):
-            for location, sector, voice_status, expected_location, expected_voice in (
-                (None, None, None, "No location selected", "VOICE OFF"),
-                (LOCATIONS[0], None, "VOICE READY", "Yuma (KNYL)", "VOICE ON"),
+            for (
+                theme,
+                location,
+                sector,
+                voice_status,
+                expected_location,
+                expected_voice,
+            ) in (
+                ("Dark", None, None, None, "No location selected", "VOICE OFF"),
+                ("Light", LOCATIONS[0], None, "VOICE READY", "Yuma (KNYL)", "VOICE ON"),
                 (
+                    "Dark",
+                    LOCATIONS[0],
+                    None,
+                    "VOICE LOADING",
+                    "Yuma (KNYL)",
+                    "VOICE LOADING",
+                ),
+                (
+                    "Dark",
                     LOCATIONS[1],
                     LOCATIONS[1].sectors[0],
                     "VOICE ERROR",
@@ -208,6 +232,7 @@ class ApplicationTests(unittest.TestCase):
                 ),
             ):
                 with self.subTest(location=expected_location, voice=expected_voice):
+                    app.menu_theme = theme
                     app.selected_location = location
                     app.selected_sector = sector
                     app.communications_panel.voice_status = voice_status
@@ -220,20 +245,28 @@ class ApplicationTests(unittest.TestCase):
                             (SCREEN_WIDTH + PANEL_WIDTH) / 2,
                             MENU_BOTTOM + 7,
                             "center",
+                            MENU_THEMES[theme]["text"],
                         ),
                         drawn,
                     )
                     self.assertIn(
                         (
                             expected_voice,
-                            SCREEN_WIDTH + PANEL_WIDTH - 10,
-                            MENU_BOTTOM + 7,
+                            SCREEN_WIDTH - 10,
+                            10,
                             "right",
+                            arcade.color.WHITE,
                         ),
                         drawn,
                     )
                     self.assertIn(
-                        ("MAP ERROR: example", 10, SCREEN_HEIGHT - 20, "left"),
+                        (
+                            "MAP ERROR: example",
+                            10,
+                            SCREEN_HEIGHT - 20,
+                            "left",
+                            MENU_THEMES[theme]["text"],
+                        ),
                         drawn,
                     )
 
@@ -333,7 +366,7 @@ class ApplicationTests(unittest.TestCase):
                 "Retry failed maps",
             ),
         )
-        gis.assert_called_once_with(32.6566, -114.6056)
+        gis.assert_called_once_with(32.6566, -114.6056, 10 + 14 / 60)
         new_overlays.toggle.assert_not_called()
 
     def test_select_medford_as_first_location(self):
@@ -350,7 +383,7 @@ class ApplicationTests(unittest.TestCase):
             patch("simulator.radio.communications.arcade.Text"),
         ):
             app.select_location(LOCATIONS[1])
-        gis.assert_called_once_with(42.3749647, -122.8732875)
+        gis.assert_called_once_with(42.3749647, -122.8732875, 13 + 15 / 60)
         self.assertIs(app.selected_location, LOCATIONS[1])
         self.assertEqual(app.atc_facility.airport_code, "KMFR")
         self.assertEqual(app.selected_sector.label, "Medford")
@@ -440,7 +473,7 @@ class ApplicationTests(unittest.TestCase):
             patch("simulator.radio.communications.arcade.Text"),
         ):
             app.select_location(LOCATIONS[1])
-        gis.assert_called_once_with(42.3749647, -122.8732875)
+        gis.assert_called_once_with(42.3749647, -122.8732875, 13 + 15 / 60)
         old_overlays.close.assert_called_once()
         app.voice_audio.discard_transmissions.assert_called_once()
         self.assertFalse(app.communications_panel.mic_hot)
@@ -745,7 +778,7 @@ class ApplicationTests(unittest.TestCase):
             app.on_key_press(arcade.key.ENTER, 0)
             with (
                 patch(
-                    "Locations.Yuma.Scenarios.generator._itineraries", return_value=[]
+                    "locations.Yuma.Scenarios.generator._itineraries", return_value=[]
                 ),
                 self.assertLogs("simulator.app.application", level="ERROR"),
             ):
@@ -771,6 +804,17 @@ class ApplicationTests(unittest.TestCase):
             del app.available_scenarios
             app.on_key_press(arcade.key.ENTER, 0)
             plane = app.aircraft_list.aircraft_list[0]
+            voices = [item.pilot_voice for item in app.aircraft_list.aircraft_list]
+            self.assertTrue(all(voices))
+            with patch("simulator.display.radar.VoiceAudio"):
+                app.enable_voice()
+                app.disable_voice()
+                app.enable_voice()
+                self.assertEqual(
+                    [item.pilot_voice for item in app.aircraft_list.aircraft_list],
+                    voices,
+                )
+                app.disable_voice()
             plane.flight_guidance.assign_heading(230)
             plane.scratchpad = "XY"
             app.on_update(60)
@@ -816,6 +860,9 @@ class ApplicationTests(unittest.TestCase):
             app.on_key_press(arcade.key.ENTER, 0)
             app.on_key_press(arcade.key.Y, 0)
             restored = app.aircraft_list.aircraft_list[0]
+            self.assertEqual(
+                [item.pilot_voice for item in app.aircraft_list.aircraft_list], voices
+            )
             self.assertEqual((restored.lat, restored.lon), saved_position)
             self.assertEqual(restored.scratchpad, "XY")
             self.assertEqual(restored.flight_guidance.vector_heading, 230)
@@ -864,7 +911,10 @@ class ApplicationTests(unittest.TestCase):
 
     def test_display_submenu_selects_arts_and_reports_unavailable_scopes(self):
         app = make_application()
-        self.assertEqual(app.menu_entries("options"), ("Audio  >", "Display  >"))
+        self.assertEqual(
+            app.menu_entries("options"),
+            ("Audio  >", "Display  >", "Range rings  >", "Runways  >"),
+        )
         self.assertEqual(
             app.menu_entries("display"),
             ("* ARTS IIE", "  FDAD (unavailable)", "  ACD (unavailable)"),
@@ -902,6 +952,208 @@ class ApplicationTests(unittest.TestCase):
         self.assertEqual(app.display_type, RadarDisplay.ARTS_IIE)
         self.assertEqual(app.menu_message, "")
         self.assertIsNone(app.open_menu)
+
+    def test_range_ring_menu_selects_brightness_and_off(self):
+        app = make_application()
+        options_x = 2 * MENU_WIDTH + 10
+        submenu_x = 2 * MENU_WIDTH + MENU_ITEM_WIDTH + 10
+        self.assertEqual(app.menu_entries("range_rings")[3], "* 30%")
+        for index in (10, 0, 4):
+            app.on_mouse_press(options_x, MENU_BOTTOM + 5, arcade.MOUSE_BUTTON_LEFT, 0)
+            app.on_mouse_press(
+                options_x,
+                MENU_BOTTOM - 2 * ITEM_HEIGHT - 5,
+                arcade.MOUSE_BUTTON_LEFT,
+                0,
+            )
+            self.assertEqual(app.submenu_option, "range_rings")
+            app.on_mouse_press(
+                submenu_x,
+                MENU_BOTTOM - (index + 2) * ITEM_HEIGHT - 5,
+                arcade.MOUSE_BUTTON_LEFT,
+                0,
+            )
+            self.assertEqual(app.range_ring_brightness, index * 10)
+            self.assertTrue(app.menu_entries("range_rings")[index].startswith("* "))
+            self.assertIsNone(app.open_menu)
+
+    def test_pubs_menu_browses_folders_and_opens_selected_pdf(self):
+        app = make_application()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            approach = root / "Procedures" / "Approach"
+            approach.mkdir(parents=True)
+            chart = approach / "ILS 21R.PDF"
+            chart.write_bytes(b"%PDF")
+            (root / "Airport diagram.pdf").write_bytes(b"%PDF")
+            app.selected_location = LocationChoice("Test", "KNYL", pubs_directory=root)
+            x = 3 * MENU_WIDTH + 10
+            app.on_mouse_press(x, MENU_BOTTOM + 5, arcade.MOUSE_BUTTON_LEFT, 0)
+            self.assertEqual(
+                app.menu_entries("pubs"),
+                ("FAA JO 7110.65BB", "Procedures  >", "Airport diagram.pdf"),
+            )
+            app.on_mouse_press(
+                x, MENU_BOTTOM - ITEM_HEIGHT - 5, arcade.MOUSE_BUTTON_LEFT, 0
+            )
+            self.assertEqual(app.menu_entries("pubs"), ("< Back", "Approach  >"))
+            app.on_mouse_press(
+                x, MENU_BOTTOM - ITEM_HEIGHT - 5, arcade.MOUSE_BUTTON_LEFT, 0
+            )
+            self.assertEqual(app.menu_entries("pubs"), ("< Back", "ILS 21R.PDF"))
+            with patch("simulator.app.application.threading.Thread") as thread:
+                app.on_mouse_press(
+                    x, MENU_BOTTOM - ITEM_HEIGHT - 5, arcade.MOUSE_BUTTON_LEFT, 0
+                )
+            self.assertIsNone(app.open_menu)
+            self.assertEqual(thread.call_args.kwargs["args"], (chart, app.pubs_results))
+            thread.return_value.start.assert_called_once()
+
+            app.on_mouse_press(x, MENU_BOTTOM + 5, arcade.MOUSE_BUTTON_LEFT, 0)
+            app.on_mouse_press(
+                x, MENU_BOTTOM - ITEM_HEIGHT - 5, arcade.MOUSE_BUTTON_LEFT, 0
+            )
+            app.on_mouse_press(x, MENU_BOTTOM - 5, arcade.MOUSE_BUTTON_LEFT, 0)
+            self.assertEqual(app.pubs_directory, root)
+
+    def test_pubs_uses_selected_sector_and_paginates(self):
+        app = make_application()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            location_root = root / "location"
+            sector_root = root / "sector"
+            location_root.mkdir()
+            sector_root.mkdir()
+            for index in range(22):
+                (sector_root / f"chart{index:02}.pdf").write_bytes(b"%PDF")
+            app.selected_location = LocationChoice(
+                "Test", "KMFR", pubs_directory=location_root
+            )
+            app.selected_sector = SectorChoice("Sector", (), sector_root)
+            app.open_pubs_menu()
+            self.assertEqual(app.pubs_directory, sector_root)
+            self.assertEqual(app.menu_entries("pubs")[-1], "Next page >")
+            app.select_pub(len(app.menu_entries("pubs")) - 1)
+            self.assertEqual(
+                app.menu_entries("pubs"),
+                (
+                    "FAA JO 7110.65BB",
+                    "< Previous page",
+                    "chart20.pdf",
+                    "chart21.pdf",
+                ),
+            )
+            app.select_pub(1)
+            self.assertEqual(app.pubs_page, 0)
+            app.selected_sector = None
+            app.open_pubs_menu()
+            self.assertEqual(
+                app.menu_entries("pubs"),
+                ("FAA JO 7110.65BB", "No publications available"),
+            )
+
+    def test_pubs_reports_file_and_viewer_errors(self):
+        app = make_application()
+        app.selected_location = None
+        app.open_pubs_menu()
+        self.assertEqual(
+            app.menu_entries("pubs"), ("FAA JO 7110.65BB", "Select a location first")
+        )
+        self.assertTrue(FAA_7110_65.is_file())
+        with patch("simulator.app.application.threading.Thread") as thread:
+            x = 3 * MENU_WIDTH + 10
+            app.on_mouse_press(x, MENU_BOTTOM + 5, arcade.MOUSE_BUTTON_LEFT, 0)
+            app.on_mouse_press(x, MENU_BOTTOM - 5, arcade.MOUSE_BUTTON_LEFT, 0)
+        self.assertEqual(
+            thread.call_args.kwargs["args"], (FAA_7110_65, app.pubs_results)
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / "chart.pdf"
+            path.write_bytes(b"%PDF")
+            (root / "notes.txt").write_text("notes", encoding="utf-8")
+            app.selected_location = LocationChoice("Test", "KNYL", pubs_directory=root)
+            app.open_pubs_menu()
+            app.select_pub(2)
+            self.assertIn("Only PDF", app.menu_message)
+            path.unlink()
+            app.select_pub(1)
+            self.assertIn("File not found", app.menu_message)
+            path.write_bytes(b"%PDF")
+            with (
+                patch("simulator.app.application.sys.platform", "win32"),
+                patch(
+                    "simulator.app.application.os.startfile",
+                    side_effect=OSError("no viewer"),
+                ),
+            ):
+                app.launch_publication(path, app.pubs_results)
+            app.gis_overlays = None
+            with self.assertLogs("simulator.app.application", level="ERROR"):
+                app.on_update(0)
+            self.assertIn("no viewer", app.menu_message)
+
+    def test_pubs_reports_directory_read_failure(self):
+        app = make_application()
+        app.selected_location = LocationChoice(
+            "Test", "KNYL", pubs_directory=Path("unreadable")
+        )
+        with (
+            patch.object(Path, "iterdir", side_effect=PermissionError("access denied")),
+            self.assertLogs("simulator.app.application", level="ERROR"),
+        ):
+            app.open_pubs_menu()
+        self.assertIn("access denied", app.menu_message)
+        self.assertIsNone(app.pubs_directory)
+
+    def test_runway_change_reassigns_waiting_departures(self):
+        app = make_application()
+        _, facility, strips = create_yuma_scenario()
+        app.scenario_loaded = True
+        app.atc_facility = facility
+        app.strip_panel = SimpleNamespace(
+            strips=strips, active_runways=facility.active_runways
+        )
+        waiting = [
+            strip
+            for strip in strips
+            if strip.aircraft.departure is not None
+            and strip.operation_area in ("03L", "03R")
+        ]
+        self.assertTrue(waiting)
+        old_areas = [strip.operation_area for strip in waiting]
+        app.select_yuma_runways(1)
+        self.assertEqual(facility.active_runways, ("21R", "21L", "35"))
+        self.assertEqual(app.strip_panel.active_runways, facility.active_runways)
+        self.assertEqual(
+            [strip.operation_area for strip in waiting],
+            [{"03L": "21R", "03R": "21L"}[area] for area in old_areas],
+        )
+        for strip in waiting:
+            self.assertAlmostEqual(
+                strip.aircraft.heading, facility.location.magnetic_to_true(210)
+            )
+        app.select_yuma_runways(0)
+        self.assertEqual([strip.operation_area for strip in waiting], old_areas)
+
+    def test_runway_change_waits_for_takeoff(self):
+        app = make_application()
+        _, facility, strips = create_yuma_scenario()
+        app.scenario_loaded = True
+        app.atc_facility = facility
+        app.strip_panel = SimpleNamespace(
+            strips=strips, active_runways=facility.active_runways
+        )
+        strip = next(
+            strip
+            for strip in strips
+            if strip.aircraft.departure is not None
+            and strip.operation_area in ("03L", "03R")
+        )
+        strip.aircraft.departure.state = "takeoff"
+        app.select_yuma_runways(1)
+        self.assertEqual(facility.active_runways, ("03L", "03R", "35"))
+        self.assertIn("Wait", app.menu_message)
 
     def test_options_submenu_escape_closes_menu(self):
         app = make_application()

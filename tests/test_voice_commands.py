@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 
 import arcade
 
-from Locations.Yuma.Scenarios.yuma import create_yuma_scenario
+from locations.Yuma.Scenarios.yuma import create_yuma_scenario
 from simulator.core.aircraft_models import boeing_767_freighter, cessna_172
 from simulator.core.atc import CoordinationKind, TrackingPosition, TrackOwnership
 from simulator.display.radar import RadarDisplay, RadarReturnManager, RadarSweep
@@ -421,6 +421,42 @@ class VoiceCommandTests(unittest.TestCase):
             aircraft.flight_guidance.vector_heading,
             self.facility.location.magnetic_to_true(270),
         )
+
+    def test_mic_as_mike_in_callsign_with_two_transcriptions(self):
+        aircraft = self.by_id["A1"]
+        aircraft.callsign = "N724KM"
+        for number in ("7 to 4", "7 24"):
+            with self.subTest(number=number):
+                reply = handle_transmission(
+                    f"November {number} kilo mic radar contact one mile north of Yuma",
+                    self.aircraft,
+                    self.facility,
+                    {"enroute_low"},
+                )
+                self.assertEqual(reply.aircraft_id, aircraft.id)
+                self.assertIn("Radar contact", reply.text)
+                self.assertEqual(aircraft.callsign, "N724KM")
+
+    def test_mic_callsign_alias_does_not_override_a_real_callsign(self):
+        aircraft = self.by_id["A1"]
+        aircraft.callsign = "M7"
+        literal = SimpleNamespace(
+            callsign="MIC7", aircraft_model=aircraft.aircraft_model
+        )
+        with self.assertRaisesRegex(ValueError, "unambiguous"):
+            handle_transmission(
+                "mic seven ident", [aircraft, literal], self.facility, {"enroute_low"}
+            )
+        aircraft.callsign = "MIC7"
+        reply = handle_transmission(
+            "mic seven ident", [aircraft], self.facility, {"enroute_low"}
+        )
+        self.assertEqual(reply.aircraft_id, aircraft.id)
+        aircraft.callsign = "M7"
+        reply = handle_transmission(
+            "mic seven ident", [aircraft], self.facility, {"enroute_low"}
+        )
+        self.assertEqual(reply.aircraft_id, aircraft.id)
 
     def test_two_transcribed_as_to_in_bearing_and_frequency(self):
         aircraft = self.by_id["A1"]

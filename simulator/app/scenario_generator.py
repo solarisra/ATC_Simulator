@@ -4,7 +4,7 @@ import secrets
 
 import arcade
 
-from Locations.Yuma.Scenarios.generator import (
+from locations.Yuma.Scenarios.generator import (
     AIRCRAFT_TYPES,
     OPERATIONS,
     TRAFFIC_LEVELS,

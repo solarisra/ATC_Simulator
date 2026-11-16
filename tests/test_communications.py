@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch
 
 import arcade
 
-from Locations.Cascade.Sectors.medford import create_location as create_medford_location
+from locations.Cascade.Sectors.Medford import create_location as create_medford_location
 from simulator.core.constants import SCREEN_HEIGHT
 from simulator.core.location import RadioFrequency
 from simulator.display.radar import RadarDisplay

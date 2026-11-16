@@ -6,7 +6,7 @@ from unittest.mock import Mock, patch
 
 import arcade
 
-from Locations.Yuma.Scenarios.yuma import create_yuma_scenario
+from locations.Yuma.Scenarios.yuma import create_yuma_scenario
 from simulator.core.aircraft_models import boeing_767_freighter, cessna_172
 from simulator.core.atc import (
     ATCFacility,
@@ -14,7 +14,12 @@ from simulator.core.atc import (
     TrackingPosition,
     TrackOwnership,
 )
-from simulator.core.constants import DISPLAY_RADIUS, FULL_ROTATION_TIME_SECONDS
+from simulator.core.constants import (
+    DISPLAY_RADIUS,
+    FULL_ROTATION_TIME_SECONDS,
+    SCREEN_HEIGHT,
+    SCREEN_WIDTH,
+)
 from simulator.display.radar import (
     RadarDisplay,
     RadarReturnManager,
@@ -102,6 +107,36 @@ def type_clearance(display, text):
 
 
 class RadarSweepTests(unittest.TestCase):
+    def test_range_rings_scale_with_radar_mode_and_cache_brightness(self):
+        display = SimpleNamespace(range_ring_brightness=30, range_ring_geometry=None)
+        with (
+            patch("arcade.shape_list.ShapeElementList") as shapes,
+            patch("arcade.shape_list.create_ellipse_outline") as ellipse,
+        ):
+            RadarDisplay.draw_range_rings(display, DISPLAY_RADIUS)
+            self.assertEqual(ellipse.call_count, 10)
+            for index, call in enumerate(ellipse.call_args_list, start=1):
+                x, y, width, height, color = call.args
+                self.assertEqual((x, y), (0, 0))
+                self.assertEqual(width, 2 * DISPLAY_RADIUS * index / 10)
+                self.assertEqual(height, width)
+                self.assertEqual(color, (76, 76, 76, 255))
+            self.assertEqual(
+                shapes.return_value.position, (SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
+            )
+            RadarDisplay.draw_range_rings(display, DISPLAY_RADIUS)
+            self.assertEqual(ellipse.call_count, 10)
+            RadarDisplay.draw_range_rings(display, SCREEN_HEIGHT / 2)
+            self.assertEqual(ellipse.call_count, 20)
+            self.assertEqual(ellipse.call_args.args[2:4], (900, 900))
+            display.range_ring_brightness = 100
+            RadarDisplay.draw_range_rings(display, SCREEN_HEIGHT / 2)
+            self.assertEqual(ellipse.call_count, 30)
+            self.assertEqual(ellipse.call_args.args[4], (255, 255, 255, 255))
+            display.range_ring_brightness = 0
+            RadarDisplay.draw_range_rings(display, DISPLAY_RADIUS)
+            self.assertEqual(shapes.return_value.draw.call_count, 4)
+
     def test_sector_has_smooth_fade_over_requested_angle(self):
         display = SimpleNamespace(center_x=600, center_y=450)
         shapes = Mock()
@@ -166,6 +201,20 @@ class RadarSweepTests(unittest.TestCase):
         self.assertAlmostEqual(end_x, 1020)
         self.assertAlmostEqual(end_y, 450)
         self.assertEqual((color, width), (arcade.color.ORANGE, 2))
+
+    def test_primary_sweep_uses_magnetic_bearing(self):
+        display, _ = coordination_display()
+        display.display_type = RadarDisplay.ARTS_IIE
+        declination = display.atc_facility.location.magnetic_to_true(0)
+        display.calculate_range_and_bearing = lambda lat, lon: (
+            10,
+            math.radians(declination + 5),
+        )
+        RadarDisplay.on_update(display, 0.1)
+        self.assertEqual(len(display.radar_return_manager.radar_returns), 1)
+        x, y, _ = display.radar_return_manager.radar_returns[0]
+        self.assertAlmostEqual(x, 600 + 40 * math.sin(math.radians(5)))
+        self.assertAlmostEqual(y, 450 + 40 * math.cos(math.radians(5)))
 
 
 class RadarReturnTests(unittest.TestCase):
@@ -266,7 +315,7 @@ class SecondaryRadarTests(unittest.TestCase):
         )
         display = SimpleNamespace(
             aircraft_list=SimpleNamespace(aircraft_list=[aircraft]),
-            atc_facility=ATCFacility("Test", {"lat": 0, "lon": 0}),
+            atc_facility=ATCFacility.get_atc_facility_by_name("KNYL"),
             sweep=RadarSweep(),
             radar_return_manager=RadarReturnManager(),
             display_type=RadarDisplay.ARTS_IIE,
@@ -1085,6 +1134,39 @@ class SecondaryRadarTests(unittest.TestCase):
                     int(layout.text_y > y1) - int(layout.text_y < y1), direction[1]
                 )
 
+    def test_default_leader_line_follows_magnetic_display_heading(self):
+        snapshot = (
+            coordination_display()[0].secondary_radar_returns[0]._replace(heading=0)
+        )
+        display = SimpleNamespace(
+            atc_facility=ATCFacility.get_atc_facility_by_name("KNYL"),
+            secondary_radar_returns=[snapshot],
+            display_type=RadarDisplay.ARTS_IIE,
+            data_block_labels={},
+            data_block_directions={},
+            selected_aircraft_id=None,
+            data_block_overlap_warned=False,
+            width=1200,
+            height=900,
+            ui_scale=1.0,
+            calculate_range_and_bearing=lambda lat, lon: (10, 0),
+            convert_to_display_coordinates=lambda lat, lon: (600, 450),
+            is_visible_scope_position=lambda x, y: True,
+            secondary_return_layout=RadarDisplay.secondary_return_layout,
+        )
+        with patch.object(
+            RadarDisplay,
+            "get_data_block_label",
+            return_value=SimpleNamespace(width=20, height=20),
+        ):
+            layout = RadarDisplay.layout_secondary_returns(display)[0]
+        self.assertAlmostEqual(
+            layout.text_x - 600, 40 * math.sin(math.radians(10 + 14 / 60))
+        )
+        self.assertAlmostEqual(
+            layout.text_y - 450, -40 * math.cos(math.radians(10 + 14 / 60))
+        )
+
     def test_crowded_blocks_preserve_leader_lines_even_if_they_overlap(self):
         snapshots = [
             SimpleNamespace(aircraft_id=identifier, latitude=0, longitude=0, heading=90)
@@ -1152,6 +1234,7 @@ class SecondaryRadarTests(unittest.TestCase):
         ]
         display = SimpleNamespace(
             aircraft_list=SimpleNamespace(aircraft_list=aircraft),
+            atc_facility=ATCFacility.get_atc_facility_by_name("KNYL"),
             display_type=RadarDisplay.STARS,
             ARTS_IIE=RadarDisplay.ARTS_IIE,
             selected_aircraft_id=None,
@@ -1269,6 +1352,7 @@ class SecondaryRadarTests(unittest.TestCase):
         ]
         display = SimpleNamespace(
             aircraft_list=SimpleNamespace(aircraft_list=aircraft),
+            atc_facility=ATCFacility.get_atc_facility_by_name("KNYL"),
             display_type=RadarDisplay.STARS,
             selected_aircraft_id="A1",
             scratchpad_edit_id=None,
@@ -1356,12 +1440,11 @@ class RadarViewportTests(unittest.TestCase):
         ):
             RadarDisplay.draw_degree_markings(display, 600, 450, 424)
             first = text.call_args_list[0].args
-            self.assertAlmostEqual(
-                first[1], 600 + 424 * math.sin(math.radians(10 + 14 / 60))
-            )
-            self.assertAlmostEqual(
-                first[2], 450 + 424 * math.cos(math.radians(10 + 14 / 60))
-            )
+            self.assertAlmostEqual(first[1], 600)
+            self.assertAlmostEqual(first[2], 450 + 424)
+            east = text.call_args_list[6].args
+            self.assertAlmostEqual(east[1], 600 + 424)
+            self.assertAlmostEqual(east[2], 450)
             RadarDisplay.draw_degree_markings(display, 600, 450, 424)
             self.assertEqual(text.call_count, 24)
             self.assertEqual(batch.return_value.draw.call_count, 2)
@@ -1383,6 +1466,7 @@ class RadarViewportTests(unittest.TestCase):
             height=60,
         )
         overlays = Mock()
+        overlays.draw_map.side_effect = lambda radius: events.append("map")
         overlays.draw_legend.side_effect = lambda: events.append("legend")
         mask = Mock()
         mask.draw.side_effect = lambda: events.append("mask")
@@ -1399,6 +1483,7 @@ class RadarViewportTests(unittest.TestCase):
             ),
             is_visible_scope_position=Mock(return_value=True),
             transform_position=Mock(),
+            draw_range_rings=Mock(side_effect=lambda radius: events.append("rings")),
             draw_sweep=Mock(),
             radar_return_manager=Mock(),
             scope_mask=mask,
@@ -1418,7 +1503,7 @@ class RadarViewportTests(unittest.TestCase):
             communications_panel=Mock(),
         )
         RadarDisplay.on_draw(display)
-        self.assertEqual(events, ["return", "mask", "border", "legend"])
+        self.assertEqual(events, ["map", "rings", "return", "mask", "border", "legend"])
 
     def test_arts_data_blocks_stay_inside_circular_scope_near_edges(self):
         snapshot = SimpleNamespace(
@@ -1541,8 +1626,9 @@ class RadarViewportTests(unittest.TestCase):
         self.assertEqual(RadarDisplay.layout_secondary_returns(display), [])
 
     def test_radar_blocks_do_not_extend_into_communications_panel(self):
-        snapshot = SimpleNamespace(aircraft_id="A1", latitude=0, longitude=0)
+        snapshot = SimpleNamespace(aircraft_id="A1", latitude=0, longitude=0, heading=0)
         display = SimpleNamespace(
+            atc_facility=ATCFacility.get_atc_facility_by_name("KNYL"),
             secondary_radar_returns=[snapshot],
             display_type=RadarDisplay.STARS,
             calculate_range_and_bearing=lambda lat, lon: (10, 0),

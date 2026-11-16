@@ -3,7 +3,10 @@
 import logging
 import os
 import queue
+import random
+import re
 import threading
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -33,6 +36,41 @@ PILOT_VOICES = (
     "af_alloy",
     "af_river",
 )
+
+
+def assign_pilot_voices(aircraft):
+    counts = Counter(
+        plane.pilot_voice for plane in aircraft if plane.pilot_voice is not None
+    )
+    if any(voice not in PILOT_VOICES for voice in counts):
+        raise ValueError("Unknown pilot voice")
+    unassigned = [plane for plane in aircraft if plane.pilot_voice is None]
+    if not unassigned:
+        return
+    voices = list(PILOT_VOICES)
+    random.SystemRandom().shuffle(voices)
+    reused = False
+    for plane in unassigned:
+        voice = min(voices, key=lambda candidate: counts[candidate])
+        reused = reused or counts[voice] > 0
+        plane.pilot_voice = voice
+        counts[voice] += 1
+    if reused:
+        logging.getLogger(__name__).warning(
+            "More aircraft than distinct pilot voices; reusing voice presets"
+        )
+
+
+def _speech_text(text: str) -> str:
+    # Misaki otherwise mispronounces the city name; its inline markup supplies phonemes.
+    return re.sub(
+        r"\bLos Angeles\b",
+        lambda match: (
+            f"[{match.group()}](/l\u0254s \u02c8\u00e6n\u02a4\u0259l\u0259s/)"
+        ),
+        text,
+        flags=re.IGNORECASE,
+    )
 
 
 @dataclass(frozen=True)
@@ -105,7 +143,6 @@ class VoiceAudio:
         self._playing_channel: str | None = None
         self._sounddevice = None
         self._generation = 0
-        self._pilot_voices: dict[str, str] = {}
         self._thread = threading.Thread(
             target=self._run, name="voice-audio", daemon=True
         )
@@ -198,17 +235,9 @@ class VoiceAudio:
                 self.events.put(("error", "No radio frequency is On"))
 
     def speak(self, reply):
+        if reply.pilot_voice not in PILOT_VOICES:
+            raise ValueError(f"No valid pilot voice assigned to {reply.aircraft_id}")
         self._submit(("speak", reply))
-
-    def _pilot_voice(self, aircraft_id: str) -> str:
-        if aircraft_id not in self._pilot_voices:
-            index = len(self._pilot_voices)
-            if index == len(PILOT_VOICES):
-                logging.getLogger(__name__).warning(
-                    "More aircraft than distinct pilot voices; reusing voice presets"
-                )
-            self._pilot_voices[aircraft_id] = PILOT_VOICES[index % len(PILOT_VOICES)]
-        return self._pilot_voices[aircraft_id]
 
     def _callback(self, indata, frames, time_info, status):
         self._capture.feed(indata, status)
@@ -301,7 +330,8 @@ class VoiceAudio:
                     )
                     chunks = []
                     for result in kokoro(
-                        item.text, voice=self._pilot_voice(item.aircraft_id)
+                        _speech_text(item.text),
+                        voice=item.pilot_voice,
                     ):
                         audio = result.audio
                         if audio is None:

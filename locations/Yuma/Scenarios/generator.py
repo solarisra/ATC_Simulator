@@ -5,8 +5,8 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from itertools import cycle
 
-from Locations.Yuma.Scenarios.routing import NoSafeRouteError, yuma_router
-from Locations.Yuma.Scenarios.sample_data import CIVILIAN_AIRPORTS
+from locations.Yuma.Scenarios.routing import NoSafeRouteError, yuma_router
+from locations.Yuma.Scenarios.sample_data import CIVILIAN_AIRPORTS
 from simulator.core import aircraft_models as models
 from simulator.core.aircraft import Aircraft, AircraftList, AircraftModel
 from simulator.core.atc import ATCFacility, FlightPlan, FlightStrip

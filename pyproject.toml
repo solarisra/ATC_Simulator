@@ -27,7 +27,7 @@ dev = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"Locations/**/__init__.py" = ["N999"]
+"locations/**/__init__.py" = ["N999"]
 
 [tool.uv.sources]
 torch = [

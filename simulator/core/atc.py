@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from enum import StrEnum
 
-from Locations.Cascade.Sectors.medford import create_location as create_medford_location
-from Locations.Yuma import create_location as create_yuma_location
+from locations.Cascade.Sectors.Medford import create_location as create_medford_location
+from locations.Yuma import create_location as create_yuma_location
 from simulator.core.location import AirportDiagram, FlightPlate, Location  # noqa: F401
 
 SIMULATED_HANDOFF_DELAY_SECONDS = 3.0

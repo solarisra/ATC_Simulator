@@ -4,7 +4,7 @@ from datetime import UTC, datetime, timedelta
 from itertools import pairwise
 from unittest.mock import patch
 
-from Locations.Yuma.Scenarios.generator import (
+from locations.Yuma.Scenarios.generator import (
     AIRCRAFT_TYPES,
     OPERATIONS,
     PROFILES,
@@ -12,9 +12,9 @@ from Locations.Yuma.Scenarios.generator import (
     _itineraries,
     generate_yuma_scenario,
 )
-from Locations.Yuma.Scenarios.routing import NoSafeRouteError, yuma_router
-from Locations.Yuma.Scenarios.sample_data import CIVILIAN_AIRPORTS
-from Locations.Yuma.Scenarios.yuma import create_yuma_scenario
+from locations.Yuma.Scenarios.routing import NoSafeRouteError, yuma_router
+from locations.Yuma.Scenarios.sample_data import CIVILIAN_AIRPORTS
+from locations.Yuma.Scenarios.yuma import create_yuma_scenario
 from simulator.core.atc import FlightPlan, RadarControlState, TrackingPosition
 from simulator.navigation.flight_navigation import NavigationData
 from simulator.navigation.navmath import NavigationalCoordinateSystem
@@ -30,7 +30,7 @@ class ScenarioGeneratorTests(unittest.TestCase):
         if start_time is None:
             start_time = datetime(2026, 11, 15, 20, 0, tzinfo=UTC)
         with patch(
-            "Locations.Yuma.Scenarios.generator.NavigationData",
+            "locations.Yuma.Scenarios.generator.NavigationData",
             return_value=self.navigation,
         ):
             return generate_yuma_scenario(settings, start_time)
@@ -179,7 +179,7 @@ class ScenarioGeneratorTests(unittest.TestCase):
         types = dict.fromkeys(AIRCRAFT_TYPES, 0)
         types["heavies"] = 1
         with (
-            patch("Locations.Yuma.Scenarios.generator._itineraries", return_value=[]),
+            patch("locations.Yuma.Scenarios.generator._itineraries", return_value=[]),
             self.assertRaisesRegex(ValueError, "No supported combinations"),
         ):
             self.generate(
@@ -248,7 +248,7 @@ class ScenarioGeneratorTests(unittest.TestCase):
             return original(airport)
 
         with (
-            patch("Locations.Yuma.Scenarios.generator.PROFILES", (profile,)),
+            patch("locations.Yuma.Scenarios.generator.PROFILES", (profile,)),
             patch.object(router, "airport_leg", side_effect=leg),
         ):
             _, _, strips, warnings = self.generate(
@@ -270,7 +270,7 @@ class ScenarioGeneratorTests(unittest.TestCase):
         types["small fixed-wing"] = 1
         router = yuma_router(self.navigation)
         with (
-            patch("Locations.Yuma.Scenarios.generator.PROFILES", (profile,)),
+            patch("locations.Yuma.Scenarios.generator.PROFILES", (profile,)),
             patch.object(router, "airport_leg", return_value=((), 100, True)),
         ):
             _, _, strips, warnings = self.generate(

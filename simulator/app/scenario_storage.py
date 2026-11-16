@@ -9,7 +9,7 @@ from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
-from Locations.Yuma.Scenarios.generator import GeneratorSettings
+from locations.Yuma.Scenarios.generator import GeneratorSettings
 from simulator.core import aircraft_models
 from simulator.core.aircraft import Aircraft, AircraftList, AircraftModel
 from simulator.core.atc import (
@@ -28,6 +28,7 @@ from simulator.navigation.flight_navigation import (
     NavigationData,
     Waypoint,
 )
+from simulator.radio.voice_audio import PILOT_VOICES
 
 SAVE_DIRECTORY = Path.home() / ".atc_simulator" / "scenarios"
 VERSION = 1
@@ -151,6 +152,7 @@ def snapshot_scenario(
                 "aircraft": {
                     **_fields(plane, AIRCRAFT_FIELDS),
                     "ident_remaining": plane.ident_remaining,
+                    "pilot_voice": plane.pilot_voice,
                 },
                 "model": plane.aircraft_model.aircraft_type,
                 "track": track,
@@ -279,6 +281,8 @@ def _validate_record(record):
     }
     if "ident_remaining" in plane:
         aircraft_schema["ident_remaining"] = NUMBER
+    if "pilot_voice" in plane:
+        aircraft_schema["pilot_voice"] = OPTIONAL_STRING
     _validate_fields(plane, aircraft_schema)
     if (
         not plane["id"]
@@ -289,6 +293,10 @@ def _validate_record(record):
         or plane["altitude"] < 0
         or plane["distance"] < 0
         or plane.get("ident_remaining", 0) < 0
+        or (
+            plane.get("pilot_voice") is not None
+            and plane["pilot_voice"] not in PILOT_VOICES
+        )
         or plane["target_turn_direction"] not in (None, "LEFT", "RIGHT")
         or (
             plane["target_heading"] is not None
@@ -485,7 +493,7 @@ def restore_scenario(data):
     for record in data["records"]:
         _validate_record(record)
         values = record["aircraft"]
-        if set(values) - {"ident_remaining"} != set(AIRCRAFT_FIELDS):
+        if set(values) - {"ident_remaining", "pilot_voice"} != set(AIRCRAFT_FIELDS):
             raise ValueError("Invalid aircraft state fields")
         model = models[record["model"]]
         if values["target_speed"] is not None:
@@ -586,6 +594,7 @@ def restore_scenario(data):
             plane, {name: values[name] for name in AIRCRAFT_FIELDS}, AIRCRAFT_FIELDS
         )
         plane.ident_remaining = values.get("ident_remaining", 0.0)
+        plane.pilot_voice = values.get("pilot_voice")
         aircraft.add_aircraft([plane])
         strips_by_id[plane.id] = strip
     order = data["strip_order"]

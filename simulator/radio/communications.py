@@ -1,4 +1,4 @@
-"""Simulated radio and intrafacility communications panel."""
+"""Simulated radio, intrafacility, and interfacility communications panel."""
 
 from dataclasses import dataclass
 
@@ -20,6 +20,8 @@ BUTTON_WIDTH = (
 BUTTON_HEIGHT = 36
 ROW_TOPS = (SCREEN_HEIGHT + 94, SCREEN_HEIGHT + 50)
 LINE_WIDTH = (PANEL_WIDTH - 2 * PANEL_MARGIN - PANEL_GAP) / 2
+LINE_HEIGHT = 19
+LINE_ROW_GAP = 3
 
 
 @dataclass
@@ -50,20 +52,42 @@ def _button_rect(column, row):
     return arcade.LBWH(left, ROW_TOPS[row] - BUTTON_HEIGHT, BUTTON_WIDTH, BUTTON_HEIGHT)
 
 
-def _line_rect(column, row):
-    left = SCREEN_WIDTH + PANEL_MARGIN + column * (LINE_WIDTH + PANEL_GAP)
-    return arcade.LBWH(left, ROW_TOPS[row] - BUTTON_HEIGHT, LINE_WIDTH, BUTTON_HEIGHT)
+def _line_rect(index):
+    top = ROW_TOPS[0] - index * (LINE_HEIGHT + LINE_ROW_GAP)
+    return arcade.LBWH(
+        SCREEN_WIDTH + PANEL_MARGIN, top - LINE_HEIGHT, LINE_WIDTH, LINE_HEIGHT
+    )
+
+
+def _interfacility_rect(index):
+    left = SCREEN_WIDTH + PANEL_MARGIN + LINE_WIDTH + PANEL_GAP
+    top = ROW_TOPS[0] - index * (LINE_HEIGHT + LINE_ROW_GAP)
+    return arcade.LBWH(left, top - LINE_HEIGHT, LINE_WIDTH, LINE_HEIGHT)
 
 
 class CommunicationsPanel:
-    def __init__(self, frequencies=None, coordination_lines=None):
+    def __init__(
+        self, frequencies=None, coordination_lines=None, interfacility_lines=None
+    ):
         if frequencies is None:
             location = create_yuma_location()
             frequencies = location.radio_frequencies
             if coordination_lines is None:
                 coordination_lines = location.coordination_lines
+            if interfacility_lines is None:
+                interfacility_lines = location.interfacility_lines
         if coordination_lines is None:
             coordination_lines = ()
+        if interfacility_lines is None:
+            interfacility_lines = ()
+        if len(interfacility_lines) > 4:
+            raise ValueError("Too many interfacility lines for the panel")
+        if len(coordination_lines) > 4:
+            raise ValueError("Too many intrafacility lines for the panel")
+        line_ids = [identifier for identifier, _ in coordination_lines]
+        line_ids.extend(identifier for identifier, _ in interfacility_lines)
+        if len(set(line_ids)) != len(line_ids):
+            raise ValueError("Coordination line identifiers must be unique")
         self.channels = [
             RadioChannel(
                 frequency.identifier,
@@ -93,6 +117,10 @@ class CommunicationsPanel:
             IntrafacilityLine(identifier, label)
             for identifier, label in coordination_lines
         ]
+        self.interfacility_lines = [
+            IntrafacilityLine(identifier, label)
+            for identifier, label in interfacility_lines
+        ]
         self.mouse_ptt = False
         self.keyboard_ptt = False
         self.pilot_channel: str | None = None
@@ -100,7 +128,7 @@ class CommunicationsPanel:
         self.header = arcade.Text(
             "",
             PANEL_MARGIN,
-            SCREEN_HEIGHT + COMMUNICATIONS_HEIGHT - 4,
+            SCREEN_HEIGHT + 116,
             arcade.color.WHITE,
             11,
             anchor_y="top",
@@ -121,27 +149,46 @@ class CommunicationsPanel:
             for column, row in self.channel_positions
         ]
         self.line_header = arcade.Text(
-            "INTRAFACILITY (NON-RADIO)",
+            "INTRAFACILITY",
             SCREEN_WIDTH + PANEL_MARGIN,
-            SCREEN_HEIGHT + COMMUNICATIONS_HEIGHT - 4,
+            SCREEN_HEIGHT + 112,
             arcade.color.WHITE,
-            11,
+            9,
             anchor_y="top",
             font_name="Consolas",
         )
         self.line_labels = [
             arcade.Text(
                 "",
-                _line_rect(index % 2, index // 2).left + 6,
-                _line_rect(index % 2, index // 2).top - 3,
+                _line_rect(index).left + 6,
+                _line_rect(index).top - 3,
                 arcade.color.WHITE,
-                9,
+                8,
                 anchor_y="top",
-                multiline=True,
-                width=int(LINE_WIDTH - 12),
                 font_name="Consolas",
             )
             for index in range(len(self.lines))
+        ]
+        self.interfacility_header = arcade.Text(
+            "INTERFACILITY",
+            SCREEN_WIDTH + PANEL_MARGIN + LINE_WIDTH + PANEL_GAP,
+            SCREEN_HEIGHT + 112,
+            arcade.color.WHITE,
+            9,
+            anchor_y="top",
+            font_name="Consolas",
+        )
+        self.interfacility_labels = [
+            arcade.Text(
+                "",
+                _interfacility_rect(index).left + 6,
+                _interfacility_rect(index).top - 3,
+                arcade.color.WHITE,
+                8,
+                anchor_y="top",
+                font_name="Consolas",
+            )
+            for index in range(len(self.interfacility_lines))
         ]
         mic_rect = self.mic_rect
         self.mic_label = arcade.Text(
@@ -191,7 +238,11 @@ class CommunicationsPanel:
                 channel.cycle()
                 return True
         for index, line in enumerate(self.lines):
-            if _line_rect(index % 2, index // 2).point_in_rect((x, y)):
+            if _line_rect(index).point_in_rect((x, y)):
+                line.hot = not line.hot
+                return True
+        for index, line in enumerate(self.interfacility_lines):
+            if _interfacility_rect(index).point_in_rect((x, y)):
                 line.hot = not line.hot
                 return True
         return True
@@ -216,11 +267,34 @@ class CommunicationsPanel:
         )
         voice_status = self.voice_status or "SIMULATED ONLY"
         self.header.text = (
-            f"COMMUNICATIONS  |  {voice_status}  |  MIC {'HOT' if self.mic_hot else 'COLD'}"
+            f"RADIOS  |  {voice_status}  |  MIC {'HOT' if self.mic_hot else 'COLD'}"
             f"  |  TRANSMITTING: {len(self.transmitting)}"
         )
         self.header.draw()
-        self.line_header.draw()
+        if self.lines:
+            arcade.draw_rect_outline(
+                arcade.LBWH(
+                    SCREEN_WIDTH + PANEL_MARGIN - 2,
+                    SCREEN_HEIGHT + 4,
+                    LINE_WIDTH + 4,
+                    COMMUNICATIONS_HEIGHT - 8,
+                ),
+                (85, 94, 103),
+                1,
+            )
+            self.line_header.draw()
+        if self.interfacility_lines:
+            arcade.draw_rect_outline(
+                arcade.LBWH(
+                    SCREEN_WIDTH + PANEL_MARGIN + LINE_WIDTH + PANEL_GAP - 2,
+                    SCREEN_HEIGHT + 4,
+                    LINE_WIDTH + 4,
+                    COMMUNICATIONS_HEIGHT - 8,
+                ),
+                (85, 94, 103),
+                1,
+            )
+            self.interfacility_header.draw()
         colors = {
             RadioState.OFF: (65, 69, 73),
             RadioState.LISTEN: (46, 85, 116),
@@ -242,14 +316,22 @@ class CommunicationsPanel:
                 f"{channel.frequency} MHZ" if channel.frequency else "UNVERIFIED"
             )
             label.text = (
-                f"{channel.label} ({channel.band})\n{frequency} | {channel.state}"
+                f"{channel.label} ({channel.band})\n{frequency} |{channel.state}"
             )
             label.draw()
         for index, (line, label) in enumerate(zip(self.lines, self.line_labels)):
-            rect = _line_rect(index % 2, index // 2)
+            rect = _line_rect(index)
             arcade.draw_rect_filled(rect, (150, 57, 48) if line.hot else (65, 69, 73))
             arcade.draw_rect_outline(rect, arcade.color.LIGHT_GRAY, 1)
-            label.text = f"{line.label}\n{'HOT' if line.hot else 'COLD'}"
+            label.text = f"{line.label}  {'HOT' if line.hot else 'COLD'}"
+            label.draw()
+        for index, (line, label) in enumerate(
+            zip(self.interfacility_lines, self.interfacility_labels)
+        ):
+            rect = _interfacility_rect(index)
+            arcade.draw_rect_filled(rect, (150, 57, 48) if line.hot else (65, 69, 73))
+            arcade.draw_rect_outline(rect, arcade.color.LIGHT_GRAY, 1)
+            label.text = f"{line.label}  {'HOT' if line.hot else 'COLD'}"
             label.draw()
         mic_rect = self.mic_rect
         arcade.draw_rect_filled(

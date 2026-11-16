@@ -1,12 +1,14 @@
 import runpy
 import unittest
 from collections import Counter
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 import arcade
 
 from Locations.Yuma.Scenarios.yuma import create_yuma_scenario
+from simulator.core.aircraft_models import boeing_767_freighter
 from simulator.core.atc import FlightPlan, FlightStrip
 from simulator.core.constants import SCREEN_WIDTH
 from simulator.display.flight_strips import (
@@ -16,6 +18,7 @@ from simulator.display.flight_strips import (
     STRIP_COLUMNS,
     STRIP_HEIGHT,
     STRIP_LEFT,
+    STRIP_SHIFT,
     VISIBLE_STRIPS,
     FlightStripPanel,
     terminal_strip_fields,
@@ -28,7 +31,9 @@ def make_panel(count):
         SimpleNamespace(
             id=f"A{i}",
             callsign=f"TEST{i}",
-            aircraft_model=SimpleNamespace(aircraft_type="C172"),
+            aircraft_model=SimpleNamespace(
+                aircraft_type="C172", max_takeoff_weight=1049
+            ),
             flight_rules="VFR",
             squawk="1200",
             target_altitude=None,
@@ -48,6 +53,35 @@ def make_panel(count):
 
 
 class FlightStripTests(unittest.TestCase):
+    def test_heavy_marker_is_drawn_on_strip(self):
+        panel, aircraft, _ = make_panel(1)
+        aircraft[0].callsign = "AAL381"
+        aircraft[0].aircraft_model = boeing_767_freighter
+        with (
+            patch("arcade.draw_rect_filled"),
+            patch("arcade.draw_line"),
+            patch.object(panel, "draw_field") as fields,
+        ):
+            panel.draw(aircraft[0].id)
+        self.assertIn("AAL381H", [call.args[0] for call in fields.call_args_list])
+        self.assertIn("AAL381H", panel.footer.text)
+        self.assertEqual(aircraft[0].callsign, "AAL381")
+
+    def test_departure_strip_displays_scheduled_utc(self):
+        panel, aircraft, _ = make_panel(1)
+        panel.airport_code = "KNYL"
+        aircraft[0].departure = SimpleNamespace(
+            state="waiting", scheduled_utc=datetime(2026, 11, 16, 0, 3, 25, tzinfo=UTC)
+        )
+        with (
+            patch("arcade.draw_rect_filled"),
+            patch("arcade.draw_line"),
+            patch.object(panel, "draw_field") as fields,
+        ):
+            panel.draw(aircraft[0].id)
+        self.assertIn("0003Z", [call.args[0] for call in fields.call_args_list])
+        self.assertIn("00:03:25 UTC", panel.footer.text)
+
     def test_departure_checkins_have_separate_area_above_strips(self):
         with patch("simulator.display.flight_strips.arcade.Text") as text_factory:
             FlightStripPanel([], SimpleNamespace(aircraft_list=[]))
@@ -90,8 +124,25 @@ class FlightStripTests(unittest.TestCase):
         kind, block7, block8, block9 = terminal_strip_fields(strip, "KIPL")
         self.assertEqual((kind, block7, block8), ("ARRIVAL", "--", "--"))
         self.assertEqual(block9, ("A 60", "FIX BZA/1230", "CLEARED DIRECT", "TO IPL"))
-        self.assertEqual(terminal_strip_fields(strip, "KPHX")[0], "OVERFLIGHT")
+        self.assertEqual(
+            terminal_strip_fields(strip, "KPHX")[:3], ("OVERFLIGHT", "--", "ENR")
+        )
         self.assertEqual(terminal_strip_fields(strip, None)[0], "UNKNOWN")
+
+    def test_enroute_indicator_is_drawn_in_field_eight(self):
+        panel, aircraft, strips = make_panel(1)
+        panel.airport_code = "KPHX"
+        with (
+            patch("arcade.draw_rect_filled"),
+            patch("arcade.draw_line"),
+            patch.object(panel, "draw_field") as fields,
+        ):
+            panel.draw(aircraft[0].id)
+        self.assertIn(
+            ("ENR", STRIP_LEFT + STRIP_COLUMNS[2] + 4),
+            [(call.args[0], call.args[1]) for call in fields.call_args_list],
+        )
+        self.assertEqual(strips[0].flight_plan.origin, "KNYL")
 
     def test_long_fields_fit_grid_and_full_details_remain_visible(self):
         panel, aircraft, strips = make_panel(1)
@@ -173,6 +224,7 @@ class FlightStripTests(unittest.TestCase):
         self.assertIn("coordination indicator", hover(2, STRIP_COLUMNS[1] + 5, 55))
         self.assertIn("Departure airport", hover(0, STRIP_COLUMNS[2] + 5, 5))
         self.assertIn("Estimated arrival", hover(1, STRIP_COLUMNS[2] + 5, 5))
+        self.assertIn("ENR", hover(2, STRIP_COLUMNS[2] + 5, 5))
         self.assertIn("8B", hover(0, STRIP_COLUMNS[2] + 5, 55))
         self.assertIn("Filed route", hover(0, STRIP_COLUMNS[3] + 5, 5))
         self.assertIn("Assigned altitude", hover(1, STRIP_COLUMNS[3] + 5, 5))
@@ -471,6 +523,85 @@ class FlightStripTests(unittest.TestCase):
         self.assertEqual(
             [s.aircraft.id for s in panel.strips], ["A3", "A1", "A2", "A0"]
         )
+
+    def test_horizontal_drag_offsets_and_restores_a_strip(self):
+        panel, aircraft, strips = make_panel(2)
+        display = SimpleNamespace(
+            strip_panel=panel,
+            scratchpad_edit_id=None,
+            handoff_choice_id=None,
+            handoff_message="",
+            selected_aircraft_id=None,
+        )
+        display.on_mouse_motion = lambda x, y, dx, dy: RadarDisplay.on_mouse_motion(
+            display, x, y, dx, dy
+        )
+        x, y = STRIP_LEFT + 10, LIST_TOP - 10
+        RadarDisplay.on_mouse_press(display, x, y, arcade.MOUSE_BUTTON_LEFT, 0)
+        RadarDisplay.on_mouse_drag(
+            display, x + STRIP_SHIFT, y, STRIP_SHIFT, 0, arcade.MOUSE_BUTTON_LEFT, 0
+        )
+        with (
+            patch("arcade.draw_rect_filled"),
+            patch("arcade.draw_line"),
+            patch.object(panel, "draw_field") as fields,
+        ):
+            panel.draw(aircraft[0].id)
+        self.assertIn(
+            (aircraft[0].callsign, STRIP_LEFT + STRIP_SHIFT + 4),
+            [(call.args[0], call.args[1]) for call in fields.call_args_list],
+        )
+        RadarDisplay.on_mouse_release(
+            display, x + STRIP_SHIFT, y, arcade.MOUSE_BUTTON_LEFT, 0
+        )
+        self.assertTrue(strips[0].offset_right)
+        self.assertFalse(strips[1].offset_right)
+        self.assertEqual([strip.aircraft.id for strip in panel.strips], ["A0", "A1"])
+        self.assertEqual(display.selected_aircraft_id, aircraft[0].id)
+        self.assertIsNone(panel.select_at(y, x))
+        self.assertIsNone(panel.tooltip_at(x, y))
+        self.assertEqual(panel.select_at(y, x + STRIP_SHIFT), aircraft[0].id)
+        self.assertIn("Field 1", panel.tooltip_at(x + STRIP_SHIFT, y))
+        far_right = STRIP_LEFT + STRIP_SHIFT + STRIP_COLUMNS[-1] - 1
+        self.assertEqual(panel.select_at(y, far_right), aircraft[0].id)
+        self.assertIn("Field", panel.tooltip_at(far_right, y))
+
+        RadarDisplay.on_mouse_press(
+            display, x + STRIP_SHIFT, y, arcade.MOUSE_BUTTON_LEFT, 0
+        )
+        RadarDisplay.on_mouse_drag(
+            display, x, y, -STRIP_SHIFT, 0, arcade.MOUSE_BUTTON_LEFT, 0
+        )
+        RadarDisplay.on_mouse_release(display, x, y, arcade.MOUSE_BUTTON_LEFT, 0)
+        self.assertFalse(strips[0].offset_right)
+
+    def test_offset_drag_cancellation_and_reordering_shifted_strips(self):
+        panel, _, strips = make_panel(3)
+        x, y = STRIP_LEFT + 10, LIST_TOP - 10
+        panel.start_drag(x, y)
+        panel.move_drag(x + STRIP_SHIFT / 4, y)
+        panel.finish_drag(x + STRIP_SHIFT / 4, y)
+        self.assertFalse(strips[0].offset_right)
+        panel.start_drag(x, y)
+        panel.move_drag(x + STRIP_SHIFT, y)
+        panel.cancel_drag()
+        panel.finish_drag(x + STRIP_SHIFT, y)
+        self.assertFalse(strips[0].offset_right)
+        panel.start_drag(x, y)
+        panel.move_drag(x + STRIP_SHIFT, y)
+        panel.finish_drag(SCREEN_WIDTH - 1, y)
+        self.assertFalse(strips[0].offset_right)
+        panel.start_drag(x, y)
+        panel.move_drag(x + STRIP_SHIFT, y)
+        panel.finish_drag(x + STRIP_SHIFT, y)
+        shifted = strips[0]
+        self.assertTrue(shifted.offset_right)
+        target_y = LIST_TOP - 2 * STRIP_HEIGHT - 60
+        panel.start_drag(x + STRIP_SHIFT, y)
+        panel.move_drag(x + STRIP_SHIFT, target_y)
+        panel.finish_drag(x + STRIP_SHIFT, target_y)
+        self.assertIs(panel.strips[-1], shifted)
+        self.assertTrue(shifted.offset_right)
 
     def test_drag_scroll_cancellation_and_inactive_strips(self):
         panel, _, strips = make_panel(VISIBLE_STRIPS + 3)

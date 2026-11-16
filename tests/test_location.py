@@ -1,11 +1,21 @@
 import unittest
 
 from Locations.Yuma.Scenarios.yuma import create_yuma_scenario
-from simulator.core.atc import ATCFacility
+from simulator.core.atc import ATC, ATCFacility
 from simulator.core.location import AirportDiagram, FlightPlate, Location
 
 
 class LocationTests(unittest.TestCase):
+    def test_atc_rejects_unknown_facility_without_losing_current_one(self):
+        controller = ATC("approach", ATCFacility("Test", {"lat": 0, "lon": 0}))
+        controller.set_facility("KMFR")
+        previous = controller.facility
+        self.assertEqual(previous.airport_code, "KMFR")
+        with self.assertRaisesRegex(ValueError, "Unknown ATC facility"):
+            controller.set_facility("INVALID")
+        self.assertIs(controller.facility, previous)
+        controller.manage_aircraft()
+
     def test_medford_location_has_runway_and_local_radio_data(self):
         facility = ATCFacility.get_atc_facility_by_name("KMFR")
         self.assertIsNotNone(facility)

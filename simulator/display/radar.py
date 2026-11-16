@@ -8,7 +8,8 @@ import arcade
 import numpy as np
 import pyglet
 
-from simulator.core.atc import CoordinationKind, TrackingPosition
+from simulator.core.aircraft import display_callsign
+from simulator.core.atc import CoordinationKind, RadarControlState, TrackingPosition
 from simulator.core.clearances import (
     clearance_control_error,
     execute_clearance,
@@ -35,7 +36,11 @@ from simulator.display.gis_overlays import LAYER_KEYS, SHIFT_LAYER_KEYS, GISOver
 from simulator.navigation.navmath import NavigationalCoordinateSystem
 from simulator.radio.communications import COMMUNICATIONS_HEIGHT, CommunicationsPanel
 from simulator.radio.voice_audio import VoiceAudio
-from simulator.radio.voice_commands import handle_transmission
+from simulator.radio.voice_commands import (
+    PilotReply,
+    handle_transmission,
+    spoken_callsign,
+)
 
 SWEEP_COLOR = arcade.color.ORANGE
 DATA_BLOCK_DISTANCE = 40
@@ -46,6 +51,12 @@ DATA_BLOCK_FONT_SIZE = 11
 EMERGENCY_FLASH_SECONDS = 1.0
 SCRATCHPAD_MAX_LENGTH = 16
 COORDINATION_MAX_LENGTH = 120
+RADAR_RETURN_COLORS = {
+    RadarControlState.UNCONTROLLED: arcade.color.WHITE,
+    RadarControlState.INCOMING: arcade.color.GOLD,
+    RadarControlState.CONTROLLED: arcade.color.LIME_GREEN,
+    RadarControlState.HANDED_OFF: arcade.color.DODGER_BLUE,
+}
 NUMPAD_DIRECTIONS = {
     arcade.key.NUM_1: (-1, -1),
     arcade.key.NUM_END: (-1, -1),
@@ -159,6 +170,8 @@ class SecondaryRadarSnapshot(NamedTuple):
     scratchpad: str
     tracking_owner: TrackingPosition
     handoff_target: TrackingPosition | None
+    ident: bool = False
+    radar_control_state: RadarControlState = RadarControlState.UNCONTROLLED
 
 
 class SecondaryReturnLayout(NamedTuple):
@@ -292,6 +305,7 @@ class RadarDisplay(arcade.Window):
             CommunicationsPanel(
                 atc_facility.location.radio_frequencies,
                 atc_facility.location.coordination_lines,
+                atc_facility.location.interfacility_lines,
             )
             if atc_facility is not None
             else CommunicationsPanel((), ())
@@ -319,6 +333,7 @@ class RadarDisplay(arcade.Window):
         self.scratchpad_edit_error = ""
         self.handoff_choice_id = None
         self.handoff_choice_kind = "HANDOFF"
+        self.handoff_sector_text = ""
         self.coordination_draft: CoordinationDraft | None = None
         self.clearance_draft: ClearanceDraft | None = None
         self.handoff_message = ""
@@ -583,6 +598,8 @@ class RadarDisplay(arcade.Window):
                 text_position=(layout.text_x, layout.text_y),
                 text_size=(layout.width, layout.height),
                 label=self.data_block_labels[layout.snapshot.aircraft_id].label,
+                flash_visible=self.emergency_flash_elapsed
+                < EMERGENCY_FLASH_SECONDS / 2,
             )
         if self.display_type == self.ARTS_IIE:
             self.scope_mask.draw()
@@ -599,7 +616,7 @@ class RadarDisplay(arcade.Window):
     def control_limit_warning(self):
         facility = self.atc_facility
         overdue = [
-            aircraft.callsign
+            display_callsign(aircraft)
             for aircraft in self.aircraft_list.aircraft_list
             if aircraft.track.owner == TrackingPosition.YUMA
             and facility.above_control_limit(aircraft.altitude)
@@ -629,6 +646,7 @@ class RadarDisplay(arcade.Window):
         ) % EMERGENCY_FLASH_SECONDS
 
         checkins = []
+        return_states = {}
         # Generate radar returns
         for aircraft in self.aircraft_list.aircraft_list:
             if not aircraft.landed:
@@ -640,7 +658,13 @@ class RadarDisplay(arcade.Window):
                 and aircraft.id not in self.reported_departures
             ):
                 checkins.append(
-                    (departure.check_in_time, aircraft.id, departure.check_in)
+                    (
+                        departure.check_in_time,
+                        aircraft.id,
+                        departure.check_in,
+                        aircraft.radio_channel,
+                        spoken_callsign(aircraft),
+                    )
                 )
             if not is_airborne(aircraft):
                 self.secondary_radar_returns = [
@@ -663,10 +687,20 @@ class RadarDisplay(arcade.Window):
                         f"HANDOFF TO {facility.upper_control_center} REQUIRED"
                     )
             if aircraft.track.advance(delta_time):
+                if aircraft.track.pending_radio_channel is not None:
+                    aircraft.track.transfer_communications()
+                    aircraft.radio_channel = aircraft.track.pending_radio_channel
+                    aircraft.track.pending_radio_channel = None
                 RadarDisplay.refresh_track_snapshot(self, aircraft)
                 if self.selected_aircraft_id == aircraft.id:
                     self.handoff_message = (
-                        f"RADAR CONTACT BY {aircraft.track.owner}; C TRANSFERS COMMS"
+                        f"RADAR CONTACT BY {aircraft.track.owner}; "
+                        + (
+                            "COMMS TRANSFERRED"
+                            if aircraft.track.communications_owner
+                            == aircraft.track.owner
+                            else "C TRANSFERS COMMS"
+                        )
                     )
             coordination_approved = aircraft.track.advance_coordination(delta_time)
             if coordination_approved and self.selected_aircraft_id == aircraft.id:
@@ -680,6 +714,11 @@ class RadarDisplay(arcade.Window):
                 aircraft.lat, aircraft.lon
             )
             aircraft.distance = distance
+            if is_airborne(aircraft):
+                return_states[aircraft.id] = (
+                    getattr(aircraft, "ident_remaining", 0) > 0,
+                    aircraft.track.radar_return_state,
+                )
             if self.display_type == self.ARTS_IIE and is_airborne(aircraft):
                 PrimaryRadarReturn(
                     self.radar_return_manager,
@@ -692,9 +731,36 @@ class RadarDisplay(arcade.Window):
                     DISPLAY_RADIUS,
                 ).add_return()
 
-        for _, aircraft_id, message in sorted(checkins):
+        self.secondary_radar_returns = [
+            snapshot._replace(
+                ident=return_states[snapshot.aircraft_id][0],
+                radar_control_state=return_states[snapshot.aircraft_id][1],
+            )
+            if snapshot.aircraft_id in return_states
+            and (snapshot.ident, snapshot.radar_control_state)
+            != return_states[snapshot.aircraft_id]
+            else snapshot
+            for snapshot in self.secondary_radar_returns
+        ]
+        for _, aircraft_id, message, channel, spoken in sorted(checkins):
             self.reported_departures.add(aircraft_id)
             self.departure_checkins.append(message)
+            voice = self.__dict__.get("voice_audio")
+            if voice is not None:
+                if channel is None:
+                    raise ValueError(f"No radio channel assigned to {aircraft_id}")
+                _, separator, details = message.partition(":")
+                if not separator:
+                    raise ValueError(f"Invalid departure check-in for {aircraft_id}")
+                voice.speak(
+                    PilotReply(
+                        aircraft_id,
+                        channel,
+                        (spoken + ":" + details)
+                        .replace(" ON ", " on ")
+                        .replace(" FT", " feet"),
+                    )
+                )
         if checkins:
             self.departure_checkins = self.departure_checkins[-3:]
         self.secondary_update_elapsed += delta_time
@@ -716,7 +782,7 @@ class RadarDisplay(arcade.Window):
             SecondaryRadarSnapshot(
                 aircraft.lat,
                 aircraft.lon,
-                aircraft.callsign,
+                display_callsign(aircraft),
                 aircraft.squawk,
                 aircraft.heading,
                 aircraft.altitude,
@@ -727,6 +793,8 @@ class RadarDisplay(arcade.Window):
                 aircraft.scratchpad,
                 aircraft.track.owner,
                 aircraft.track.handoff_target,
+                getattr(aircraft, "ident_remaining", 0) > 0,
+                aircraft.track.radar_return_state,
             )
             for aircraft in self.aircraft_list.aircraft_list
             if is_airborne(aircraft)
@@ -737,6 +805,7 @@ class RadarDisplay(arcade.Window):
             snapshot._replace(
                 tracking_owner=aircraft.track.owner,
                 handoff_target=aircraft.track.handoff_target,
+                radar_control_state=aircraft.track.radar_return_state,
             )
             if snapshot.aircraft_id == aircraft.id
             else snapshot
@@ -765,10 +834,11 @@ class RadarDisplay(arcade.Window):
         altitude = f"{trend}{math.floor(snapshot.altitude + 0.5):03d}"
         speed = f"{math.floor(snapshot.speed / 10 + 0.5):02d}"
         emergency = " EM" if snapshot.squawk == "7700" and emergency_visible else ""
+        ident = " ID" if snapshot.ident else ""
         position = snapshot.tracking_owner
         if snapshot.handoff_target is not None:
             position = f"{position}>{snapshot.handoff_target}"
-        text = f"{snapshot.callsign} {position}{emergency}\n{altitude}  {speed}\n{snapshot.aircraft_type}\n{snapshot.scratchpad or ' '}"
+        text = f"{snapshot.callsign} {position}{emergency}{ident}\n{altitude}  {speed}\n{snapshot.aircraft_type}\n{snapshot.scratchpad or ' '}"
         return text, text_x, text_y
 
     def get_data_block_label(self, snapshot, distance):
@@ -966,6 +1036,7 @@ class RadarDisplay(arcade.Window):
         text_position=None,
         text_size=None,
         label=None,
+        flash_visible=True,
     ):
         text, text_x, text_y = RadarDisplay.secondary_return_layout(
             snapshot,
@@ -993,7 +1064,11 @@ class RadarDisplay(arcade.Window):
         if text_size is None:
             text_size = (label.content_width, label.content_height)
         width, height = text_size
-        arcade.draw_circle_filled(x, y, 3, arcade.color.LIGHT_BLUE)
+        color = RADAR_RETURN_COLORS[snapshot.radar_control_state]
+        if label.color != color:
+            label.color = color
+        if flash_visible or not (snapshot.ident or snapshot.handoff_target is not None):
+            arcade.draw_circle_filled(x, y, 3, color)
         if selected:
             arcade.draw_circle_outline(x, y, 8, arcade.color.YELLOW, 2)
         end_x, end_y = leader_line_end(x, y, text_x, text_y, width, height)
@@ -1116,6 +1191,10 @@ class RadarDisplay(arcade.Window):
         elif self.handoff_choice_id == snapshot.aircraft_id:
             kind = self.__dict__.get("handoff_choice_kind", "HANDOFF")
             text += f"\n{kind}: L=LA / A=ABQ\nESC CANCEL"
+            if kind == "HANDOFF":
+                text += (
+                    f"\nSECTOR: {self.__dict__.get('handoff_sector_text', '')}_  ENTER"
+                )
             if self.handoff_message:
                 text += f"\n{self.handoff_message}"
         elif draft is not None and draft.aircraft_id == snapshot.aircraft_id:
@@ -1163,6 +1242,7 @@ class RadarDisplay(arcade.Window):
             return
         self.scratchpad_edit_id = None
         self.handoff_choice_id = None
+        self.handoff_sector_text = ""
         self.coordination_draft = None
         self.clearance_draft = None
         self.handoff_message = ""
@@ -1171,7 +1251,7 @@ class RadarDisplay(arcade.Window):
             panel.cancel_edit()
             panel.cancel_drag()
             if x >= SCREEN_WIDTH:
-                self.selected_aircraft_id = panel.select_at(y)
+                self.selected_aircraft_id = panel.select_at(y, x)
                 panel.start_drag(x, y)
                 return
 
@@ -1244,7 +1324,7 @@ class RadarDisplay(arcade.Window):
             self.handoff_message = str(error).upper()
             return
         self.clearance_draft = None
-        self.handoff_message = f"{aircraft.callsign}: {readback}"
+        self.handoff_message = f"{display_callsign(aircraft)}: {readback}"
 
     def handle_coordination_draft(self, symbol):
         draft = self.coordination_draft
@@ -1428,17 +1508,98 @@ class RadarDisplay(arcade.Window):
                 RadarDisplay.sync_voice(self)
                 return
         if self.handoff_choice_id is not None:
+            kind = self.__dict__.get("handoff_choice_kind", "HANDOFF")
             if symbol == arcade.key.ESCAPE:
                 self.handoff_choice_id = None
-                kind = self.__dict__.get("handoff_choice_kind", "HANDOFF")
+                self.handoff_sector_text = ""
                 self.handoff_message = f"{kind} CANCELED"
                 return
+            sector = self.__dict__.get("handoff_sector_text", "")
+            if kind == "HANDOFF":
+                if arcade.key.KEY_0 <= symbol <= arcade.key.KEY_9:
+                    digit = str(symbol - arcade.key.KEY_0)
+                elif arcade.key.NUM_0 <= symbol <= arcade.key.NUM_9:
+                    digit = str(symbol - arcade.key.NUM_0)
+                else:
+                    digit = None
+                if digit is not None:
+                    if len(sector) >= 2:
+                        self.handoff_message = "MAX 2 SECTOR DIGITS"
+                    else:
+                        self.handoff_sector_text = sector + digit
+                        self.handoff_message = ""
+                    return
+                if symbol == arcade.key.BACKSPACE:
+                    self.handoff_sector_text = sector[:-1]
+                    self.handoff_message = ""
+                    return
+                if symbol in (arcade.key.ENTER, arcade.key.NUM_ENTER):
+                    if not sector:
+                        self.handoff_message = "ENTER A SECTOR NUMBER"
+                        return
+                    sector_number = str(int(sector))
+                    targets = {
+                        f"zla_sector_{sector_number}": TrackingPosition.LOS_ANGELES,
+                        f"zab_sector_{sector_number}": TrackingPosition.ALBUQUERQUE,
+                    }
+                    matches = [
+                        (targets[identifier], label)
+                        for identifier, label in self.atc_facility.location.interfacility_lines
+                        if identifier in targets
+                    ]
+                    if len(matches) != 1:
+                        self.handoff_message = (
+                            "UNKNOWN SECTOR" if not matches else "AMBIGUOUS SECTOR"
+                        )
+                        return
+                    aircraft = next(
+                        (
+                            item
+                            for item in self.aircraft_list.aircraft_list
+                            if item.id == self.handoff_choice_id
+                        ),
+                        None,
+                    )
+                    if aircraft is None:
+                        self.handoff_choice_id = None
+                        self.handoff_sector_text = ""
+                        self.handoff_message = "AIRCRAFT UNAVAILABLE"
+                        logging.getLogger(__name__).warning(
+                            "Cannot hand off: aircraft is unavailable."
+                        )
+                        return
+                    target, label = matches[0]
+                    if (
+                        self.atc_facility.above_control_limit(aircraft.altitude)
+                        and target != self.atc_facility.upper_control_center
+                    ):
+                        self.handoff_message = (
+                            f"ABOVE FL{self.atc_facility.upper_control_flight_level:03d}: "
+                            f"HANDOFF TO {self.atc_facility.upper_control_center} REQUIRED"
+                        )
+                        return
+                    try:
+                        if aircraft.track.owner != TrackingPosition.YUMA:
+                            raise ValueError("Yuma does not own this track")
+                        aircraft.track.offer(target, label)
+                    except ValueError as error:
+                        self.handoff_message = str(error).upper()
+                        return
+                    self.handoff_choice_id = None
+                    self.handoff_sector_text = ""
+                    self.handoff_message = f"HANDOFF TO {label} OFFERED"
+                    RadarDisplay.refresh_track_snapshot(self, aircraft)
+                    return
             targets = {
                 arcade.key.L: TrackingPosition.LOS_ANGELES,
                 arcade.key.A: TrackingPosition.ALBUQUERQUE,
             }
-            if symbol not in targets:
-                self.handoff_message = "CHOOSE L OR A; ESC CANCEL"
+            if symbol not in targets or sector:
+                self.handoff_message = (
+                    "ENTER SECTOR OR CHOOSE L OR A; ESC CANCEL"
+                    if kind == "HANDOFF"
+                    else "CHOOSE L OR A; ESC CANCEL"
+                )
                 return
             aircraft = next(
                 (
@@ -1455,7 +1616,6 @@ class RadarDisplay(arcade.Window):
                     "Cannot coordinate: aircraft is unavailable."
                 )
                 return
-            kind = self.__dict__.get("handoff_choice_kind", "HANDOFF")
             if (
                 kind == "HANDOFF"
                 and self.atc_facility.above_control_limit(aircraft.altitude)
@@ -1525,6 +1685,7 @@ class RadarDisplay(arcade.Window):
                         raise ValueError("A handoff is already pending")
                     self.handoff_choice_id = aircraft.id
                     self.handoff_choice_kind = "HANDOFF"
+                    self.handoff_sector_text = ""
                     self.handoff_message = ""
                     return
                 if symbol == arcade.key.I:
@@ -1585,6 +1746,7 @@ class RadarDisplay(arcade.Window):
                     if aircraft.track.owner == TrackingPosition.YUMA:
                         self.handoff_choice_id = aircraft.id
                         self.handoff_choice_kind = kind
+                        self.handoff_sector_text = ""
                     else:
                         self.coordination_draft = CoordinationDraft(
                             aircraft.id, kind, TrackingPosition.YUMA

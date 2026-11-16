@@ -4,7 +4,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from Locations.Yuma.Scenarios.yuma import create_yuma_scenario
-from simulator.core.aircraft import Aircraft, AircraftList
+from simulator.core.aircraft import Aircraft, AircraftList, display_callsign, is_heavy
 from simulator.core.aircraft_models import (
     airbus_a320,
     airbus_h135,
@@ -57,6 +57,17 @@ def make_aircraft(
 
 
 class AircraftTests(unittest.TestCase):
+    def test_heavy_marker_uses_takeoff_weight_without_changing_callsign(self):
+        aircraft = make_aircraft()
+        aircraft.callsign = "N123H"
+        aircraft.aircraft_model = SimpleNamespace(max_takeoff_weight=136077.710)
+        self.assertFalse(is_heavy(aircraft))
+        self.assertEqual(display_callsign(aircraft), "N123H")
+        aircraft.aircraft_model.max_takeoff_weight = 136077.711
+        self.assertTrue(is_heavy(aircraft))
+        self.assertEqual(display_callsign(aircraft), "N123HH")
+        self.assertEqual(aircraft.callsign, "N123H")
+
     def test_track_handoffs_require_an_offer_and_acceptance(self):
         track = make_aircraft().track
         self.assertEqual(track.owner, TrackingPosition.YUMA)

@@ -44,4 +44,10 @@ def create_location():
             ("approach_departure", "KNYL APP/DEP"),
             ("enroute", "KNYL ENR"),
         ),
+        interfacility_lines=(
+            ("zla_sector_9", "ZLA SECTOR 9"),
+            ("zla_sector_10", "ZLA SECTOR 10"),
+            ("zla_sector_31", "ZLA SECTOR 31"),
+            ("zab_sector_42", "ZAB SECTOR 42"),
+        ),
     )

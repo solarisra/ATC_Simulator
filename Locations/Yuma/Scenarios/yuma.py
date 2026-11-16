@@ -62,6 +62,17 @@ def create_sample_strips(aircraft_list, facility, plans=None):
     return strips
 
 
+def assign_incoming_controller(strip, facility):
+    if (
+        strip.aircraft.flight_rules == "IFR"
+        and strip.flight_plan.origin != facility.airport_code
+    ):
+        if facility.upper_control_center is None:
+            raise ValueError("An incoming controller is required for IFR traffic")
+        strip.aircraft.track.owner = facility.upper_control_center
+        strip.aircraft.track.communications_owner = facility.upper_control_center
+
+
 def _choose_civilian_airports(rng):
     choices = {
         aircraft_id: rng.choice(
@@ -134,6 +145,7 @@ def create_yuma_scenario(rng=None):
     navigation_data = NavigationData()
     departure_count = 0
     for strip in strips:
+        assign_incoming_controller(strip, facility)
         plan = strip.flight_plan
         if plan.origin == facility.airport_code:
             radio_role = "departure"

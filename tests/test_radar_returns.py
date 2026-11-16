@@ -7,7 +7,13 @@ from unittest.mock import Mock, patch
 import arcade
 
 from Locations.Yuma.Scenarios.yuma import create_yuma_scenario
-from simulator.core.atc import ATCFacility, TrackingPosition, TrackOwnership
+from simulator.core.aircraft_models import boeing_767_freighter, cessna_172
+from simulator.core.atc import (
+    ATCFacility,
+    RadarControlState,
+    TrackingPosition,
+    TrackOwnership,
+)
 from simulator.core.constants import DISPLAY_RADIUS, FULL_ROTATION_TIME_SECONDS
 from simulator.display.radar import (
     RadarDisplay,
@@ -39,7 +45,7 @@ def coordination_display(owner=TrackingPosition.YUMA):
         altitude=50,
         speed=100,
         scratchpad="",
-        aircraft_model=SimpleNamespace(aircraft_type="C172"),
+        aircraft_model=cessna_172,
         track=track,
         landed=False,
         update_position=lambda delta_time: None,
@@ -70,6 +76,10 @@ def coordination_display(owner=TrackingPosition.YUMA):
 def clearance_display():
     aircraft_list, facility, strips = create_yuma_scenario()
     aircraft = next(strip.aircraft for strip in strips if strip.aircraft.id == "A3")
+    aircraft.track.offer(TrackingPosition.YUMA)
+    aircraft.track.accept(TrackingPosition.YUMA)
+    aircraft.track.transfer_communications()
+    aircraft.track.confirm_identification()
     display = SimpleNamespace(
         aircraft_list=aircraft_list,
         atc_facility=facility,
@@ -195,6 +205,14 @@ class RadarReturnTests(unittest.TestCase):
 
 
 class SecondaryRadarTests(unittest.TestCase):
+    def test_heavy_marker_is_in_snapshot_not_aircraft_identity(self):
+        display, aircraft = coordination_display()
+        aircraft.callsign = "AAL381"
+        aircraft.aircraft_model = boeing_767_freighter
+        display.capture_secondary_radar_returns()
+        self.assertEqual(display.secondary_radar_returns[0].callsign, "AAL381H")
+        self.assertEqual(aircraft.callsign, "AAL381")
+
     def test_snapshot_updates_position_and_data_once_per_second(self):
         aircraft = SimpleNamespace(
             id="A1",
@@ -204,7 +222,7 @@ class SecondaryRadarTests(unittest.TestCase):
             squawk="1200",
             heading=90,
             altitude=50,
-            aircraft_model=SimpleNamespace(aircraft_type="C172"),
+            aircraft_model=cessna_172,
             speed=120,
             landed=False,
             update_position=lambda delta_time: None,
@@ -256,7 +274,7 @@ class SecondaryRadarTests(unittest.TestCase):
                 landed=False,
                 scratchpad="",
                 track=TrackOwnership(),
-                aircraft_model=SimpleNamespace(aircraft_type="C172"),
+                aircraft_model=cessna_172,
             )
 
         first, second = aircraft("A1", 50), aircraft("A2", 80)
@@ -286,7 +304,7 @@ class SecondaryRadarTests(unittest.TestCase):
             squawk="1200",
             heading=90,
             altitude=50,
-            aircraft_model=SimpleNamespace(aircraft_type="C172"),
+            aircraft_model=cessna_172,
             speed=120,
             landed=False,
             scratchpad="",
@@ -324,6 +342,7 @@ class SecondaryRadarTests(unittest.TestCase):
             scratchpad="",
             tracking_owner=TrackingPosition.YUMA,
             handoff_target=None,
+            ident=False,
         )
         text, _, _ = RadarDisplay.secondary_return_layout(snapshot, 0, 0, 10)
         self.assertEqual(text, "N123 Y\n005  13\nC172\n ")
@@ -341,6 +360,7 @@ class SecondaryRadarTests(unittest.TestCase):
             scratchpad="",
             tracking_owner=TrackingPosition.YUMA,
             handoff_target=None,
+            ident=False,
         )
         display = SimpleNamespace(
             data_block_labels={},
@@ -377,6 +397,7 @@ class SecondaryRadarTests(unittest.TestCase):
             scratchpad="ABC",
             tracking_owner=TrackingPosition.YUMA,
             handoff_target=None,
+            ident=False,
         )
         display = Mock(
             data_block_labels={},
@@ -428,7 +449,7 @@ class SecondaryRadarTests(unittest.TestCase):
                 landed=False,
                 scratchpad="",
                 track=TrackOwnership(),
-                aircraft_model=SimpleNamespace(aircraft_type="C172"),
+                aircraft_model=cessna_172,
             )
             for identifier in ("A1", "A2")
         ]
@@ -489,7 +510,7 @@ class SecondaryRadarTests(unittest.TestCase):
             altitude=50,
             speed=100,
             scratchpad="KEEP",
-            aircraft_model=SimpleNamespace(aircraft_type="C172"),
+            aircraft_model=cessna_172,
             track=TrackOwnership(),
             landed=False,
             update_position=lambda delta_time: None,
@@ -585,6 +606,67 @@ class SecondaryRadarTests(unittest.TestCase):
         RadarDisplay.on_key_press(display, arcade.key.Y, 0)
         self.assertEqual(display.secondary_radar_returns[0].tracking_owner, "Y")
 
+    def test_sector_number_offers_handoff_without_transferring_communications(self):
+        for digits, label, target in (
+            ((arcade.key.KEY_9,), "ZLA SECTOR 9", TrackingPosition.LOS_ANGELES),
+            (
+                (arcade.key.KEY_1, arcade.key.KEY_0),
+                "ZLA SECTOR 10",
+                TrackingPosition.LOS_ANGELES,
+            ),
+            (
+                (arcade.key.NUM_3, arcade.key.NUM_1),
+                "ZLA SECTOR 31",
+                TrackingPosition.LOS_ANGELES,
+            ),
+            (
+                (arcade.key.KEY_4, arcade.key.KEY_2),
+                "ZAB SECTOR 42",
+                TrackingPosition.ALBUQUERQUE,
+            ),
+        ):
+            with self.subTest(sector=label):
+                display, aircraft = coordination_display()
+                aircraft.radio_channel = "enroute_low"
+                RadarDisplay.on_key_press(display, arcade.key.H, 0)
+                for digit in digits:
+                    RadarDisplay.on_key_press(display, digit, 0)
+                self.assertIsNone(aircraft.track.handoff_target)
+                RadarDisplay.on_key_press(display, arcade.key.ENTER, 0)
+                self.assertEqual(aircraft.track.handoff_target, target)
+                self.assertEqual(aircraft.track.handoff_information, label)
+                self.assertIsNone(aircraft.track.pending_radio_channel)
+                self.assertEqual(
+                    display.secondary_radar_returns[0].handoff_target, target
+                )
+                self.assertIn(label, display.handoff_message)
+                RadarDisplay.on_update(display, 3)
+                self.assertEqual(aircraft.track.owner, target)
+                self.assertEqual(
+                    aircraft.track.communications_owner, TrackingPosition.YUMA
+                )
+                self.assertEqual(aircraft.radio_channel, "enroute_low")
+
+    def test_sector_entry_handles_invalid_input_cancel_and_control_limit(self):
+        display, aircraft = coordination_display()
+        RadarDisplay.on_key_press(display, arcade.key.H, 0)
+        RadarDisplay.on_key_press(display, arcade.key.KEY_9, 0)
+        RadarDisplay.on_key_press(display, arcade.key.KEY_9, 0)
+        RadarDisplay.on_key_press(display, arcade.key.ENTER, 0)
+        self.assertIn("UNKNOWN SECTOR", display.handoff_message)
+        self.assertIsNone(aircraft.track.handoff_target)
+        RadarDisplay.on_key_press(display, arcade.key.BACKSPACE, 0)
+        RadarDisplay.on_key_press(display, arcade.key.ESCAPE, 0)
+        self.assertIsNone(display.handoff_choice_id)
+        self.assertEqual(display.handoff_sector_text, "")
+        aircraft.altitude = 231
+        RadarDisplay.on_key_press(display, arcade.key.H, 0)
+        RadarDisplay.on_key_press(display, arcade.key.KEY_4, 0)
+        RadarDisplay.on_key_press(display, arcade.key.KEY_2, 0)
+        RadarDisplay.on_key_press(display, arcade.key.ENTER, 0)
+        self.assertIn("HANDOFF TO L REQUIRED", display.handoff_message)
+        self.assertIsNone(aircraft.track.handoff_target)
+
     def test_yuma_upper_limit_requires_manual_la_handoff(self):
         aircraft = SimpleNamespace(
             id="A1",
@@ -596,7 +678,7 @@ class SecondaryRadarTests(unittest.TestCase):
             altitude=230,
             speed=100,
             scratchpad="",
-            aircraft_model=SimpleNamespace(aircraft_type="C172"),
+            aircraft_model=cessna_172,
             track=TrackOwnership(),
             landed=True,
         )
@@ -675,7 +757,12 @@ class SecondaryRadarTests(unittest.TestCase):
 
     def test_control_limit_warning_includes_all_overdue_tracks(self):
         aircraft = [
-            SimpleNamespace(callsign=name, altitude=altitude, track=TrackOwnership())
+            SimpleNamespace(
+                callsign=name,
+                altitude=altitude,
+                track=TrackOwnership(),
+                aircraft_model=cessna_172,
+            )
             for name, altitude in (("ONE", 231), ("TWO", 240), ("LEVEL", 230))
         ]
         display = SimpleNamespace(
@@ -876,6 +963,8 @@ class SecondaryRadarTests(unittest.TestCase):
             scratchpad="W" * 16,
             tracking_owner=TrackingPosition.YUMA,
             handoff_target=None,
+            ident=False,
+            radar_control_state=RadarControlState.UNCONTROLLED,
         )
         display = Mock(
             secondary_radar_returns=[snapshot],
@@ -988,7 +1077,7 @@ class SecondaryRadarTests(unittest.TestCase):
                 squawk="1200",
                 heading=90,
                 altitude=50,
-                aircraft_model=SimpleNamespace(aircraft_type="C172"),
+                aircraft_model=cessna_172,
                 speed=120,
                 landed=False,
                 scratchpad="",
@@ -1068,6 +1157,7 @@ class SecondaryRadarTests(unittest.TestCase):
             scratchpad="",
             tracking_owner=TrackingPosition.YUMA,
             handoff_target=None,
+            ident=False,
         )
         for key, direction in (
             (arcade.key.NUM_1, (-1, -1)),
@@ -1104,7 +1194,7 @@ class SecondaryRadarTests(unittest.TestCase):
                 squawk="1200",
                 heading=90,
                 altitude=50,
-                aircraft_model=SimpleNamespace(aircraft_type="C172"),
+                aircraft_model=cessna_172,
                 speed=120,
                 landed=False,
                 scratchpad="",
@@ -1254,6 +1344,7 @@ class RadarViewportTests(unittest.TestCase):
             ),
             data_block_labels={"A1": SimpleNamespace(label=Mock())},
             selected_aircraft_id=None,
+            emergency_flash_elapsed=0,
             draw_selected_aircraft_details=Mock(),
             atc_facility=Mock(),
             aircraft_list=SimpleNamespace(aircraft_list=[]),
@@ -1279,6 +1370,7 @@ class RadarViewportTests(unittest.TestCase):
             scratchpad="",
             tracking_owner=TrackingPosition.YUMA,
             handoff_target=None,
+            ident=False,
         )
         for dx, dy in (
             (1, 0),

@@ -20,6 +20,48 @@ map layers to load, then choose **Scenario > Load Yuma**. A map loading error
 is shown on screen; use **Scenario > Retry failed maps** after correcting the
 cause. Loading Yuma again asks for confirmation before replacing the current
 traffic and strips.
+After a scenario loads, it starts paused with a controller handoff briefing.
+Use Left and Right to review its pages and Enter to acknowledge it and start
+the simulation. Weather is not yet simulated; the briefing assumes an
+altimeter setting of 29.92 inHg.
+
+For generated traffic, choose **Scenario > Generate Yuma...**. Set the seed,
+traffic volume, and relative weights for operations and aircraft types; zero
+disables a category. Click the controls or use Up/Down to select a row and
+Left/Right to adjust it. Select the seed row to enter digits, or press R for
+a new seed. Enter generates the scenario; Escape cancels. The existing
+scenario is preserved until replacement is confirmed. The generator selects
+aircraft and suitable airports, checks approximate aircraft range, and builds
+routes through the Yuma area using connected Victor airways and fixes from
+the local navigation data. Direct airport connections are used; when an
+airway route cannot be built, a safe direct fallback is identified in the
+briefing and strip remarks. The briefing also reports unavailable combinations
+and airports. Routes are fictional approximations, not operational flight
+plans: airway altitudes, terrain, procedures, airspace restrictions and actual
+airport suitability are not checked. Range missions are not yet implemented.
+
+The menu bar shows UTC. Before a scenario starts it shows the current UTC;
+on loading, the simulation clock is initialized from current UTC and pauses
+with the briefing and generator dialog. Yuma uses UTC-7 for its simplified
+day/night pattern: 06:00–22:00 local is daytime. Overnight, the departure
+weight is halved relative to other operations. During daytime heavy traffic,
+generated takeoff starts are scheduled 3–5 minutes apart; otherwise the first
+departure is scheduled within 3–5 minutes and later departures are randomized
+over the next 30 minutes. Scheduled UTC times appear in the briefing and
+departure strips. The same seed, settings, and starting local-time period
+reproduce the traffic and departure offsets; absolute departure times depend
+on the starting UTC. This is a simplified simulation, not an assessment of
+FAA separation requirements.
+
+Use **Scenario > Save scenario...** to name and save the current Yuma
+scenario, or **Scenario > Load saved scenario...** to select a saved one.
+Saves are stored as JSON in the user's `.atc_simulator/scenarios` directory.
+Overwriting a name requires confirmation. Loading replaces the current
+scenario only after confirmation and opens a paused handoff briefing; the
+simulation clock, aircraft, flight plans, clearances, departure progress,
+strip annotations and order, tracking, radar contact, coordination, radios and generator
+settings are restored. Finish any in-progress edit before saving. Radar
+trails, the selected aircraft and active audio transmissions are not saved.
 
 The menu bar centers the selected location and shows voice status at the
 right. Map and other application messages appear just below the radar's top edge.
@@ -96,7 +138,8 @@ knots, aircraft type, and scratchpad on four lines in both display modes. The se
 aircraft's heading, squawk, exact speed and range appear at the right of the
 radar. This is a simplified full data block.
 
-The communications panel is above the radar. Click a frequency button to cycle
+The communications panel is above the radar, with radio, intrafacility and
+interfacility controls grouped side by side. Click a frequency button to cycle
 it through On, Listen and Off. Multiple frequencies can be monitored at
 once. Hold the `HOLD TO TALK` button or the spacebar to make the simulated
 mic hot: all On frequencies transmit, while Listen frequencies do not.
@@ -116,6 +159,9 @@ The separate intrafacility section has lines for KNYL Tower (Local), Range
 Control, Approach/Departure and Enroute. Click a line to toggle it between
 Cold and Hot; all start Cold and can be Hot independently. A Hot line stays
 Hot without push-to-talk, regardless of the radio mic state.
+The interfacility section provides separate Hot/Cold lines for ZLA sectors 9,
+10 and 31 and ZAB sector 42. These are independent of the sector radio channels
+and, like the intrafacility lines, do not yet carry audio.
 
 The panel displays separate Yuma approach/departure and VHF/UHF tower buttons.
 Its emergency, tower, approach and departure values are from the
@@ -168,11 +214,16 @@ that frequency On and begin with the full callsign, for example:
 * `Devil two seven niner, fly heading two seven zero`
 * `November one three five tango charlie, turn right heading zero one zero`
 * `Devil two seven niner, climb and maintain thirteen thousand`
+* `Devil two seven niner, maintain bearing two six five`
+* `Devil two seven niner, maintain bearing two six five to Imperial, contact Los Angeles Center 291.7`
 * `Devil two seven niner, direct BZA`
 * `Devil two seven niner, resume route` or `resume filed altitude`
 * `Devil two seven niner, traffic twelve o'clock five miles`
 * `Devil two seven niner, say traffic`
+* `Devil two seven niner, ident`
+* `Devil two seven niner, squawk three zero zero zero`
 * `Devil two seven niner, radar contact bearing 240 altitude 13000 speed 400`
+* `American Airlines three eight one heavy, squawk three zero zero zero`
 
 The existing clearance restrictions still apply; headings are magnetic and direct
 fixes must be on the remaining route. Heading instructions may specify a left
@@ -180,14 +231,36 @@ or right turn; otherwise the aircraft takes the shorter turn. Rejected voice
 instructions, including their recognized text, are logged to the terminal.
 The parser recognizes the observed transcription variants "hitting" for
 "heading", "climbed" for "climb", and "turned" for "turn" in instruction
-positions.
+positions. It also recognizes the observed callsign transcription "double"
+for "Devil", but rejects the call if it could address more than one aircraft.
+It accepts "identity" as `ident` and handles the observed "two"/"to"
+transcription swaps in numeric values and supported instruction phrases.
+`AAL` callsigns may be spoken as "American" or "American Airlines", and `UAL`
+as "United". Pilot readbacks and departure check-ins use those names. Aircraft
+with a model maximum takeoff weight of at least 300,000 pounds show an `H` after
+the callsign on radar and strips and use "heavy" in radio calls. This weight-based
+classification is simplified; the saved callsign itself is unchanged.
+Squawk instructions require four octal digits and change the aircraft's
+transponder; the strip's independently editable beacon annotation is unchanged.
 A pilot acknowledges an advisory without claiming to see traffic.
+An IDENT request shows `ID` in the aircraft's data block and flashes its
+secondary return for 18 simulation seconds. A pending handoff also flashes
+the secondary return.
+After a callsign-addressed `radar contact`, the secondary return and data block
+turn green.
+`Maintain bearing` assigns a magnetic heading; an optional `to` location is
+informational and does not change the route. A combined bearing and center
+contact call automatically offers a handoff and transfers the aircraft to the
+specified configured center frequency when accepted. If the frequency is not
+configured for that center, the pilot maintains the bearing and asks for
+verification instead of handing off.
 On `say traffic`, the simulated pilot reports the nearest airborne aircraft
 using simulator positions, not a visual-detection model. Pilot audio is heard
 only while its frequency is monitored (On or Listen), and stops if the
 controller transmits. The window title displays recognized speech and errors.
-Recognition can be wrong; this is not for real-world ATC. Existing departure
-check-ins remain text-only, and intrafacility lines do not yet have audio.
+Recognition can be wrong; this is not for real-world ATC. Departure check-ins
+are also spoken when voice is enabled and their assigned frequency is
+monitored. Intrafacility lines do not yet have audio.
 Aircraft are assigned distinct pilot voices when they first respond and keep
 them while voice is enabled. After 20 aircraft, voice presets are reused.
 
@@ -196,6 +269,9 @@ over the panel to see additional strips; clicking a strip selects its radar
 track, and selecting a radar track also highlights its visible strip. Drag a
 strip above or below another to reorder it; use the wheel while dragging to
 reach other strips. Release outside a strip or press Escape to cancel.
+Drag a strip horizontally to offset it right or return it left; the offset is
+approximately 64 logical pixels, so its physical size depends on display
+scaling. Offsets are saved with the scenario.
 Hover over a field for its purpose and the simulator's simplified annotations.
 With a strip selected, press `1` for assigned altitude in feet, `2` for a
 fix/time annotation, `3` for clearance/control remarks, `4` for its beacon
@@ -204,7 +280,7 @@ edits, Enter saves, and Escape cancels. Beacon codes must be four octal digits
 (`0`-`7`). An empty field clears the annotation. Clicking elsewhere cancels
 an edit. The strip code starts as the aircraft's beacon code, but subsequent
 edits change only the strip, not the simulated radar return. Annotations and
-strip ordering are in memory only, do not change the filed plan, and do not
+strip ordering do not change the filed plan and do not
 command aircraft. A simulated landing deactivates the strip and removes the
 secondary radar return; existing ARTS primary traces fade normally. This does
 not represent actual flight-plan closure.
@@ -222,7 +298,8 @@ a session.
 The three KNYL departures begin stationary at field elevation and automatically
 begin takeoff after 30, 60, and 90 seconds, without a controller takeoff command. Their
 strips remain active while they wait. A simulated pilot check-in to Yuma
-Departure appears above the flight strips 15 seconds after liftoff; the most
+Departure, including the pilot's frequency, appears above the flight strips
+15 seconds after liftoff; the most
 recent three check-ins remain visible. This assumes one person staffs approach, departure
 and enroute. Ground positions and runway headings are approximate, with no
 taxi, runway conflict or tower coordination.
@@ -300,7 +377,7 @@ The strip grid follows the terminal form in FAA Figure 2-3-4/5/6: the
 identity, type, beacon code and departure-specific requested altitude and
 airport occupy their corresponding fields. Field 10 shows the simulator's
 runway/pad annotation. Other unavailable operational fields remain blank or
-`--`. Routes, annotations and destinations use a
+`--`. Field 8 shows `ENR` for overflights. Routes, annotations and destinations use a
 simplified field 9; long entries are abbreviated there but shown in full in
 the selected-strip details below. Strip altitudes are in hundreds of feet;
 the editor and detailed view use feet. A plan originating at the facility,
@@ -323,11 +400,23 @@ guidance in [2-3](documentation/ATC_7110.65BB/chapter_2/chap2_section_3.html).
 The first line also shows simulated track ownership: `Y` for Yuma, `L` for
 Los Angeles Center, and `A` for Albuquerque Center. These are illustrative
 simulator identifiers, not verified operational position symbols. An offer
-appears as `Y>L`, `Y>A`, `L>Y`, or `A>Y`. All startup tracks belong to Yuma.
+appears as `Y>L`, `Y>A`, `L>Y`, or `A>Y`. In the sample scenario, incoming
+IFR aircraft start under simulated Los Angeles Center ownership. Generated
+airborne traffic starts in the local area with Yuma track and communications
+ownership. Other startup tracks belong to Yuma.
+The secondary return and data block are white for uncontrolled aircraft, gold for incoming
+center-controlled aircraft, green after Yuma says `radar contact`, and blue
+after an outgoing handoff is accepted. An incoming handoff remains gold until
+Yuma establishes radar contact. These colors are simulator conventions.
 For a selected Yuma-owned aircraft, press H and then L or A to offer a radar
 handoff. Enter pertinent coordination information and restrictions (or `NONE`
 if there are none), press Enter, review the target and coordination, and press
 Y to confirm. The simulated center accepts after three seconds. For a selected
+Yuma-owned aircraft, alternatively press H, type sector 9, 10, 31 or 42, then
+press Enter to offer an automated handoff to that sector without entering
+coordination details. The return flashes until the simulated center accepts;
+communications remain with Yuma until transferred separately.
+For a selected
 center-owned aircraft, press I and enter the simulated incoming information;
 press A, review the target and restrictions, and press Y to accept. X cancels
 or rejects a pending offer. Escape cancels a prompt.
@@ -335,9 +424,9 @@ or rejects a pending offer. Escape cancels a prompt.
 Radar identification and communications are separate in this simulation.
 After accepting a handoff, press C, review the coordination reminder, and press
 Y to record the communications transfer. Following an incoming handoff, V
-records the controller's confirmation of identification; the simulator cannot
-observe the code change, IDENT, standby squawk, or verbal exchange that may be
-required. Complete both steps before initiating another radar handoff.
+records the controller's confirmation of identification; this does not
+automatically establish the green radar-contact indication. Complete both
+steps before initiating another radar handoff.
 
 For a point-out, select the aircraft and press P; for traffic coordination,
 press T. A Yuma-owned track prompts for L or A; a center-owned track simulates

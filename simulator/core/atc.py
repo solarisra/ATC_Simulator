@@ -14,6 +14,13 @@ class TrackingPosition(StrEnum):
     ALBUQUERQUE = "A"
 
 
+class RadarControlState(StrEnum):
+    UNCONTROLLED = "uncontrolled"
+    INCOMING = "incoming"
+    CONTROLLED = "controlled"
+    HANDED_OFF = "handed_off"
+
+
 class CoordinationKind(StrEnum):
     POINT_OUT = "POINT OUT"
     TRAFFIC = "TRAFFIC"
@@ -36,11 +43,22 @@ class TrackOwnership:
         self.handoff_target = None
         self.handoff_elapsed = 0.0
         self.handoff_information = ""
+        self.pending_radio_channel = None
         self.identification_confirmation_due = False
+        self.radar_control_state = RadarControlState.UNCONTROLLED
         self.coordination = None
         self.coordination_history = []
 
-    def offer(self, target, information=""):
+    @property
+    def radar_return_state(self):
+        if self.owner != TrackingPosition.YUMA and (
+            self.handoff_target == TrackingPosition.YUMA
+            or self.radar_control_state != RadarControlState.HANDED_OFF
+        ):
+            return RadarControlState.INCOMING
+        return self.radar_control_state
+
+    def validate_offer(self, target):
         if not isinstance(target, TrackingPosition):
             raise TypeError("Invalid tracking position")
         if self.handoff_target is not None:
@@ -55,6 +73,9 @@ class TrackOwnership:
             self.owner != TrackingPosition.YUMA and target != TrackingPosition.YUMA
         ):
             raise ValueError("Handoffs must be between Yuma and a neighboring center")
+
+    def offer(self, target, information=""):
+        self.validate_offer(target)
         self.handoff_target = target
         self.handoff_elapsed = 0.0
         self.handoff_information = information
@@ -71,6 +92,9 @@ class TrackOwnership:
         self.handoff_target = None
         self.handoff_elapsed = 0.0
         self.identification_confirmation_due = incoming
+        self.radar_control_state = (
+            RadarControlState.INCOMING if incoming else RadarControlState.HANDED_OFF
+        )
 
     def cancel(self):
         if self.handoff_target is None:
@@ -78,6 +102,7 @@ class TrackOwnership:
         self.handoff_target = None
         self.handoff_elapsed = 0.0
         self.handoff_information = ""
+        self.pending_radio_channel = None
 
     def transfer_communications(self):
         if self.handoff_target is not None or self.owner == self.communications_owner:
@@ -260,7 +285,10 @@ class ATC:
         """
         Set the ATC facility.
         """
-        self.facility = ATCFacility.get_atc_facility_by_name(facility_name)
+        facility = ATCFacility.get_atc_facility_by_name(facility_name)
+        if facility is None:
+            raise ValueError(f"Unknown ATC facility: {facility_name}")
+        self.facility = facility
 
 
 class RadarMap:
@@ -295,6 +323,7 @@ class FlightStrip:
         self.aircraft = aircraft
         self.flight_plan = flight_plan
         self.active = True
+        self.offset_right = False
         self.beacon_code = aircraft.squawk
         self.operation_area = ""
         self.assigned_altitude = ""

@@ -1,9 +1,14 @@
 import queue
 import unittest
+from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
+import arcade
+
 from Locations.Yuma.Scenarios.yuma import create_yuma_scenario
-from simulator.display.radar import RadarDisplay
+from simulator.core.aircraft_models import boeing_767_freighter, cessna_172
+from simulator.core.atc import CoordinationKind, TrackingPosition
+from simulator.display.radar import RadarDisplay, RadarReturnManager, RadarSweep
 from simulator.radio.communications import CommunicationsPanel
 from simulator.radio.voice_commands import handle_transmission
 
@@ -13,6 +18,11 @@ class VoiceCommandTests(unittest.TestCase):
         aircraft_list, self.facility, self.strips = create_yuma_scenario()
         self.aircraft = aircraft_list.aircraft_list
         self.by_id = {aircraft.id: aircraft for aircraft in self.aircraft}
+        track = self.by_id["A3"].track
+        track.offer(TrackingPosition.YUMA)
+        track.accept(TrackingPosition.YUMA)
+        track.transfer_communications()
+        track.confirm_identification()
 
     def test_scenario_assigns_role_and_band(self):
         self.assertEqual(self.by_id["A1"].radio_channel, "enroute_low")
@@ -55,6 +65,262 @@ class VoiceCommandTests(unittest.TestCase):
         )
         self.assertIsNone(aircraft.flight_guidance.assigned_altitude)
 
+    def test_airline_callsigns_and_heavy_are_recognized_and_spoken(self):
+        aircraft = self.by_id["A1"]
+        aircraft.aircraft_model = boeing_767_freighter
+        for callsign, spoken in (
+            ("AAL381", "American 381 heavy"),
+            ("AAL381", "American Airlines 381 heavy"),
+            ("AAL381", "AAL381H"),
+            ("AAL381", "American 381"),
+            ("UAL27", "United two seven heavy"),
+        ):
+            aircraft.callsign = callsign
+            with self.subTest(spoken=spoken):
+                reply = handle_transmission(
+                    f"{spoken} squawk 3000",
+                    self.aircraft,
+                    self.facility,
+                    {"enroute_low"},
+                )
+                self.assertEqual(reply.aircraft_id, aircraft.id)
+                self.assertEqual(aircraft.squawk, "3000")
+                self.assertIn(
+                    "American" if callsign.startswith("AAL") else "United", reply.text
+                )
+                self.assertIn("heavy", reply.text.lower())
+                self.assertNotIn("hotel", reply.text.lower())
+                self.assertEqual(aircraft.callsign, callsign)
+
+    def test_airline_aliases_remain_unambiguous_and_heavy_is_not_for_light_aircraft(
+        self,
+    ):
+        aircraft = self.by_id["A1"]
+        aircraft.callsign = "AAL381"
+        with self.assertRaises(ValueError):
+            handle_transmission(
+                "American 381 heavy squawk 3000",
+                self.aircraft,
+                self.facility,
+                {"enroute_low"},
+            )
+        self.assertEqual(aircraft.squawk, "1200")
+        ambiguous = SimpleNamespace(
+            callsign="AMERICAN381", aircraft_model=aircraft.aircraft_model
+        )
+        with self.assertRaisesRegex(ValueError, "unambiguous"):
+            handle_transmission(
+                "American 381 squawk 3000",
+                [aircraft, ambiguous],
+                self.facility,
+                {"enroute_low"},
+            )
+
+    def test_real_h_suffix_is_preserved_and_display_collisions_are_rejected(self):
+        aircraft = self.by_id["A1"]
+        aircraft.callsign = "N123H"
+        reply = handle_transmission(
+            "November 123 hotel ident", [aircraft], self.facility, {"enroute_low"}
+        )
+        self.assertIn("hotel", reply.text.lower())
+        self.assertNotIn("heavy", reply.text.lower())
+        aircraft.aircraft_model = boeing_767_freighter
+        reply = handle_transmission(
+            "November 123 hotel heavy ident", [aircraft], self.facility, {"enroute_low"}
+        )
+        self.assertIn("hotel heavy", reply.text.lower())
+        collision = SimpleNamespace(callsign="N123HH", aircraft_model=cessna_172)
+        with self.assertRaisesRegex(ValueError, "unambiguous"):
+            handle_transmission(
+                "November 123 hotel hotel ident",
+                [aircraft, collision],
+                self.facility,
+                {"enroute_low"},
+            )
+
+    def test_squawk_changes_transponder_and_reads_back_each_digit(self):
+        aircraft = self.by_id["A3"]
+        aircraft.callsign = "DEVIL7"
+        strip = next(strip for strip in self.strips if strip.aircraft is aircraft)
+        original_strip_code = strip.beacon_code
+        for text, code, spoken in (
+            ("devil seven squawk three zero zero zero", "3000", "three zero zero zero"),
+            (
+                "double seven squawk three zero zero zero",
+                "3000",
+                "three zero zero zero",
+            ),
+            ("double seven squawk zero four two one", "0421", "zero four two one"),
+            ("double7 squawk 0000", "0000", "zero zero zero zero"),
+            ("devil seven squawk 7700", "7700", "seven seven zero zero"),
+        ):
+            with self.subTest(text=text):
+                reply = handle_transmission(
+                    text, self.aircraft, self.facility, {"enroute_high"}
+                )
+                self.assertEqual(aircraft.squawk, code)
+                self.assertIn(spoken, reply.text.lower())
+                self.assertEqual(strip.beacon_code, original_strip_code)
+
+    def test_invalid_squawk_and_ambiguous_callsign_do_not_change_transponder(self):
+        aircraft = self.by_id["A3"]
+        aircraft.callsign = "DEVIL7"
+        original = aircraft.squawk
+        for text in (
+            "devil seven squawk",
+            "devil seven squawk three zero zero",
+            "devil seven squawk three zero zero eight",
+            "devil seven squawk three zero zero zero ident",
+            "devil seven squawk ident",
+            "devil seven radar contact squawk three zero zero zero",
+        ):
+            with self.subTest(text=text), self.assertRaises(ValueError):
+                handle_transmission(
+                    text, self.aircraft, self.facility, {"enroute_high"}
+                )
+            self.assertEqual(aircraft.squawk, original)
+        with self.assertRaisesRegex(ValueError, "unambiguous"):
+            handle_transmission(
+                "double seven squawk three zero zero zero",
+                [
+                    aircraft,
+                    SimpleNamespace(
+                        callsign="DOUBLE7", aircraft_model=aircraft.aircraft_model
+                    ),
+                ],
+                self.facility,
+                {"enroute_high"},
+            )
+        self.assertEqual(aircraft.squawk, original)
+        other = self.by_id["A1"]
+        other.callsign = "DOUBLE7"
+        reply = handle_transmission(
+            "double seven squawk three zero zero zero",
+            [other],
+            self.facility,
+            {"enroute_low"},
+        )
+        self.assertEqual(reply.aircraft_id, other.id)
+        self.assertEqual(other.squawk, "3000")
+        self.assertEqual(aircraft.squawk, original)
+        with self.assertRaisesRegex(ValueError, "transmitting frequency"):
+            handle_transmission(
+                "devil seven squawk three zero zero zero",
+                self.aircraft,
+                self.facility,
+                {"approach_low"},
+            )
+        self.assertEqual(aircraft.squawk, original)
+        aircraft.track.owner = TrackingPosition.LOS_ANGELES
+        with self.assertRaisesRegex(
+            ValueError, "Yuma must own track and communications"
+        ):
+            handle_transmission(
+                "devil seven squawk three zero zero zero",
+                self.aircraft,
+                self.facility,
+                {"enroute_high"},
+            )
+        self.assertEqual(aircraft.squawk, original)
+
+    def test_squawk_change_reaches_the_secondary_radar_snapshot(self):
+        aircraft = self.by_id["A3"]
+        display = SimpleNamespace(
+            aircraft_list=SimpleNamespace(aircraft_list=[aircraft]),
+            atc_facility=self.facility,
+            secondary_radar_returns=[],
+            departure_checkins=[],
+            reported_departures=set(),
+            selected_aircraft_id=None,
+            sweep=RadarSweep(),
+            radar_return_manager=RadarReturnManager(),
+            display_type=RadarDisplay.STARS,
+            ARTS_IIE=RadarDisplay.ARTS_IIE,
+            secondary_update_elapsed=0,
+            emergency_flash_elapsed=0,
+            calculate_range_and_bearing=lambda lat, lon: (0, 0),
+        )
+        display.capture_secondary_radar_returns = lambda: (
+            RadarDisplay.capture_secondary_radar_returns(display)
+        )
+        display.capture_secondary_radar_returns()
+        handle_transmission(
+            "devil 279 squawk seven seven zero zero",
+            self.aircraft,
+            self.facility,
+            {"enroute_high"},
+        )
+        RadarDisplay.on_update(display, 1)
+        self.assertEqual(display.secondary_radar_returns[0].squawk, "7700")
+
+    def test_to_as_two_in_callsign_squawk_and_heading(self):
+        aircraft = self.by_id["A3"]
+        aircraft.callsign = "DEVIL2"
+        reply = handle_transmission(
+            "double to squawk to zero zero zero",
+            self.aircraft,
+            self.facility,
+            {"enroute_high"},
+        )
+        self.assertEqual(aircraft.squawk, "2000")
+        self.assertIn("two zero zero zero", reply.text)
+        handle_transmission(
+            "devil to heading to seven zero",
+            self.aircraft,
+            self.facility,
+            {"enroute_high"},
+        )
+        self.assertAlmostEqual(
+            aircraft.flight_guidance.vector_heading,
+            self.facility.location.magnetic_to_true(270),
+        )
+
+    def test_two_transcribed_as_to_in_bearing_and_frequency(self):
+        aircraft = self.by_id["A1"]
+        reply = handle_transmission(
+            "N135TC maintain bearing to six five to Imperial contact Los Angeles Center 291.to",
+            self.aircraft,
+            self.facility,
+            {"enroute_low"},
+        )
+        self.assertAlmostEqual(
+            aircraft.flight_guidance.vector_heading,
+            self.facility.location.magnetic_to_true(265),
+        )
+        self.assertIn("Verify Los Angeles Center frequency 291.200.", reply.text)
+        self.assertIsNone(aircraft.track.handoff_target)
+
+    def test_two_transcribed_for_to_keeps_clearance_grammar(self):
+        aircraft = self.by_id["A3"]
+        handle_transmission(
+            "devil 279 climb 2 9000",
+            self.aircraft,
+            self.facility,
+            {"enroute_high"},
+        )
+        self.assertEqual(aircraft.flight_guidance.assigned_altitude, 9000)
+        fix = aircraft.flight_guidance.route[aircraft.flight_guidance.next_index].name
+        handle_transmission(
+            f"devil 279 direct 2 {fix}",
+            self.aircraft,
+            self.facility,
+            {"enroute_high"},
+        )
+        self.assertEqual(
+            aircraft.flight_guidance.route[aircraft.flight_guidance.next_index].name,
+            fix,
+        )
+        handle_transmission(
+            "devil 279 maintain bearing 265 2 Imperial",
+            self.aircraft,
+            self.facility,
+            {"enroute_high"},
+        )
+        self.assertAlmostEqual(
+            aircraft.flight_guidance.vector_heading,
+            self.facility.location.magnetic_to_true(265),
+        )
+
     def test_magnetic_heading_drives_true_geographic_motion(self):
         aircraft = self.by_id["A3"]
         aircraft.heading = 100 + 14 / 60
@@ -71,6 +337,96 @@ class VoiceCommandTests(unittest.TestCase):
         aircraft.update_position(10)
         self.assertLess(aircraft.lat, latitude)
         self.assertGreater(aircraft.lon, longitude)
+
+    def test_bearing_with_incorrect_center_frequency_keeps_bearing_and_questions_it(
+        self,
+    ):
+        aircraft = self.by_id["A1"]
+        aircraft.callsign = "SHEEP1"
+        original_channel = aircraft.radio_channel
+        reply = handle_transmission(
+            "Sheep 1 maintain bearing 265 to Imperial contact Los Angeles Center 292.2",
+            self.aircraft,
+            self.facility,
+            {"enroute_low"},
+        )
+        self.assertAlmostEqual(aircraft.flight_guidance.vector_heading, 275 + 14 / 60)
+        self.assertIn("Maintain bearing two six five.", reply.text)
+        self.assertIn("Verify Los Angeles Center frequency 292.200.", reply.text)
+        self.assertEqual(aircraft.radio_channel, original_channel)
+        self.assertIsNone(aircraft.track.handoff_target)
+        self.assertIsNone(aircraft.track.pending_radio_channel)
+
+    def test_bearing_handoff_flashes_then_transfers_to_correct_frequency(self):
+        aircraft = self.by_id["A1"]
+        aircraft.callsign = "SHEEP1"
+        display = SimpleNamespace(
+            aircraft_list=SimpleNamespace(aircraft_list=[aircraft]),
+            atc_facility=self.facility,
+            secondary_radar_returns=[],
+            departure_checkins=[],
+            reported_departures=set(),
+            selected_aircraft_id=None,
+            sweep=RadarSweep(),
+            radar_return_manager=RadarReturnManager(),
+            display_type=RadarDisplay.STARS,
+            ARTS_IIE=RadarDisplay.ARTS_IIE,
+            secondary_update_elapsed=0,
+            emergency_flash_elapsed=0,
+            calculate_range_and_bearing=lambda lat, lon: (0, 0),
+        )
+        display.capture_secondary_radar_returns = lambda: (
+            RadarDisplay.capture_secondary_radar_returns(display)
+        )
+        display.capture_secondary_radar_returns()
+        reply = handle_transmission(
+            "Sheep 1 maintain bearing 265 to Imperial contact Los Angeles Center 291.7",
+            self.aircraft,
+            self.facility,
+            {"enroute_low"},
+        )
+        self.assertIn("Maintain bearing two six five.", reply.text)
+        self.assertEqual(aircraft.track.pending_radio_channel, "zla9_high")
+        self.assertEqual(aircraft.radio_channel, "enroute_low")
+        RadarDisplay.on_update(display, 1)
+        snapshot = display.secondary_radar_returns[0]
+        self.assertEqual(snapshot.handoff_target, TrackingPosition.LOS_ANGELES)
+        with (
+            patch("arcade.draw_circle_filled") as circle,
+            patch("arcade.draw_line"),
+            patch("arcade.Text"),
+        ):
+            RadarDisplay.draw_secondary_return(
+                snapshot, 100, 200, 1, text_size=(50, 30), flash_visible=False
+            )
+            circle.assert_not_called()
+            RadarDisplay.draw_secondary_return(
+                snapshot, 100, 200, 1, text_size=(50, 30), flash_visible=True
+            )
+            circle.assert_called_once()
+        RadarDisplay.on_update(display, 2)
+        self.assertEqual(aircraft.track.owner, TrackingPosition.LOS_ANGELES)
+        self.assertEqual(
+            aircraft.track.communications_owner, TrackingPosition.LOS_ANGELES
+        )
+        self.assertEqual(aircraft.radio_channel, "zla9_high")
+        self.assertIsNone(aircraft.track.pending_radio_channel)
+        self.assertIsNone(display.secondary_radar_returns[0].handoff_target)
+
+    def test_bearing_handoff_rejects_pending_coordination_without_turning(self):
+        aircraft = self.by_id["A1"]
+        aircraft.track.offer_coordination(
+            CoordinationKind.POINT_OUT, TrackingPosition.LOS_ANGELES, "TEST"
+        )
+        with self.assertRaisesRegex(ValueError, "Coordination is already pending"):
+            handle_transmission(
+                "N135TC maintain bearing 265 contact Los Angeles Center 291.7",
+                self.aircraft,
+                self.facility,
+                {"enroute_low"},
+            )
+        self.assertIsNone(aircraft.flight_guidance.vector_heading)
+        self.assertIsNone(aircraft.track.handoff_target)
 
     def test_callsign_and_frequency_are_required(self):
         aircraft = self.by_id["A1"]
@@ -265,6 +621,164 @@ class VoiceCommandTests(unittest.TestCase):
             )
         self.assertIsNone(self.by_id["A3"].flight_guidance.vector_heading)
 
+    def test_return_color_follows_contact_and_handoffs(self):
+        aircraft_list, facility, _ = create_yuma_scenario()
+        aircraft = next(item for item in aircraft_list.aircraft_list if item.id == "A3")
+        uncontrolled = next(
+            item for item in aircraft_list.aircraft_list if item.id == "A1"
+        )
+        display = SimpleNamespace(
+            aircraft_list=SimpleNamespace(aircraft_list=[aircraft, uncontrolled]),
+            atc_facility=facility,
+            secondary_radar_returns=[],
+            departure_checkins=[],
+            reported_departures=set(),
+            selected_aircraft_id=None,
+            sweep=RadarSweep(),
+            radar_return_manager=RadarReturnManager(),
+            display_type=RadarDisplay.STARS,
+            ARTS_IIE=RadarDisplay.ARTS_IIE,
+            secondary_update_elapsed=0,
+            emergency_flash_elapsed=0,
+            calculate_range_and_bearing=lambda lat, lon: (0, 0),
+        )
+        display.capture_secondary_radar_returns = lambda: (
+            RadarDisplay.capture_secondary_radar_returns(display)
+        )
+        display.capture_secondary_radar_returns()
+        labels = {
+            item.id: SimpleNamespace(color=arcade.color.WHITE, draw=Mock())
+            for item in (aircraft, uncontrolled)
+        }
+
+        def color(item):
+            snapshot = next(
+                s for s in display.secondary_radar_returns if s.aircraft_id == item.id
+            )
+            with (
+                patch("arcade.draw_circle_filled") as circle,
+                patch("arcade.draw_line"),
+            ):
+                RadarDisplay.draw_secondary_return(
+                    snapshot, 100, 200, 1, text_size=(50, 30), label=labels[item.id]
+                )
+            dot_color = circle.call_args.args[3]
+            self.assertEqual(labels[item.id].color, dot_color)
+            return dot_color
+
+        self.assertEqual(color(aircraft), arcade.color.GOLD)
+        self.assertEqual(color(uncontrolled), arcade.color.WHITE)
+        with self.assertRaisesRegex(ValueError, "Yuma must own"):
+            handle_transmission(
+                "Devil 279 radar contact",
+                aircraft_list.aircraft_list,
+                facility,
+                {"enroute_high"},
+            )
+        track = aircraft.track
+        track.offer(TrackingPosition.YUMA)
+        track.accept(TrackingPosition.YUMA)
+        track.transfer_communications()
+        track.confirm_identification()
+        RadarDisplay.on_update(display, 0.1)
+        self.assertEqual(color(aircraft), arcade.color.GOLD)
+        display.communications_panel = SimpleNamespace(
+            mic_hot=False, transmitting=[], monitored=[]
+        )
+        display.voice_audio = Mock(events=queue.SimpleQueue())
+        display.set_caption = Mock()
+        display.voice_audio.events.put(
+            ("transcript", ("Devil 279 radar contact", {"enroute_high"}))
+        )
+        RadarDisplay.on_update(display, 0.1)
+        self.assertIn(
+            "Radar contact, roger", display.voice_audio.speak.call_args.args[0].text
+        )
+        self.assertEqual(color(aircraft), arcade.color.LIME_GREEN)
+        self.assertEqual(color(uncontrolled), arcade.color.WHITE)
+        track.offer(TrackingPosition.LOS_ANGELES)
+        RadarDisplay.on_update(display, 1)
+        self.assertEqual(color(aircraft), arcade.color.LIME_GREEN)
+        RadarDisplay.on_update(display, 2)
+        self.assertEqual(color(aircraft), arcade.color.DODGER_BLUE)
+        track.transfer_communications()
+        track.offer(TrackingPosition.YUMA)
+        RadarDisplay.on_update(display, 0.1)
+        self.assertEqual(color(aircraft), arcade.color.GOLD)
+        track.cancel()
+        RadarDisplay.on_update(display, 0.1)
+        self.assertEqual(color(aircraft), arcade.color.DODGER_BLUE)
+
+    def test_ident_acknowledges_and_displays_until_it_expires(self):
+        aircraft = self.by_id["A1"]
+        display = SimpleNamespace(
+            aircraft_list=SimpleNamespace(aircraft_list=[aircraft]),
+            atc_facility=self.facility,
+            secondary_radar_returns=[],
+            departure_checkins=[],
+            reported_departures=set(),
+            selected_aircraft_id=None,
+            sweep=RadarSweep(),
+            radar_return_manager=RadarReturnManager(),
+            display_type=RadarDisplay.STARS,
+            ARTS_IIE=RadarDisplay.ARTS_IIE,
+            secondary_update_elapsed=0,
+            emergency_flash_elapsed=0,
+            calculate_range_and_bearing=lambda lat, lon: (0, 0),
+        )
+        display.capture_secondary_radar_returns = lambda: (
+            RadarDisplay.capture_secondary_radar_returns(display)
+        )
+        display.capture_secondary_radar_returns()
+        with self.assertRaisesRegex(ValueError, "transmitting frequency"):
+            handle_transmission(
+                "N135TC ident", self.aircraft, self.facility, {"approach_low"}
+            )
+        with self.assertRaisesRegex(ValueError, "separately"):
+            handle_transmission(
+                "N135TC radar contact ident",
+                self.aircraft,
+                self.facility,
+                {"enroute_low"},
+            )
+        with self.assertRaisesRegex(ValueError, "separately"):
+            handle_transmission(
+                "N135TC radar contact identity",
+                self.aircraft,
+                self.facility,
+                {"enroute_low"},
+            )
+        with self.assertRaisesRegex(ValueError, "Unrecognized voice instruction"):
+            handle_transmission(
+                "N135TC squawk ident", self.aircraft, self.facility, {"enroute_low"}
+            )
+        self.assertEqual(aircraft.ident_remaining, 0)
+        for instruction in ("ident", "identity"):
+            reply = handle_transmission(
+                f"N135TC {instruction}", self.aircraft, self.facility, {"enroute_low"}
+            )
+            self.assertIn("Ident.", reply.text)
+            RadarDisplay.on_update(display, 1)
+            snapshot = display.secondary_radar_returns[0]
+            self.assertIn(
+                " ID", RadarDisplay.secondary_return_layout(snapshot, 0, 0, 0)[0]
+            )
+            with (
+                patch("arcade.draw_circle_filled") as circle,
+                patch("arcade.draw_line"),
+                patch("arcade.Text"),
+            ):
+                RadarDisplay.draw_secondary_return(
+                    snapshot, 100, 200, 1, text_size=(50, 30), flash_visible=False
+                )
+                circle.assert_not_called()
+        RadarDisplay.on_update(display, 17)
+        snapshot = display.secondary_radar_returns[0]
+        self.assertNotIn(
+            " ID", RadarDisplay.secondary_return_layout(snapshot, 0, 0, 0)[0]
+        )
+        self.assertEqual(aircraft.ident_remaining, 0)
+
     def test_transcribed_clearance_is_applied_and_queued_for_readback(self):
         display = Mock(spec=RadarDisplay)
         with patch("simulator.radio.communications.arcade.Text"):
@@ -282,6 +796,14 @@ class VoiceCommandTests(unittest.TestCase):
         reply = display.voice_audio.speak.call_args.args[0]
         self.assertEqual(reply.aircraft_id, "A3")
         self.assertEqual(reply.channel, "enroute_high")
+        display.voice_audio.events.put(
+            ("transcript", ("Devil 279 squawk three zero zero zero", {"enroute_high"}))
+        )
+        RadarDisplay.process_voice(display)
+        self.assertEqual(self.by_id["A3"].squawk, "3000")
+        self.assertIn(
+            "three zero zero zero", display.voice_audio.speak.call_args.args[0].text
+        )
 
     def test_rejection_logs_the_recognized_transcript(self):
         display = Mock(spec=RadarDisplay)

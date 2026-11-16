@@ -1,8 +1,26 @@
+from __future__ import annotations
+
 import math
+from typing import TYPE_CHECKING
 
 from simulator.core.atc import TrackOwnership
 from simulator.core.constants import FPS
 from simulator.navigation.navmath import NavigationalCoordinateSystem
+
+if TYPE_CHECKING:
+    from simulator.navigation.departure import Departure
+    from simulator.navigation.flight_navigation import FlightPlanGuidance
+
+IDENT_DURATION_SECONDS = 18.0
+HEAVY_TAKEOFF_WEIGHT_KG = 300_000 * 0.45359237
+
+
+def is_heavy(aircraft: Aircraft) -> bool:
+    return aircraft.aircraft_model.max_takeoff_weight >= HEAVY_TAKEOFF_WEIGHT_KG
+
+
+def display_callsign(aircraft: Aircraft) -> str:
+    return aircraft.callsign + ("H" if is_heavy(aircraft) else "")
 
 
 class AircraftModel:
@@ -103,9 +121,13 @@ class Aircraft:
         self.target_turn_direction = None
         self.target_altitude = None
         self.target_speed = None
-        self.flight_guidance = None
-        self.departure = None
-        self.radio_channel = None
+        self.flight_guidance: FlightPlanGuidance | None = None
+        self.departure: Departure | None = None
+        self.radio_channel: str | None = None
+        self.ident_remaining = 0.0
+
+    def activate_ident(self):
+        self.ident_remaining = IDENT_DURATION_SECONDS
 
     @staticmethod
     def _validate_speed(speed, aircraft_model):
@@ -148,6 +170,7 @@ class Aircraft:
             raise ValueError("Elapsed time must be a non-negative finite number")
         if delta_time == 0:
             return
+        self.ident_remaining = max(0.0, self.ident_remaining - delta_time)
         if self.departure is not None and self.departure.check_in is None:
             if self.landed:
                 return

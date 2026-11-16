@@ -2,10 +2,12 @@ from functools import cache
 
 import arcade
 
+from simulator.core.aircraft import display_callsign
 from simulator.core.constants import SCREEN_HEIGHT, SCREEN_WIDTH
 from simulator.navigation.flight_navigation import NavigationData
 
-PANEL_WIDTH = 440
+STRIP_SHIFT = 64
+PANEL_WIDTH = 440 + STRIP_SHIFT
 STRIP_HEIGHT = 76
 CHECKINS_TOP = SCREEN_HEIGHT - 55
 LIST_TOP = SCREEN_HEIGHT - 180
@@ -94,7 +96,7 @@ def terminal_strip_fields(strip, airport_code):
         )
     else:
         block7 = "--"
-        block8 = "--"
+        block8 = "ENR" if kind == "OVERFLIGHT" else "--"
         block9 = (
             assigned or "--",
             f"FIX {strip.fix_time}" if strip.fix_time else "",
@@ -125,7 +127,7 @@ class FlightStripPanel:
         self.edit_field = None
         self.edit_text = ""
         self.error = ""
-        self.hover_position = None
+        self.hover_position: tuple[float, float] | None = None
         self.drag_strip = None
         self.drag_start = None
         self.drag_position = None
@@ -203,11 +205,15 @@ class FlightStripPanel:
         self.offset -= int(amount)
         self.visible_strips()
 
-    def select_at(self, y):
+    def select_at(self, y, x=None):
         visible = self.visible_strips()
         index = int((LIST_TOP - y) // STRIP_HEIGHT)
         if LIST_BOTTOM <= y < LIST_TOP and 0 <= index < len(visible):
-            return visible[index].aircraft.id
+            strip = visible[index]
+            if x is None or (
+                self.strip_left(strip) <= x < self.strip_left(strip) + STRIP_COLUMNS[-1]
+            ):
+                return strip.aircraft.id
         return None
 
     def selected_strip(self, aircraft_id):
@@ -220,8 +226,12 @@ class FlightStripPanel:
             None,
         )
 
-    def drag_target_at(self, x, y):
-        if not STRIP_LEFT <= x < STRIP_LEFT + STRIP_COLUMNS[-1]:
+    @staticmethod
+    def strip_left(strip):
+        return STRIP_LEFT + (STRIP_SHIFT if strip.offset_right else 0)
+
+    def drag_target_at(self, x, y, require_strip=False):
+        if not STRIP_LEFT <= x < STRIP_LEFT + STRIP_COLUMNS[-1] + STRIP_SHIFT:
             return None
         if not LIST_BOTTOM <= y < LIST_TOP:
             return None
@@ -229,16 +239,21 @@ class FlightStripPanel:
         visible = self.visible_strips()
         if index >= len(visible):
             return None
+        strip = visible[index]
+        if require_strip and not (
+            self.strip_left(strip) <= x < self.strip_left(strip) + STRIP_COLUMNS[-1]
+        ):
+            return None
         top = LIST_TOP - index * STRIP_HEIGHT - 2
         bottom = top - STRIP_DRAW_HEIGHT
         if not bottom <= y <= top:
             return None
         after = y < (top + bottom) / 2
-        return visible[index], after, bottom if after else top
+        return strip, after, bottom if after else top
 
     def start_drag(self, x, y):
         self.cancel_drag()
-        target = self.drag_target_at(x, y)
+        target = self.drag_target_at(x, y, require_strip=True)
         if target is not None:
             self.drag_strip = target[0]
             self.drag_start = (x, y)
@@ -262,11 +277,20 @@ class FlightStripPanel:
     def finish_drag(self, x, y):
         source = self.drag_strip
         dragging = self.dragging
+        start = self.drag_start
         self.cancel_drag()
-        if not dragging or source is None:
+        if not dragging or source is None or start is None:
             return
         if source not in self.active_strips():
             self.error = "STRIP NO LONGER ACTIVE"
+            return
+        dx, dy = x - start[0], y - start[1]
+        if abs(dx) >= STRIP_SHIFT / 2 and abs(dx) > abs(dy):
+            if (
+                STRIP_LEFT <= x < STRIP_LEFT + STRIP_COLUMNS[-1] + STRIP_SHIFT
+                and LIST_BOTTOM <= y < LIST_TOP
+            ):
+                source.offset_right = dx > 0
             return
         target = self.drag_target_at(x, y)
         if target is None or target[0] is source:
@@ -275,18 +299,20 @@ class FlightStripPanel:
         self.strips.insert(self.strips.index(target[0]) + int(target[1]), source)
 
     def tooltip_at(self, x, y):
-        relative_x = x - STRIP_LEFT
-        if not 0 <= relative_x < STRIP_COLUMNS[-1] or not LIST_BOTTOM <= y < LIST_TOP:
+        if not LIST_BOTTOM <= y < LIST_TOP:
             return None
         index = int((LIST_TOP - y) // STRIP_HEIGHT)
         visible = self.visible_strips()
         if index >= len(visible):
             return None
+        strip = visible[index]
+        relative_x = x - self.strip_left(strip)
+        if not 0 <= relative_x < STRIP_COLUMNS[-1]:
+            return None
         top = LIST_TOP - index * STRIP_HEIGHT - 2
         from_top = top - y
         if not 0 <= from_top < STRIP_DRAW_HEIGHT:
             return None
-        strip = visible[index]
         kind = terminal_strip_fields(strip, self.airport_code)[0]
         if relative_x < STRIP_COLUMNS[1]:
             row = min(int(from_top * 4 / STRIP_DRAW_HEIGHT), 3)
@@ -307,7 +333,7 @@ class FlightStripPanel:
                 )
             descriptions = {
                 "DEPARTURE": (
-                    "Field 6: Proposed departure time. Not simulated.",
+                    "Field 6: Scheduled automatic departure time in UTC, if available.",
                     "Field 7: Requested altitude, in hundreds of feet.",
                 ),
                 "ARRIVAL": (
@@ -338,7 +364,7 @@ class FlightStripPanel:
             return {
                 "DEPARTURE": "Field 8: Departure airport.",
                 "ARRIVAL": "Field 8: Estimated arrival time at the coordination fix or destination. Not simulated.",
-                "OVERFLIGHT": "Field 8: Estimated arrival time at the coordination fix. Not simulated.",
+                "OVERFLIGHT": "Field 8: ENR identifies an enroute flight.",
                 "UNKNOWN": "Field 8: Meaning depends on flight type.",
             }[kind]
         if relative_x < STRIP_COLUMNS[4]:
@@ -492,12 +518,22 @@ class FlightStripPanel:
         for index, strip in enumerate(visible):
             top = LIST_TOP - index * STRIP_HEIGHT
             selected = strip.aircraft.id == selected_id
-            left = STRIP_LEFT
+            left = self.strip_left(strip)
+            if (
+                self.dragging
+                and strip is self.drag_strip
+                and self.drag_start is not None
+                and self.drag_position is not None
+            ):
+                dx = self.drag_position[0] - self.drag_start[0]
+                dy = self.drag_position[1] - self.drag_start[1]
+                if abs(dx) > abs(dy):
+                    left = STRIP_LEFT + max(0, min(STRIP_SHIFT, left - STRIP_LEFT + dx))
             bottom = top - STRIP_HEIGHT + 4
             height = STRIP_DRAW_HEIGHT
             columns = STRIP_COLUMNS
             arcade.draw_rect_filled(
-                arcade.LBWH(left, bottom, PANEL_WIDTH - 16, height),
+                arcade.LBWH(left, bottom, STRIP_COLUMNS[-1], height),
                 (255, 246, 196) if selected else (220, 221, 205),
             )
             for x in columns:
@@ -525,8 +561,19 @@ class FlightStripPanel:
             plan = strip.flight_plan
             aircraft = strip.aircraft
             _, block7, block8, block9 = terminal_strip_fields(strip, self.airport_code)
+            departure = getattr(aircraft, "departure", None)
+            scheduled = (
+                departure.scheduled_utc.strftime("%H%MZ")
+                if departure is not None and departure.scheduled_utc is not None
+                else "--"
+            )
             entries = (
-                (columns[0] + 4, 5, aircraft.callsign, columns[1] - columns[0] - 8),
+                (
+                    columns[0] + 4,
+                    5,
+                    display_callsign(aircraft),
+                    columns[1] - columns[0] - 8,
+                ),
                 (
                     columns[0] + 4,
                     37,
@@ -539,7 +586,7 @@ class FlightStripPanel:
                     strip.beacon_code or "--",
                     columns[2] - columns[1] - 8,
                 ),
-                (columns[1] + 4, 28, "--", columns[2] - columns[1] - 8),
+                (columns[1] + 4, 28, scheduled, columns[2] - columns[1] - 8),
                 (columns[1] + 4, 51, block7, columns[2] - columns[1] - 8),
                 (columns[2] + 4, 5, block8, columns[3] - columns[2] - 8),
                 (
@@ -560,13 +607,24 @@ class FlightStripPanel:
             )
             for x, y, text, width in entries:
                 self.draw_field(text, left + x, bottom + height - y, width)
-        if self.dragging and self.drag_position is not None:
+        if (
+            self.dragging
+            and self.drag_position is not None
+            and self.drag_start is not None
+        ):
             target = self.drag_target_at(*self.drag_position)
-            if target is not None and target[0] is not self.drag_strip:
+            dx = self.drag_position[0] - self.drag_start[0]
+            dy = self.drag_position[1] - self.drag_start[1]
+            if (
+                target is not None
+                and target[0] is not self.drag_strip
+                and abs(dy) >= abs(dx)
+            ):
+                target_left = self.strip_left(target[0])
                 arcade.draw_line(
-                    STRIP_LEFT,
+                    target_left,
                     target[2],
-                    STRIP_LEFT + STRIP_COLUMNS[-1],
+                    target_left + STRIP_COLUMNS[-1],
                     target[2],
                     arcade.color.LIGHT_BLUE,
                     3,
@@ -578,7 +636,7 @@ class FlightStripPanel:
                 if field[0] == self.edit_field
             )
             footer = (
-                f"EDIT {self.edit_strip.aircraft.callsign}: {label}\n"
+                f"EDIT {display_callsign(self.edit_strip.aircraft)}: {label}\n"
                 f"{self.edit_text}_\nENTER SAVE / ESC CANCEL\n{self.error}"
             )
         else:
@@ -587,7 +645,7 @@ class FlightStripPanel:
                 plan = strip.flight_plan
                 kind = terminal_strip_fields(strip, self.airport_code)[0]
                 footer = (
-                    f"SELECTED: {strip.aircraft.callsign}  {kind}\n"
+                    f"SELECTED: {display_callsign(strip.aircraft)}  {kind}\n"
                     f"PLAN {display_airport_identifier(plan.origin) or '?'} > {display_airport_identifier(plan.destination) or '?'}  {strip.aircraft.flight_rules}\n"
                     f"ROUTE {_display_route_to_destination(strip)}\n"
                     f"FILED {plan.altitude if plan.altitude is not None else '?'} FT / {plan.speed if plan.speed is not None else '?'} KT\n"
@@ -599,6 +657,8 @@ class FlightStripPanel:
                 departure = getattr(strip.aircraft, "departure", None)
                 if departure is not None and departure.state == "waiting":
                     footer += "\nAWAITING AUTOMATIC DEPARTURE"
+                    if departure.scheduled_utc is not None:
+                        footer += f" {departure.scheduled_utc:%H:%M:%S} UTC"
                 elif departure is not None and departure.state == "takeoff":
                     footer += "\nDEPARTURE IN PROGRESS"
             else:

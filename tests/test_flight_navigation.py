@@ -5,7 +5,7 @@ from collections import Counter
 from itertools import pairwise
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from shapely.geometry import LineString, Point, box, shape
 from shapely.ops import unary_union
@@ -24,6 +24,7 @@ from Locations.Yuma.Scenarios.yuma import (
     create_yuma_scenario,
 )
 from simulator.core.aircraft import AircraftList
+from simulator.core.aircraft_models import boeing_767_freighter
 from simulator.core.atc import ATCFacility, FlightPlan, FlightStrip
 from simulator.display.radar import RadarDisplay, RadarReturnManager, RadarSweep
 from simulator.navigation.flight_navigation import (
@@ -364,7 +365,9 @@ class FlightNavigationTests(unittest.TestCase):
         self.assertEqual(departures[0].aircraft.altitude * 100, airport.elevation)
         self.assertGreater(departures[0].aircraft.speed, 0)
         self.assertEqual(departures[2].aircraft.departure.state, "waiting")
-        RadarDisplay.on_update(display, 115)
+        display.voice_audio = Mock()
+        with patch.object(RadarDisplay, "process_voice"):
+            RadarDisplay.on_update(display, 115)
         self.assertTrue(all(s.aircraft.departure.airborne for s in departures))
         self.assertEqual(len(display.secondary_radar_returns), 10)
         self.assertEqual(len(display.departure_checkins), 3)
@@ -375,8 +378,27 @@ class FlightNavigationTests(unittest.TestCase):
         self.assertTrue(
             all("YUMA DEPARTURE" in msg for msg in display.departure_checkins)
         )
-        RadarDisplay.on_update(display, 1)
+        replies = [call.args[0] for call in display.voice_audio.speak.call_args_list]
+        self.assertEqual(len(replies), 3)
+        for reply, message in zip(replies, display.departure_checkins):
+            self.assertIn(", ON ", message)
+            self.assertIn(", on ", reply.text)
+            self.assertRegex(message, r"\d+ FT, (CLIMBING|DESCENDING|LEVEL) \d+ FT$")
+            self.assertRegex(
+                reply.text, r"\d+ feet, (CLIMBING|DESCENDING|LEVEL) \d+ feet$"
+            )
+            self.assertIn(reply.channel, ("departure_low", "departure_high"))
+            self.assertIn(
+                "125.500" if reply.channel == "departure_low" else "282.325", message
+            )
+            self.assertIn(
+                "125.500" if reply.channel == "departure_low" else "282.325",
+                reply.text,
+            )
+        with patch.object(RadarDisplay, "process_voice"):
+            RadarDisplay.on_update(display, 1)
         self.assertEqual(len(display.departure_checkins), 3)
+        self.assertEqual(display.voice_audio.speak.call_count, 3)
 
     def test_departures_also_progress_through_aircraft_list_updates(self):
         aircraft_list, _, strips = create_yuma_scenario()
@@ -386,6 +408,37 @@ class FlightNavigationTests(unittest.TestCase):
         aircraft_list.update_positions(100)
         self.assertTrue(departure.departure.airborne)
         self.assertIn("N380CJ", departure.departure.check_in)
+
+    def test_heavy_airline_departure_checkin_is_displayed_and_spoken(self):
+        _, facility, strips = create_yuma_scenario()
+        aircraft = next(s.aircraft for s in strips if s.aircraft.id == "A8")
+        aircraft.callsign = "AAL381"
+        aircraft.aircraft_model = boeing_767_freighter
+        aircraft.departure.state = "airborne"
+        aircraft.departure.record_airborne(aircraft, 15)
+        aircraft.update_position = Mock()
+        display = SimpleNamespace(
+            aircraft_list=SimpleNamespace(aircraft_list=[aircraft]),
+            atc_facility=facility,
+            secondary_radar_returns=[],
+            departure_checkins=[],
+            reported_departures=set(),
+            selected_aircraft_id=None,
+            sweep=RadarSweep(),
+            radar_return_manager=RadarReturnManager(),
+            display_type=RadarDisplay.STARS,
+            ARTS_IIE=RadarDisplay.ARTS_IIE,
+            secondary_update_elapsed=0,
+            emergency_flash_elapsed=0,
+            calculate_range_and_bearing=lambda lat, lon: (0, 0),
+            voice_audio=Mock(),
+        )
+        with patch.object(RadarDisplay, "process_voice"):
+            RadarDisplay.on_update(display, 0)
+        self.assertTrue(display.departure_checkins[0].startswith("AAL381H:"))
+        reply = display.voice_audio.speak.call_args.args[0]
+        self.assertTrue(reply.text.startswith("American three eight one heavy:"))
+        self.assertEqual(aircraft.callsign, "AAL381")
 
     def test_departure_checkin_uses_controller_assigned_altitude(self):
         _, _, strips = create_yuma_scenario()

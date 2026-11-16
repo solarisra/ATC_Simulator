@@ -4,14 +4,45 @@ import logging
 import math
 import queue
 import subprocess
+import textwrap
 import threading
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 
 import arcade
 
+from Locations.Yuma.Scenarios.generator import generate_yuma_scenario
 from Locations.Yuma.Scenarios.yuma import create_yuma_scenario
+from simulator.app.briefing import briefing_pages
 from simulator.app.menu_theme import system_theme
+from simulator.app.scenario_generator import (
+    DIALOG_HEIGHT,
+    DIALOG_WIDTH,
+    DIALOG_X,
+    DIALOG_Y,
+    MINUS_X,
+    PLUS_X,
+    ROW_HEIGHT,
+    ROW_TOP,
+    ScenarioGeneratorDialog,
+)
+from simulator.app.scenario_saves import (
+    SAVE_HEIGHT,
+    SAVE_PAGE_SIZE,
+    SAVE_ROW_HEIGHT,
+    SAVE_ROW_TOP,
+    SAVE_WIDTH,
+    SAVE_X,
+    SAVE_Y,
+    ScenarioSavesDialog,
+)
+from simulator.app.scenario_storage import (
+    read_scenario,
+    scenario_path,
+    snapshot_scenario,
+    write_scenario,
+)
 from simulator.core.aircraft import AircraftList
 from simulator.core.atc import ATCFacility, FlightStrip
 from simulator.core.constants import SCREEN_HEIGHT, SCREEN_TITLE, SCREEN_WIDTH
@@ -123,6 +154,14 @@ class ApplicationWindow(RadarDisplay):
         self.selected_sector = None
         self.pending_scenario = None
         self.pending_location = None
+        self.pending_generated_settings = None
+        self.generator_settings = None
+        self.generator_dialog = None
+        self.saves_dialog = None
+        self.pending_saved_scenario = None
+        self.scenario_utc = None
+        self.briefing = []
+        self.briefing_page = 0
         self.open_menu = None
         self.submenu_location = None
         self.submenu_option = None
@@ -177,6 +216,10 @@ class ApplicationWindow(RadarDisplay):
             (x - self.ui_offset_x) / self.ui_scale_x,
             (y - self.ui_offset_y) / self.ui_scale_y,
         )
+
+    @staticmethod
+    def utc_now():
+        return datetime.now(UTC)
 
     def loading_message(self):
         overlays = self.gis_overlays
@@ -268,6 +311,7 @@ class ApplicationWindow(RadarDisplay):
             communications = CommunicationsPanel(
                 facility.location.radio_frequencies,
                 facility.location.coordination_lines,
+                facility.location.interfacility_lines,
             )
             new_overlays = GISOverlays(
                 facility.location.latitude, facility.location.longitude
@@ -301,9 +345,16 @@ class ApplicationWindow(RadarDisplay):
         self.install_traffic(aircraft, facility, strip_panel)
         self.scenario_loaded = False
         self.map_preview = True
+        self.briefing = []
         self.selected_location = location
         self.selected_sector = sector
         self.pending_scenario = None
+        self.pending_generated_settings = None
+        self.generator_settings = None
+        self.generator_dialog = None
+        self.saves_dialog = None
+        self.pending_saved_scenario = None
+        self.scenario_utc = None
         self.menu_message = self.loading_message()
 
     def request_scenario(self, scenario):
@@ -313,21 +364,203 @@ class ApplicationWindow(RadarDisplay):
         if self.menu_message:
             return
         self.pending_scenario = scenario
+        self.pending_generated_settings = None
+        self.pending_saved_scenario = None
         if self.scenario_loaded:
             self.confirm_replace = True
         else:
             self.load_scenario()
 
-    def load_scenario(self):
-        self.confirm_replace = False
-        scenario = self.pending_scenario
-        if scenario is None or scenario not in self.available_scenarios():
-            raise ValueError("No available scenario has been selected")
+    def open_generator(self):
+        if self.selected_location != LOCATIONS[0]:
+            raise ValueError("The scenario generator is only available for Yuma")
         self.menu_message = self.loading_message()
         if self.menu_message:
             return
+        self.communications_panel.release_all()
+        if self.voice_audio is not None:
+            self.voice_audio.discard_transmissions()
+        self.generator_dialog = ScenarioGeneratorDialog()
+
+    def request_generated_scenario(self):
+        dialog = self.generator_dialog
+        if dialog is None or self.selected_location != LOCATIONS[0]:
+            raise ValueError("No Yuma generator is open")
         try:
-            aircraft, facility, strips = scenario.create()
+            settings = dialog.settings()
+        except ValueError as error:
+            dialog.error = str(error)
+            return
+        self.pending_scenario = None
+        self.pending_saved_scenario = None
+        self.pending_generated_settings = settings
+        if self.scenario_loaded:
+            self.confirm_replace = True
+        else:
+            self.load_scenario()
+
+    def open_saves(self, mode):
+        if self.selected_location != LOCATIONS[0]:
+            raise ValueError("Saved scenarios are only available for Yuma")
+        self.menu_message = self.loading_message() if mode == "load" else ""
+        if self.menu_message:
+            return
+        if mode == "save":
+            if not self.scenario_loaded:
+                self.menu_message = "No running scenario to save"
+                return
+            panel = self.strip_panel
+            if (
+                panel.edit_strip is not None
+                or panel.drag_strip is not None
+                or self.scratchpad_edit_id is not None
+                or self.clearance_draft is not None
+                or self.coordination_draft is not None
+                or self.handoff_choice_id is not None
+            ):
+                self.menu_message = "Finish editing or coordination before saving"
+                return
+        try:
+            dialog = ScenarioSavesDialog(mode)
+        except OSError as error:
+            logging.getLogger(__name__).exception("Failed to list saved scenarios")
+            self.menu_message = f"SCENARIO ERROR: {error}"
+            return
+        self.communications_panel.release_all()
+        if self.voice_audio is not None:
+            self.voice_audio.discard_transmissions()
+        self.saves_dialog = dialog
+
+    def save_current_scenario(self, overwrite=False):
+        dialog = self.saves_dialog
+        if dialog is None or dialog.mode != "save":
+            raise ValueError("No save dialog is open")
+        try:
+            name = dialog.selected_name()
+            if scenario_path(name).exists() and not overwrite:
+                dialog.confirm_overwrite = True
+                return
+            snapshot = snapshot_scenario(
+                self.aircraft_list,
+                self.atc_facility,
+                self.strip_panel.strips,
+                self.scenario_utc,
+                self.generator_settings,
+                self.communications_panel,
+                self.departure_checkins,
+                self.reported_departures,
+            )
+            write_scenario(name, snapshot, overwrite=overwrite)
+        except (OSError, ValueError, TypeError) as error:
+            logging.getLogger(__name__).warning("Could not save scenario: %s", error)
+            dialog.error = str(error)
+            dialog.confirm_overwrite = False
+            return
+        self.saves_dialog = None
+        self.menu_message = f"SCENARIO SAVED: {name}"
+
+    def request_saved_scenario(self):
+        dialog = self.saves_dialog
+        if dialog is None or dialog.mode != "load":
+            raise ValueError("No load dialog is open")
+        try:
+            saved = read_scenario(dialog.selected_name())
+        except (OSError, ValueError, TypeError, KeyError) as error:
+            logging.getLogger(__name__).warning("Could not load scenario: %s", error)
+            dialog.error = str(error)
+            return
+        self.pending_scenario = None
+        self.pending_generated_settings = None
+        self.pending_saved_scenario = saved
+        if self.scenario_loaded:
+            self.confirm_replace = True
+        else:
+            self.load_saved_scenario()
+
+    def load_saved_scenario(self):
+        saved = self.pending_saved_scenario
+        if saved is None or self.selected_location != LOCATIONS[0]:
+            raise ValueError("No saved Yuma scenario has been selected")
+        self.confirm_replace = False
+        self.menu_message = self.loading_message()
+        if self.menu_message:
+            if self.saves_dialog is not None:
+                self.saves_dialog.error = self.menu_message
+            return
+        try:
+            panel = FlightStripPanel(
+                saved.strips,
+                saved.aircraft,
+                saved.facility.airport_code,
+                saved.facility.active_runways,
+                saved.facility.helicopter_pads,
+            )
+        except (OSError, ValueError, RuntimeError) as error:
+            logging.getLogger(__name__).exception("Failed to load saved scenario")
+            if self.saves_dialog is not None:
+                self.saves_dialog.error = str(error)
+            return
+        self.communications_panel.release_all()
+        if self.voice_audio is not None:
+            self.voice_audio.discard_transmissions()
+            self.communications_panel.pilot_channel = None
+            if self.voice_audio.ready:
+                self.communications_panel.voice_status = "VOICE READY"
+        self.voice_message = ""
+        self.set_caption(SCREEN_TITLE)
+        for channel in self.communications_panel.channels:
+            channel.state = saved.radios[channel.identifier]
+        for line in (
+            self.communications_panel.lines
+            + self.communications_panel.interfacility_lines
+        ):
+            line.hot = saved.lines[line.identifier]
+        self.install_traffic(saved.aircraft, saved.facility, panel)
+        self.departure_checkins = saved.checkins
+        self.reported_departures = saved.reported_departures
+        self.scenario_utc = saved.time
+        self.generator_settings = saved.settings
+        self.scenario_loaded = True
+        self.pending_saved_scenario = None
+        self.saves_dialog = None
+        self.menu_message = ""
+        self.briefing = briefing_pages(
+            saved.facility, saved.strips, self.communications_panel
+        )
+        self.briefing[0].insert(1, f"Scenario time: {saved.time:%Y-%m-%d %H:%M:%S} UTC")
+        self.briefing_page = 0
+
+    def load_scenario(self):
+        self.confirm_replace = False
+        scenario = self.pending_scenario
+        generated = self.__dict__.get("pending_generated_settings")
+        dialog = self.generator_dialog
+        if generated is not None and dialog is None:
+            raise ValueError("No Yuma generator is open")
+        if generated is not None and self.selected_location != LOCATIONS[0]:
+            raise ValueError("The scenario generator is only available for Yuma")
+        if generated is None and (
+            scenario is None or scenario not in self.available_scenarios()
+        ):
+            raise ValueError("No available scenario has been selected")
+        self.menu_message = self.loading_message()
+        if self.menu_message:
+            if generated is not None and dialog is not None:
+                dialog.error = self.menu_message
+            return
+        try:
+            warnings = []
+            start_time = self.utc_now()
+            if generated is not None:
+                aircraft, facility, strips, warnings = generate_yuma_scenario(
+                    generated, start_time
+                )
+                active_radios = YUMA_ACTIVE_RADIOS
+            else:
+                if scenario is None:
+                    raise ValueError("No available scenario has been selected")
+                aircraft, facility, strips = scenario.create()
+                active_radios = scenario.active_radios
             if (facility.location.latitude, facility.location.longitude) != (
                 self.atc_facility.location.latitude,
                 self.atc_facility.location.longitude,
@@ -341,8 +574,10 @@ class ApplicationWindow(RadarDisplay):
                 facility.helicopter_pads,
             )
         except Exception as error:
-            logging.getLogger(__name__).exception("Failed to load Yuma scenario")
+            logging.getLogger(__name__).exception("Failed to load scenario")
             self.menu_message = f"SCENARIO ERROR: {error}"
+            if generated is not None and dialog is not None:
+                dialog.error = self.menu_message
             return
 
         self.communications_panel.release_all()
@@ -351,14 +586,26 @@ class ApplicationWindow(RadarDisplay):
             self.communications_panel.pilot_channel = None
             self.communications_panel.voice_status = "VOICE READY"
         for channel in self.communications_panel.channels:
-            if channel.identifier in scenario.active_radios:
+            if channel.identifier in active_radios:
                 channel.state = RadioState.ON
         self.voice_message = ""
         self.set_caption(SCREEN_TITLE)
         self.install_traffic(aircraft, facility, panel)
         self.scenario_loaded = True
         self.pending_scenario = None
+        self.pending_generated_settings = None
+        self.generator_settings = generated
+        self.generator_dialog = None
+        self.scenario_utc = start_time
         self.menu_message = ""
+        self.briefing = briefing_pages(facility, strips, self.communications_panel)
+        self.briefing[0].insert(1, f"Scenario time: {start_time:%Y-%m-%d %H:%M:%S} UTC")
+        if warnings:
+            warning_lines = [
+                line for warning in warnings for line in textwrap.wrap(warning, 130)
+            ]
+            self.briefing.insert(0, ["Traffic generation limitations:", *warning_lines])
+        self.briefing_page = 0
 
     def install_traffic(self, aircraft, facility, panel):
         self.aircraft_list = aircraft
@@ -377,6 +624,7 @@ class ApplicationWindow(RadarDisplay):
         self.scratchpad_edit_error = ""
         self.handoff_choice_id = None
         self.handoff_choice_kind = "HANDOFF"
+        self.handoff_sector_text = ""
         self.coordination_draft = None
         self.clearance_draft = None
         self.handoff_message = ""
@@ -388,8 +636,19 @@ class ApplicationWindow(RadarDisplay):
 
     def on_update(self, delta_time):
         self.update_menu_theme(delta_time)
+        if (
+            self.__dict__.get("briefing")
+            or self.__dict__.get("generator_dialog")
+            or self.__dict__.get("saves_dialog")
+        ):
+            if self.gis_overlays is not None:
+                self.gis_overlays.update()
+            return
         if self.scenario_loaded or self.map_preview:
             super().on_update(delta_time)
+            scenario_time = self.__dict__.get("scenario_utc")
+            if self.scenario_loaded and scenario_time is not None:
+                self.scenario_utc = scenario_time + timedelta(seconds=delta_time)
         else:
             if self.gis_overlays is not None:
                 self.gis_overlays.update()
@@ -462,6 +721,11 @@ class ApplicationWindow(RadarDisplay):
             return (
                 tuple(scenario.label for scenario in scenarios)
                 + (() if scenarios else ("No scenarios available",))
+                + (
+                    ("Generate Yuma...", "Save scenario...", "Load saved scenario...")
+                    if self.selected_location == LOCATIONS[0]
+                    else ()
+                )
                 + ("Retry failed maps",)
             )
         if name == "audio":
@@ -541,6 +805,13 @@ class ApplicationWindow(RadarDisplay):
         self._draw_text(
             status, SCREEN_WIDTH + PANEL_WIDTH - 10, MENU_BOTTOM + 7, "right"
         )
+        current_time = self.__dict__.get("scenario_utc") or self.utc_now()
+        self._draw_text(
+            current_time.strftime("UTC %m-%d %H:%M:%S"),
+            SCREEN_WIDTH + PANEL_WIDTH - 150,
+            MENU_BOTTOM + 7,
+            "right",
+        )
         if self.menu_message:
             arcade.draw_rect_filled(
                 arcade.LBWH(0, SCREEN_HEIGHT - 27, SCREEN_WIDTH + PANEL_WIDTH, 27),
@@ -575,6 +846,10 @@ class ApplicationWindow(RadarDisplay):
                     self.menu_entries(self.submenu_option),
                     "option",
                 )
+        if self.__dict__.get("generator_dialog"):
+            self.draw_generator()
+        if self.__dict__.get("saves_dialog"):
+            self.draw_saves()
         if self.confirm_replace:
             x, y = 360, 440
             arcade.draw_rect_filled(arcade.LBWH(x, y, 500, 100), colors["menu"])
@@ -587,6 +862,129 @@ class ApplicationWindow(RadarDisplay):
             self._draw_text(message, x + 20, y + 68)
             self._draw_text("YES [Y]", x + 35, y + 25)
             self._draw_text("NO [N / ESC]", x + 270, y + 25)
+        if self.__dict__.get("briefing"):
+            self.draw_briefing()
+
+    def draw_generator(self):
+        dialog = self.generator_dialog
+        if dialog is None:
+            raise ValueError("No scenario generator is open")
+        colors = MENU_THEMES[self.menu_theme]
+        arcade.draw_rect_filled(
+            arcade.LBWH(DIALOG_X, DIALOG_Y, DIALOG_WIDTH, DIALOG_HEIGHT), colors["menu"]
+        )
+        arcade.draw_rect_outline(
+            arcade.LBWH(DIALOG_X, DIALOG_Y, DIALOG_WIDTH, DIALOG_HEIGHT),
+            colors["border"],
+            1,
+        )
+        self._draw_text(
+            "YUMA SCENARIO GENERATOR", DIALOG_X + 25, DIALOG_Y + DIALOG_HEIGHT - 30
+        )
+        self._draw_text(
+            "Select a row; use +/- or arrow keys. Weights of 0 disable a category.",
+            DIALOG_X + 25,
+            DIALOG_Y + DIALOG_HEIGHT - 57,
+        )
+        for index, (label, value) in enumerate(dialog.rows()):
+            center = ROW_TOP - index * ROW_HEIGHT
+            if index == dialog.selected:
+                arcade.draw_rect_filled(
+                    arcade.LBWH(DIALOG_X + 20, center - 17, DIALOG_WIDTH - 40, 35),
+                    colors["highlight"],
+                )
+            self._draw_text(label, DIALOG_X + 35, center - 5)
+            self._draw_text(value, (MINUS_X + PLUS_X) / 2, center - 5, "center")
+            if index:
+                self._draw_text("[-]", MINUS_X, center - 5, "center")
+                self._draw_text("[+]", PLUS_X, center - 5, "center")
+        self._draw_text(
+            "Seed: select row and type digits; R selects a new seed.",
+            DIALOG_X + 25,
+            DIALOG_Y + 85,
+        )
+        if dialog.error:
+            self._draw_text(dialog.error, DIALOG_X + 25, DIALOG_Y + 60)
+        self._draw_text("CANCEL [ESC]", DIALOG_X + 25, DIALOG_Y + 25)
+        self._draw_text(
+            "GENERATE [ENTER]", DIALOG_X + DIALOG_WIDTH - 25, DIALOG_Y + 25, "right"
+        )
+
+    def draw_saves(self):
+        dialog = self.saves_dialog
+        if dialog is None:
+            raise ValueError("No save dialog is open")
+        colors = MENU_THEMES[self.menu_theme]
+        bounds = arcade.LBWH(SAVE_X, SAVE_Y, SAVE_WIDTH, SAVE_HEIGHT)
+        arcade.draw_rect_filled(bounds, colors["menu"])
+        arcade.draw_rect_outline(bounds, colors["border"], 1)
+        title = "SAVE SCENARIO" if dialog.mode == "save" else "LOAD SAVED SCENARIO"
+        self._draw_text(title, SAVE_X + 25, SAVE_Y + SAVE_HEIGHT - 30)
+        if dialog.mode == "save":
+            self._draw_text(
+                "Name (letters, digits, spaces, - and _):",
+                SAVE_X + 25,
+                SAVE_ROW_TOP + 35,
+            )
+            self._draw_text(dialog.name + "_", SAVE_X + 25, SAVE_ROW_TOP)
+        else:
+            self._draw_text(
+                "Select a scenario; use arrow keys to browse.",
+                SAVE_X + 25,
+                SAVE_ROW_TOP + 35,
+            )
+            if not dialog.names:
+                self._draw_text("No saved scenarios", SAVE_X + 25, SAVE_ROW_TOP)
+            for index, name in enumerate(dialog.visible_names()):
+                y = SAVE_ROW_TOP - index * SAVE_ROW_HEIGHT
+                absolute = dialog.selected // SAVE_PAGE_SIZE * SAVE_PAGE_SIZE + index
+                if absolute == dialog.selected:
+                    arcade.draw_rect_filled(
+                        arcade.LBWH(SAVE_X + 20, y - 10, SAVE_WIDTH - 40, 27),
+                        colors["highlight"],
+                    )
+                self._draw_text(name, SAVE_X + 30, y)
+            page = dialog.selected // SAVE_PAGE_SIZE + 1
+            pages = max(1, (len(dialog.names) + SAVE_PAGE_SIZE - 1) // SAVE_PAGE_SIZE)
+            self._draw_text(
+                f"Page {page}/{pages} [LEFT/RIGHT]", SAVE_X + 25, SAVE_Y + 115
+            )
+        if dialog.confirm_overwrite:
+            self._draw_text("Overwrite existing scenario?", SAVE_X + 25, SAVE_Y + 85)
+            self._draw_text("YES [Y]", SAVE_X + 250, SAVE_Y + 85)
+            self._draw_text("NO [N]", SAVE_X + 400, SAVE_Y + 85)
+        if dialog.error:
+            self._draw_text(dialog.error, SAVE_X + 25, SAVE_Y + 60)
+        self._draw_text("CANCEL [ESC]", SAVE_X + 25, SAVE_Y + 25)
+        action = "SAVE [ENTER]" if dialog.mode == "save" else "LOAD [ENTER]"
+        self._draw_text(action, SAVE_X + SAVE_WIDTH - 25, SAVE_Y + 25, "right")
+
+    def draw_briefing(self):
+        colors = MENU_THEMES[self.menu_theme]
+        x, y = 90, 130
+        width, height = SCREEN_WIDTH + PANEL_WIDTH - 180, 680
+        arcade.draw_rect_filled(arcade.LBWH(x, y, width, height), colors["menu"])
+        arcade.draw_rect_outline(arcade.LBWH(x, y, width, height), colors["border"], 1)
+        self._draw_text("CONTROLLER HANDOFF - SCENARIO PAUSED", x + 20, y + height - 35)
+        self._draw_text(
+            f"Page {self.briefing_page + 1} of {len(self.briefing)}",
+            x + width - 25,
+            y + height - 35,
+            "right",
+        )
+        for index, line in enumerate(self.briefing[self.briefing_page]):
+            self._draw_text(line, x + 25, y + height - 75 - index * 22)
+        self._draw_text("PREVIOUS [LEFT]", x + 25, y + 28)
+        self._draw_text("NEXT [RIGHT]", x + 250, y + 28)
+        self._draw_text("ACKNOWLEDGE / START [ENTER]", x + width - 25, y + 28, "right")
+
+    def briefing_key(self, symbol):
+        if symbol == arcade.key.LEFT:
+            self.briefing_page = max(0, self.briefing_page - 1)
+        elif symbol == arcade.key.RIGHT:
+            self.briefing_page = min(len(self.briefing) - 1, self.briefing_page + 1)
+        elif symbol in (arcade.key.ENTER, arcade.key.RETURN):
+            self.briefing = []
 
     def on_mouse_press(self, x, y, button, modifiers):
         x, y = self.logical_mouse_position(x, y)
@@ -596,6 +994,15 @@ class ApplicationWindow(RadarDisplay):
             0 <= x < SCREEN_WIDTH + PANEL_WIDTH and 0 <= y < MENU_BOTTOM + MENU_HEIGHT
         ):
             return
+        if self.__dict__.get("briefing"):
+            if 150 <= y <= 190:
+                if 110 <= x < 320:
+                    self.briefing_key(arcade.key.LEFT)
+                elif 320 <= x < 550:
+                    self.briefing_key(arcade.key.RIGHT)
+                elif 1000 <= x <= SCREEN_WIDTH + PANEL_WIDTH - 100:
+                    self.briefing_key(arcade.key.ENTER)
+            return
         self.menu_hover = None
         if self.confirm_replace:
             if 460 <= y <= 490:
@@ -603,6 +1010,36 @@ class ApplicationWindow(RadarDisplay):
                     self.confirm_action()
                 elif 620 <= x <= 840:
                     self.cancel_confirmation()
+            return
+        dialog = self.generator_dialog
+        if dialog is not None:
+            if DIALOG_Y + 10 <= y <= DIALOG_Y + 45:
+                if DIALOG_X + 10 <= x <= DIALOG_X + 220:
+                    self.generator_dialog = None
+                elif DIALOG_X + DIALOG_WIDTH - 250 <= x <= DIALOG_X + DIALOG_WIDTH - 10:
+                    self.request_generated_scenario()
+            else:
+                dialog.click(x, y)
+            return
+        saves = self.saves_dialog
+        if saves is not None:
+            if saves.confirm_overwrite:
+                if SAVE_Y + 70 <= y <= SAVE_Y + 105:
+                    if SAVE_X + 230 <= x < SAVE_X + 360:
+                        self.save_current_scenario(overwrite=True)
+                    elif SAVE_X + 360 <= x <= SAVE_X + 500:
+                        saves.confirm_overwrite = False
+                return
+            if SAVE_Y + 10 <= y <= SAVE_Y + 45:
+                if SAVE_X + 10 <= x <= SAVE_X + 200:
+                    self.saves_dialog = None
+                elif SAVE_X + SAVE_WIDTH - 220 <= x <= SAVE_X + SAVE_WIDTH - 10:
+                    if saves.mode == "save":
+                        self.save_current_scenario()
+                    else:
+                        self.request_saved_scenario()
+            else:
+                saves.click(x, y)
             return
         if MENU_BOTTOM <= y < MENU_BOTTOM + MENU_HEIGHT:
             index = int(x // MENU_WIDTH)
@@ -670,6 +1107,20 @@ class ApplicationWindow(RadarDisplay):
                     scenarios = self.available_scenarios()
                     if index < len(scenarios):
                         self.request_scenario(scenarios[index])
+                    elif self.selected_location == LOCATIONS[0] and index == len(
+                        scenarios
+                    ):
+                        self.open_generator()
+                    elif (
+                        self.selected_location == LOCATIONS[0]
+                        and index == len(scenarios) + 1
+                    ):
+                        self.open_saves("save")
+                    elif (
+                        self.selected_location == LOCATIONS[0]
+                        and index == len(scenarios) + 2
+                    ):
+                        self.open_saves("load")
                     elif self.gis_overlays is not None and index == len(entries) - 1:
                         self.retry_maps()
                 elif name == "options":
@@ -686,6 +1137,9 @@ class ApplicationWindow(RadarDisplay):
         x, y = self.logical_mouse_position(x, y)
         dx, dy = dx / self.ui_scale_x, dy / self.ui_scale_y
         self.menu_hover = None
+        dialog = self.generator_dialog
+        if dialog is not None or self.__dict__.get("saves_dialog"):
+            return
         if not self.confirm_replace:
             if MENU_BOTTOM <= y < MENU_BOTTOM + MENU_HEIGHT:
                 index = int(x // MENU_WIDTH)
@@ -735,11 +1189,40 @@ class ApplicationWindow(RadarDisplay):
         super().on_mouse_leave(x, y)
 
     def on_key_press(self, symbol, modifiers):
+        if self.__dict__.get("briefing"):
+            self.briefing_key(symbol)
+            return
         if self.confirm_replace:
             if symbol == arcade.key.Y:
                 self.confirm_action()
             elif symbol in (arcade.key.N, arcade.key.ESCAPE):
                 self.cancel_confirmation()
+            return
+        dialog = self.generator_dialog
+        if dialog is not None:
+            if symbol == arcade.key.ESCAPE:
+                self.generator_dialog = None
+            elif symbol in (arcade.key.ENTER, arcade.key.NUM_ENTER):
+                self.request_generated_scenario()
+            else:
+                dialog.key(symbol)
+            return
+        saves = self.saves_dialog
+        if saves is not None:
+            if saves.confirm_overwrite:
+                if symbol == arcade.key.Y:
+                    self.save_current_scenario(overwrite=True)
+                elif symbol in (arcade.key.N, arcade.key.ESCAPE):
+                    saves.confirm_overwrite = False
+            elif symbol == arcade.key.ESCAPE:
+                self.saves_dialog = None
+            elif symbol in (arcade.key.ENTER, arcade.key.NUM_ENTER):
+                if saves.mode == "save":
+                    self.save_current_scenario()
+                else:
+                    self.request_saved_scenario()
+            else:
+                saves.key(symbol, modifiers)
             return
         if self.open_menu:
             if symbol == arcade.key.ESCAPE:
@@ -756,6 +1239,8 @@ class ApplicationWindow(RadarDisplay):
             self.pending_location = None
             self.confirm_replace = False
             self.activate_location(location, sector)
+        elif self.pending_saved_scenario is not None:
+            self.load_saved_scenario()
         else:
             self.load_scenario()
 
@@ -763,6 +1248,8 @@ class ApplicationWindow(RadarDisplay):
         self.confirm_replace = False
         self.pending_scenario = None
         self.pending_location = None
+        self.pending_generated_settings = None
+        self.pending_saved_scenario = None
 
     def on_mouse_scroll(self, x, y, scroll_x, scroll_y):
         x, y = self.logical_mouse_position(x, y)
@@ -771,7 +1258,11 @@ class ApplicationWindow(RadarDisplay):
         ):
             return
         if (self.scenario_loaded or self.map_preview) and not (
-            self.open_menu or self.confirm_replace
+            self.open_menu
+            or self.confirm_replace
+            or self.__dict__.get("briefing")
+            or self.__dict__.get("generator_dialog")
+            or self.__dict__.get("saves_dialog")
         ):
             super().on_mouse_scroll(x, y, scroll_x, scroll_y)
 
@@ -779,10 +1270,16 @@ class ApplicationWindow(RadarDisplay):
         x, y = self.logical_mouse_position(x, y)
         dx, dy = dx / self.ui_scale_x, dy / self.ui_scale_y
         if (self.scenario_loaded or self.map_preview) and not (
-            self.open_menu or self.confirm_replace
+            self.open_menu
+            or self.confirm_replace
+            or self.__dict__.get("briefing")
+            or self.__dict__.get("generator_dialog")
+            or self.__dict__.get("saves_dialog")
         ):
             super().on_mouse_drag(x, y, dx, dy, buttons, modifiers)
 
     def on_mouse_release(self, x, y, button, modifiers):
+        if self.__dict__.get("generator_dialog") or self.__dict__.get("saves_dialog"):
+            return
         x, y = self.logical_mouse_position(x, y)
         super().on_mouse_release(x, y, button, modifiers)

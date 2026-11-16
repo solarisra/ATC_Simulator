@@ -9,9 +9,11 @@ from simulator.core.constants import SCREEN_HEIGHT
 from simulator.core.location import RadioFrequency
 from simulator.display.radar import RadarDisplay
 from simulator.radio.communications import (
+    COMMUNICATIONS_HEIGHT,
     CommunicationsPanel,
     RadioState,
     _button_rect,
+    _interfacility_rect,
     _line_rect,
 )
 
@@ -79,7 +81,7 @@ class CommunicationsTests(unittest.TestCase):
             ],
         )
         self.assertEqual(
-            [label.text.split("\n")[0] for label in panel.line_labels],
+            [label.text.rsplit("  ", 1)[0] for label in panel.line_labels],
             ["KNYL TWR (LOCAL)", "KNYL RANGE CONTROL", "KNYL APP/DEP", "KNYL ENR"],
         )
 
@@ -300,7 +302,7 @@ class CommunicationsTests(unittest.TestCase):
         self.assertFalse(any(line.hot for line in panel.lines))
         radio_states = [channel.state for channel in panel.channels]
         for index, line in enumerate(panel.lines):
-            rect = _line_rect(index % 2, index // 2)
+            rect = _line_rect(index)
             self.assertTrue(panel.press(rect.center_x, rect.center_y))
             self.assertTrue(line.hot)
             self.assertFalse(panel.mic_hot)
@@ -309,7 +311,7 @@ class CommunicationsTests(unittest.TestCase):
 
         panel.release()
         self.assertTrue(all(line.hot for line in panel.lines))
-        rect = _line_rect(0, 0)
+        rect = _line_rect(0)
         panel.press(rect.center_x, rect.center_y)
         self.assertFalse(panel.lines[0].hot)
         self.assertTrue(all(line.hot for line in panel.lines[1:]))
@@ -326,7 +328,7 @@ class CommunicationsTests(unittest.TestCase):
         display.communications_panel = panel
         display.selected_aircraft_id = "A1"
         display.strip_panel = Mock()
-        rect = _line_rect(0, 0)
+        rect = _line_rect(0)
         RadarDisplay.on_mouse_press(
             display, int(rect.center_x), int(rect.center_y), arcade.MOUSE_BUTTON_LEFT, 0
         )
@@ -334,6 +336,57 @@ class CommunicationsTests(unittest.TestCase):
         self.assertEqual(display.selected_aircraft_id, "A1")
         RadarDisplay.on_deactivate(display)
         self.assertTrue(panel.lines[0].hot)
+
+    def test_interfacility_lines_toggle_independently_and_fit_the_panel(self):
+        panel = make_panel()
+        self.assertEqual(
+            [line.label for line in panel.interfacility_lines],
+            ["ZLA SECTOR 9", "ZLA SECTOR 10", "ZLA SECTOR 31", "ZAB SECTOR 42"],
+        )
+        states = [channel.state for channel in panel.channels]
+        for index, line in enumerate(panel.interfacility_lines):
+            rect = _interfacility_rect(index)
+            self.assertTrue(panel.press(rect.center_x, rect.center_y))
+            self.assertTrue(line.hot)
+            self.assertGreaterEqual(rect.bottom, SCREEN_HEIGHT)
+            self.assertLessEqual(rect.top, SCREEN_HEIGHT + COMMUNICATIONS_HEIGHT)
+        self.assertEqual([channel.state for channel in panel.channels], states)
+        self.assertFalse(any(line.hot for line in panel.lines))
+        self.assertFalse(panel.mic_hot)
+        with (
+            patch("simulator.radio.communications.arcade.draw_rect_filled"),
+            patch("simulator.radio.communications.arcade.draw_rect_outline"),
+        ):
+            panel.draw()
+        self.assertEqual(
+            [label.text for label in panel.interfacility_labels],
+            [f"{line.label}  HOT" for line in panel.interfacility_lines],
+        )
+        rect = _interfacility_rect(0)
+        panel.press(rect.center_x, rect.center_y)
+        self.assertFalse(panel.interfacility_lines[0].hot)
+        self.assertTrue(all(line.hot for line in panel.interfacility_lines[1:]))
+
+    def test_grouped_controls_are_compact_and_do_not_overlap(self):
+        panel = make_panel()
+        radio_rects = [_button_rect(*position) for position in panel.channel_positions]
+        intra_rects = [_line_rect(i) for i in range(len(panel.lines))]
+        inter_rects = [
+            _interfacility_rect(i) for i in range(len(panel.interfacility_lines))
+        ]
+        rectangles = [*radio_rects, *intra_rects, *inter_rects, panel.mic_rect]
+        for i, first in enumerate(rectangles):
+            self.assertGreaterEqual(first.bottom, SCREEN_HEIGHT)
+            self.assertLessEqual(first.top, SCREEN_HEIGHT + COMMUNICATIONS_HEIGHT)
+            for second in rectangles[i + 1 :]:
+                self.assertFalse(
+                    first.left < second.right
+                    and second.left < first.right
+                    and first.bottom < second.top
+                    and second.bottom < first.top
+                )
+        self.assertLess(max(rect.right for rect in radio_rects), intra_rects[0].left)
+        self.assertLess(max(rect.right for rect in intra_rects), inter_rects[0].left)
 
     def test_scroll_above_radar_does_not_scroll_or_zoom(self):
         display = SimpleNamespace(strip_panel=Mock(), radar_viewport=Mock())

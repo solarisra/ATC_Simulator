@@ -1,7 +1,10 @@
 import queue
 import runpy
 import subprocess
+import tempfile
 import unittest
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
@@ -37,6 +40,12 @@ def make_application():
     app.selected_sector = None
     app.pending_scenario = None
     app.pending_location = None
+    app.pending_generated_settings = None
+    app.generator_dialog = None
+    app.generator_settings = None
+    app.scenario_utc = None
+    app.saves_dialog = None
+    app.pending_saved_scenario = None
     app.open_menu = None
     app.submenu_location = None
     app.submenu_option = None
@@ -104,7 +113,12 @@ class ApplicationTests(unittest.TestCase):
                 0,
             )
             app.on_mouse_release(x, y, arcade.MOUSE_BUTTON_LEFT, 0)
-        drag.assert_called_once_with(300, 400, 10, -5, arcade.MOUSE_BUTTON_LEFT, 0)
+        args = drag.call_args.args
+        self.assertAlmostEqual(args[0], 300)
+        self.assertAlmostEqual(args[1], 400)
+        self.assertAlmostEqual(args[2], 10)
+        self.assertAlmostEqual(args[3], -5)
+        self.assertEqual(args[4:], (arcade.MOUSE_BUTTON_LEFT, 0))
         release.assert_called_once_with(300, 400, arcade.MOUSE_BUTTON_LEFT, 0)
 
     def test_theme_results_update_menu_and_report_errors(self):
@@ -491,6 +505,8 @@ class ApplicationTests(unittest.TestCase):
                 MENU_WIDTH + 10, MENU_BOTTOM - 5, arcade.MOUSE_BUTTON_LEFT, 0
             )
             self.assertTrue(app.scenario_loaded)
+            self.assertTrue(app.briefing)
+            app.on_key_press(arcade.key.ENTER, 0)
             channels = {
                 channel.identifier: channel.state
                 for channel in app.communications_panel.channels
@@ -536,6 +552,25 @@ class ApplicationTests(unittest.TestCase):
             self.assertEqual(panel.call_count, 2)
             self.assertEqual(app.voice_audio.discard_transmissions.call_count, 2)
 
+    def test_scenario_briefing_pauses_until_acknowledged(self):
+        app = make_application()
+        app.gis_overlays = Mock(visible={0}, status=["ready"])
+        with patch("simulator.app.application.FlightStripPanel"):
+            app.request_scenario(app.available_scenarios()[0])
+        aircraft = app.aircraft_list.aircraft_list[0]
+        position = aircraft.lat, aircraft.lon
+        text = "\n".join(line for page in app.briefing for line in page)
+        self.assertIn("altimeter 29.92 assumed", text)
+        self.assertIn(aircraft.callsign, text)
+        with patch.object(app, "update_menu_theme"):
+            app.on_update(60)
+            self.assertEqual((aircraft.lat, aircraft.lon), position)
+            app.on_key_press(arcade.key.RIGHT, 0)
+            self.assertEqual(app.briefing_page, 1)
+            app.on_key_press(arcade.key.ENTER, 0)
+            app.on_update(60)
+        self.assertNotEqual((aircraft.lat, aircraft.lon), position)
+
     def test_audio_menu_toggles_voice_and_retry_requeues_failed_map(self):
         app = make_application()
         app.gis_overlays = Mock(visible={0}, status=["error"])
@@ -571,9 +606,238 @@ class ApplicationTests(unittest.TestCase):
             MENU_WIDTH + 10, MENU_BOTTOM + 5, arcade.MOUSE_BUTTON_LEFT, 0
         )
         app.on_mouse_press(
-            MENU_WIDTH + 10, MENU_BOTTOM - ITEM_HEIGHT - 5, arcade.MOUSE_BUTTON_LEFT, 0
+            MENU_WIDTH + 10,
+            MENU_BOTTOM - (len(app.menu_entries("scenario")) - 1) * ITEM_HEIGHT - 5,
+            arcade.MOUSE_BUTTON_LEFT,
+            0,
         )
         self.assertEqual(app.gis_overlays.toggle.call_count, 2)
+
+    def test_generator_menu_configures_traffic_and_starts_paused(self):
+        app = make_application()
+        app.gis_overlays = Mock(visible={0}, status=["ready"])
+        start = datetime(2026, 11, 15, 20, 0, tzinfo=UTC)
+        self.assertIn("Generate Yuma...", app.menu_entries("scenario"))
+        with (
+            patch.object(app, "utc_now", return_value=start),
+            patch("simulator.app.application.FlightStripPanel"),
+            patch.object(app, "update_menu_theme"),
+        ):
+            app.on_mouse_press(
+                MENU_WIDTH + 10, MENU_BOTTOM + 5, arcade.MOUSE_BUTTON_LEFT, 0
+            )
+            app.on_mouse_press(
+                MENU_WIDTH + 10,
+                MENU_BOTTOM - ITEM_HEIGHT - 5,
+                arcade.MOUSE_BUTTON_LEFT,
+                0,
+            )
+            dialog = app.generator_dialog
+            self.assertIsNotNone(dialog)
+            for _ in range(len(dialog.seed)):
+                app.on_key_press(arcade.key.BACKSPACE, 0)
+            app.on_key_press(arcade.key.KEY_4, 0)
+            app.on_key_press(arcade.key.KEY_2, 0)
+            app.on_key_press(arcade.key.DOWN, 0)
+            app.on_key_press(arcade.key.LEFT, 0)
+            app.on_key_press(arcade.key.LEFT, 0)
+            app.on_mouse_press(1160, 770 - 2 * 45, arcade.MOUSE_BUTTON_LEFT, 0)
+            app.on_key_press(arcade.key.ENTER, 0)
+            self.assertIsNone(app.generator_dialog)
+            self.assertTrue(app.scenario_loaded)
+            self.assertEqual(len(app.aircraft_list.aircraft_list), 3)
+            self.assertEqual(app.generator_settings.seed, 42)
+            self.assertEqual(app.generator_settings.operations["departures"], 2)
+            self.assertIn("Location: MCAS Yuma", app.briefing[0])
+            self.assertEqual(app.scenario_utc, start)
+            app.on_update(60)
+            self.assertEqual(app.scenario_utc, start)
+            app.on_key_press(arcade.key.ENTER, 0)
+            app.on_update(60)
+            self.assertEqual(app.scenario_utc, start + timedelta(seconds=60))
+
+    def test_menu_displays_wall_utc_then_scenario_utc(self):
+        app = make_application()
+        app.map_preview = True
+        now = datetime(2026, 11, 15, 20, 0, tzinfo=UTC)
+        with (
+            patch.object(app, "utc_now", return_value=now),
+            patch.object(app, "_draw_text") as text,
+            patch.object(RadarDisplay, "on_draw"),
+            patch("simulator.app.application.arcade.draw_rect_filled"),
+        ):
+            app.on_draw()
+            self.assertTrue(
+                any(
+                    call.args[0] == "UTC 11-15 20:00:00" for call in text.call_args_list
+                )
+            )
+            text.reset_mock()
+            app.scenario_utc = now + timedelta(hours=1)
+            app.on_draw()
+            self.assertTrue(
+                any(
+                    call.args[0] == "UTC 11-15 21:00:00" for call in text.call_args_list
+                )
+            )
+
+    def test_generator_cancel_and_invalid_settings_keep_existing_scenario(self):
+        app = make_application()
+        app.gis_overlays = Mock(visible={0}, status=["ready"])
+        with patch("simulator.app.application.FlightStripPanel"):
+            app.request_scenario(app.available_scenarios()[0])
+            app.on_key_press(arcade.key.ENTER, 0)
+            previous = app.aircraft_list
+            app.open_generator()
+            app.generator_dialog.operations = dict.fromkeys(
+                app.generator_dialog.operations, 0
+            )
+            app.on_key_press(arcade.key.ENTER, 0)
+            self.assertIn("at least one enabled", app.generator_dialog.error)
+            self.assertIs(app.aircraft_list, previous)
+            app.generator_dialog.operations["departures"] = 1
+            app.on_key_press(arcade.key.ENTER, 0)
+            self.assertTrue(app.confirm_replace)
+            app.on_key_press(arcade.key.N, 0)
+            self.assertIs(app.aircraft_list, previous)
+            self.assertIsNotNone(app.generator_dialog)
+            app.on_key_press(arcade.key.ENTER, 0)
+            app.on_key_press(arcade.key.Y, 0)
+            self.assertIsNot(app.aircraft_list, previous)
+            self.assertTrue(app.briefing)
+
+    def test_generator_reports_unsupported_selection_without_replacing_traffic(self):
+        app = make_application()
+        app.gis_overlays = Mock(visible={0}, status=["ready"])
+        with patch("simulator.app.application.FlightStripPanel"):
+            app.request_scenario(app.available_scenarios()[0])
+            app.on_key_press(arcade.key.ENTER, 0)
+            previous = app.aircraft_list
+            app.open_generator()
+            app.generator_dialog.operations = dict.fromkeys(
+                app.generator_dialog.operations, 0
+            )
+            app.generator_dialog.operations["enroute"] = 1
+            app.generator_dialog.aircraft_types = dict.fromkeys(
+                app.generator_dialog.aircraft_types, 0
+            )
+            app.generator_dialog.aircraft_types["heavies"] = 1
+            app.on_key_press(arcade.key.ENTER, 0)
+            with (
+                patch(
+                    "Locations.Yuma.Scenarios.generator._itineraries", return_value=[]
+                ),
+                self.assertLogs("simulator.app.application", level="ERROR"),
+            ):
+                app.on_key_press(arcade.key.Y, 0)
+            self.assertIs(app.aircraft_list, previous)
+            self.assertIn("No supported combinations", app.generator_dialog.error)
+
+    def test_scenario_menu_saves_and_restores_running_state(self):
+        app = make_application()
+        app.gis_overlays = Mock(visible={0}, status=["ready"])
+
+        def panel(strips, *args):
+            return SimpleNamespace(strips=strips, edit_strip=None, drag_strip=None)
+
+        with (
+            tempfile.TemporaryDirectory() as folder,
+            patch("simulator.app.scenario_storage.SAVE_DIRECTORY", Path(folder)),
+            patch("simulator.app.application.FlightStripPanel", side_effect=panel),
+            patch.object(app, "update_menu_theme"),
+        ):
+            app.request_scenario(app.available_scenarios()[0])
+            app.on_key_press(arcade.key.ENTER, 0)
+            plane = app.aircraft_list.aircraft_list[0]
+            plane.flight_guidance.assign_heading(230)
+            plane.scratchpad = "XY"
+            app.on_update(60)
+            saved_position = plane.lat, plane.lon
+            saved_time = app.scenario_utc
+            app.communications_panel.channels[0].state = RadioState.OFF
+            app.communications_panel.interfacility_lines[2].hot = True
+
+            def choose(index):
+                app.on_mouse_press(
+                    MENU_WIDTH + 10, MENU_BOTTOM + 5, arcade.MOUSE_BUTTON_LEFT, 0
+                )
+                app.on_mouse_press(
+                    MENU_WIDTH + 10,
+                    MENU_BOTTOM - index * ITEM_HEIGHT - 5,
+                    arcade.MOUSE_BUTTON_LEFT,
+                    0,
+                )
+
+            choose(2)
+            self.assertEqual(app.saves_dialog.mode, "save")
+            for key in (
+                arcade.key.S,
+                arcade.key.A,
+                arcade.key.V,
+                arcade.key.E,
+                arcade.key.KEY_1,
+            ):
+                app.on_key_press(key, 0)
+            app.on_update(30)
+            self.assertEqual(app.scenario_utc, saved_time)
+            app.on_key_press(arcade.key.ENTER, 0)
+            self.assertTrue((Path(folder) / "SAVE1.json").exists())
+            app.communications_panel.interfacility_lines[2].hot = False
+            app.on_update(60)
+            self.assertNotEqual((plane.lat, plane.lon), saved_position)
+            choose(3)
+            self.assertEqual(app.saves_dialog.names, ["SAVE1"])
+            app.on_key_press(arcade.key.ENTER, 0)
+            self.assertTrue(app.confirm_replace)
+            app.on_key_press(arcade.key.N, 0)
+            self.assertIs(app.aircraft_list.aircraft_list[0], plane)
+            app.on_key_press(arcade.key.ENTER, 0)
+            app.on_key_press(arcade.key.Y, 0)
+            restored = app.aircraft_list.aircraft_list[0]
+            self.assertEqual((restored.lat, restored.lon), saved_position)
+            self.assertEqual(restored.scratchpad, "XY")
+            self.assertEqual(restored.flight_guidance.vector_heading, 230)
+            self.assertEqual(app.scenario_utc, saved_time)
+            self.assertEqual(app.communications_panel.channels[0].state, RadioState.OFF)
+            self.assertTrue(app.communications_panel.interfacility_lines[2].hot)
+            self.assertTrue(app.briefing)
+            app.on_update(60)
+            self.assertEqual(app.scenario_utc, saved_time)
+
+    def test_bad_save_and_cancelled_overwrite_preserve_existing_state(self):
+        app = make_application()
+        app.gis_overlays = Mock(visible={0}, status=["ready"])
+
+        def panel(strips, *args):
+            return SimpleNamespace(strips=strips, edit_strip=None, drag_strip=None)
+
+        with (
+            tempfile.TemporaryDirectory() as folder,
+            patch("simulator.app.scenario_storage.SAVE_DIRECTORY", Path(folder)),
+            patch("simulator.app.application.FlightStripPanel", side_effect=panel),
+        ):
+            app.request_scenario(app.available_scenarios()[0])
+            app.on_key_press(arcade.key.ENTER, 0)
+            aircraft = app.aircraft_list
+            path = Path(folder) / "BAD.json"
+            path.write_text('{"version": 1}', encoding="utf-8")
+            app.open_saves("load")
+            with self.assertLogs("simulator.app.application", level="WARNING"):
+                app.on_key_press(arcade.key.ENTER, 0)
+            self.assertIn("Invalid saved state fields", app.saves_dialog.error)
+            self.assertIs(app.aircraft_list, aircraft)
+            app.on_key_press(arcade.key.ESCAPE, 0)
+            app.open_saves("save")
+            for key in (arcade.key.B, arcade.key.A, arcade.key.D):
+                app.on_key_press(key, 0)
+            app.on_key_press(arcade.key.ENTER, 0)
+            self.assertTrue(app.saves_dialog.confirm_overwrite)
+            app.on_key_press(arcade.key.N, 0)
+            self.assertEqual(path.read_text(encoding="utf-8"), '{"version": 1}')
+            app.on_key_press(arcade.key.ENTER, 0)
+            app.on_key_press(arcade.key.Y, 0)
+            self.assertIn('"records"', path.read_text(encoding="utf-8"))
+            self.assertIs(app.aircraft_list, aircraft)
 
     def test_display_submenu_selects_arts_and_reports_unavailable_scopes(self):
         app = make_application()

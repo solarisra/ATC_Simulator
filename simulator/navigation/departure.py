@@ -1,3 +1,8 @@
+from datetime import datetime
+
+from simulator.core.aircraft import display_callsign
+
+
 class Departure:
     """Simplified automatic ground wait, takeoff, and pilot check-in."""
 
@@ -22,6 +27,15 @@ class Departure:
         self.airborne_elapsed = 0.0
         self.check_in = None
         self.check_in_time = None
+        self.scheduled_utc: datetime | None = None
+        matching = [
+            frequency
+            for frequency in location.radio_frequencies
+            if frequency.identifier == aircraft.radio_channel
+        ]
+        if len(matching) != 1 or not matching[0].frequency:
+            raise ValueError(f"No departure frequency configured for {aircraft.id}")
+        self.frequency = matching[0].frequency
 
         aircraft.lat, aircraft.lon = airport.latitude, airport.longitude
         aircraft.altitude = airport.elevation / 100
@@ -84,6 +98,7 @@ class Departure:
             else:
                 status = f"LEVEL {target} FT"
             self.check_in = (
-                f"{aircraft.callsign}: YUMA DEPARTURE, {altitude} FT, {status}"
+                f"{display_callsign(aircraft)}: YUMA DEPARTURE, ON {self.frequency}, "
+                f"{altitude} FT, {status}"
             )
             self.check_in_time = self.elapsed

@@ -53,6 +53,7 @@ class Location:
     neighbor_frequencies: tuple[RadioFrequency, ...] = ()
     coordination_lines: tuple[tuple[str, str], ...] = ()
     magnetic_declination_degrees: float | None = None
+    interfacility_lines: tuple[tuple[str, str], ...] = ()
 
     def __getitem__(self, key):
         return {"lat": self.latitude, "lon": self.longitude}[key]

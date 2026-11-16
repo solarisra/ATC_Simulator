@@ -1,7 +1,7 @@
 # ATC Simulator
 
 Install [uv](https://docs.astral.sh/uv/getting-started/installation/) and
-Python 3.12 or newer, then run:
+Python 3.12 or 3.13 (Python 3.14 is not currently supported), then run:
 
 ```shell
 uv sync
@@ -195,26 +195,44 @@ additional 336.400 MHz approach UHF frequency.
 
 ### Voice radio
 
-Voice is optional and requires Python 3.12, an NVIDIA GPU with a compatible
-CUDA driver, and default microphone and speaker devices. Install the voice
-dependencies and start the application with:
+Voice is optional and requires default microphone and speaker devices.
+An NVIDIA GPU is **not required**: speech recognition and synthesis automatically
+use CUDA when `torch.cuda.is_available()` is true and otherwise use the CPU.
+
+- **CPU:** Supported without an NVIDIA GPU, but voice processing is slower.
+  The application displays a CPU-performance warning during initialization.
+- **GPU:** NVIDIA CUDA acceleration is recommended for faster voice processing.
+  It requires a CUDA-enabled PyTorch installation, a compatible NVIDIA driver,
+  and the CUDA runtime libraries required by the speech dependencies.
+- **Other GPUs:** The current voice implementation does not select Apple MPS,
+  DirectML, or other non-CUDA acceleration backends.
+
+Device selection is automatic; there is currently no CPU/GPU selector in the
+menu or command line. CPU fallback occurs when CUDA is unavailable to PyTorch;
+a later CUDA initialization or model-loading failure is reported as an error,
+not automatically retried on the CPU. Minimum CPU, RAM, and GPU memory
+requirements have not yet been benchmarked.
+
+Voice dependencies are included in the standard installation; no `voice` extra
+is defined. For example, install with Python 3.12 and start the application with:
 
 ```shell
-uv sync --python 3.12 --extra voice
-uv run --python 3.12 --extra voice python main.py
+uv sync --python 3.12
+uv run --python 3.12 python main.py
 ```
 
 Select **Options > Audio > Enable voice** and wait for voice initialization before
 loading a scenario. **Options > Audio > Disable voice** turns it off. Alternatively,
 pass `--voice` to initialize voice automatically at startup.
 
-The CUDA PyTorch download is several gigabytes; the Whisper and Kokoro models
+Dependency downloads can be large, especially for CUDA-enabled PyTorch.
+The Whisper and Kokoro models
 and pilot voice packs download on first use. Speech recognition and synthesis
 run locally. Voice initialization and errors appear in the window title and
 communications panel. Pilot audio uses an explicit pronunciation for Los
 Angeles; the displayed readback text is unchanged.
 Hugging Face model downloads work without a token but may be rate-limited; to
-authenticate, use `uv run --python 3.12 --extra voice hf auth login` or set
+authenticate, use `uv run --python 3.12 hf auth login` or set
 `HF_TOKEN` in your environment. Do not put tokens in project files.
 PyTorch and Kokoro may emit platform, model-configuration, or deprecation
 warnings during initialization; these originate in those dependencies.

@@ -6,6 +6,7 @@ from typing import NamedTuple
 
 import arcade
 import numpy as np
+import pyglet
 
 from simulator.core.atc import CoordinationKind, TrackingPosition
 from simulator.core.clearances import (
@@ -30,7 +31,7 @@ from simulator.display.flight_strips import (
     FlightStripPanel,
     display_airport_identifier,
 )
-from simulator.display.gis_overlays import LAYER_KEYS, GISOverlays
+from simulator.display.gis_overlays import LAYER_KEYS, SHIFT_LAYER_KEYS, GISOverlays
 from simulator.navigation.navmath import NavigationalCoordinateSystem
 from simulator.radio.communications import COMMUNICATIONS_HEIGHT, CommunicationsPanel
 from simulator.radio.voice_audio import VoiceAudio
@@ -276,25 +277,33 @@ class RadarDisplay(arcade.Window):
     STARS = "STARS"
 
     def __init__(self, aircraft_list, atc_facility, flight_strips=None):
+        self.ui_scale = 1.0
         super().__init__(
             SCREEN_WIDTH + PANEL_WIDTH,
             SCREEN_HEIGHT + COMMUNICATIONS_HEIGHT,
             SCREEN_TITLE,
+            resizable=True,
         )
+        self.ui_camera = self.default_camera
         arcade.set_background_color(arcade.color.BLACK)
         self.aircraft_list = aircraft_list
         self.atc_facility = atc_facility
-        self.communications_panel = CommunicationsPanel(
-            atc_facility.location.radio_frequencies
+        self.communications_panel = (
+            CommunicationsPanel(
+                atc_facility.location.radio_frequencies,
+                atc_facility.location.coordination_lines,
+            )
+            if atc_facility is not None
+            else CommunicationsPanel((), ())
         )
         self.voice_audio = None
         self.voice_message = ""
         self.strip_panel = FlightStripPanel(
             flight_strips if flight_strips is not None else [],
             aircraft_list,
-            atc_facility.airport_code,
-            atc_facility.active_runways,
-            atc_facility.helicopter_pads,
+            atc_facility.airport_code if atc_facility is not None else None,
+            atc_facility.active_runways if atc_facility is not None else (),
+            atc_facility.helicopter_pads if atc_facility is not None else (),
         )
         self.sweep = RadarSweep()
         self.radar_return_manager = RadarReturnManager()
@@ -318,8 +327,10 @@ class RadarDisplay(arcade.Window):
         self.secondary_return_layouts = []
         self.data_block_overlap_warned = False
         self.capture_secondary_radar_returns()
-        self.gis_overlays = GISOverlays(
-            atc_facility.location.latitude, atc_facility.location.longitude
+        self.gis_overlays = (
+            GISOverlays(atc_facility.location.latitude, atc_facility.location.longitude)
+            if atc_facility is not None
+            else None
         )
         self.radar_viewport = RadarViewport()
         self.map_camera = arcade.Camera2D(
@@ -327,6 +338,8 @@ class RadarDisplay(arcade.Window):
         )
         self.scope_mask = self.create_scope_mask()
         self.sweep_sector = self.create_sweep_sector()
+        self.degree_markings = {}
+        self.point_label = arcade.Text("", 0, 0, arcade.color.YELLOW, 12)
         self.selected_details_text = arcade.Text(
             "",
             SCREEN_WIDTH - 190,
@@ -521,8 +534,11 @@ class RadarDisplay(arcade.Window):
         """
         Render the screen.
         """
+        overlays = self.gis_overlays
+        if overlays is None:
+            raise RuntimeError("Cannot draw radar without a location")
         self.clear()
-        self.gis_overlays.update()
+        overlays.update()
         radius = (
             DISPLAY_RADIUS
             if self.display_type == self.ARTS_IIE
@@ -533,13 +549,13 @@ class RadarDisplay(arcade.Window):
         )
         self.map_camera.zoom = self.radar_viewport.zoom
         self.map_camera.use()
-        self.gis_overlays.draw_map(radius)
-        self.default_camera.use()
+        overlays.draw_map(radius)
+        self.ui_camera.use()
         if self.display_type == self.ARTS_IIE:
             visible = self.is_visible_scope_position
         else:
             visible = lambda x, y: 0 <= x <= SCREEN_WIDTH and 0 <= y <= SCREEN_HEIGHT
-        self.gis_overlays.draw_labels(
+        overlays.draw_labels(
             radius,
             self.transform_position,
             visible,
@@ -552,12 +568,9 @@ class RadarDisplay(arcade.Window):
         if self.display_type == self.ARTS_IIE:
             self.draw_sweep()
             self.radar_return_manager.draw(self.transform_position)
-            self.scope_mask.draw()
-            self.draw_arts_iie()
         elif self.display_type == self.STARS:
             self.radar_return_manager.draw(self.transform_position)
             self.draw_stars()
-        self.gis_overlays.draw_legend()
 
         self.secondary_return_layouts = self.layout_secondary_returns()
         for layout in self.secondary_return_layouts:
@@ -571,6 +584,10 @@ class RadarDisplay(arcade.Window):
                 text_size=(layout.width, layout.height),
                 label=self.data_block_labels[layout.snapshot.aircraft_id].label,
             )
+        if self.display_type == self.ARTS_IIE:
+            self.scope_mask.draw()
+            self.draw_arts_iie()
+        overlays.draw_legend()
         self.draw_selected_aircraft_details()
         warning = RadarDisplay.control_limit_warning(self)
         if warning:
@@ -817,8 +834,8 @@ class RadarDisplay(arcade.Window):
         layouts = []
         placement_failed = False
         for snapshot, distance, x, y, width, height in contacts:
-            scope_width = min(self.width, SCREEN_WIDTH)
-            scope_height = min(self.height, SCREEN_HEIGHT)
+            scope_width = min(self.width / self.ui_scale, SCREEN_WIDTH)
+            scope_height = min(self.height / self.ui_scale, SCREEN_HEIGHT)
             direction = self.data_block_directions.get(snapshot.aircraft_id)
             _, preferred_x, preferred_y = self.secondary_return_layout(
                 snapshot, x, y, distance, direction
@@ -842,6 +859,14 @@ class RadarDisplay(arcade.Window):
                 return (
                     width / 2 <= text_x <= scope_width - width / 2
                     and height / 2 <= text_y <= scope_height - height / 2
+                    and (
+                        self.display_type != RadarDisplay.ARTS_IIE
+                        or math.hypot(
+                            abs(text_x - SCREEN_WIDTH / 2) + width / 2,
+                            abs(text_y - SCREEN_HEIGHT / 2) + height / 2,
+                        )
+                        <= DISPLAY_RADIUS
+                    )
                     and np.hypot(end_x - x, end_y - y) >= MIN_LEADER_LINE_LENGTH - 1e-8
                     and (
                         allow_overlap
@@ -910,6 +935,8 @@ class RadarDisplay(arcade.Window):
                 placement_failed = True
                 if overlap_position is not None:
                     position = overlap_position
+                elif self.display_type == RadarDisplay.ARTS_IIE:
+                    position = (SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
                 else:
                     position = (
                         min(max(preferred_x, width / 2), scope_width - width / 2),
@@ -949,7 +976,7 @@ class RadarDisplay(arcade.Window):
         )
         if text_position is not None:
             text_x, text_y = text_position
-        if text_size is None:
+        if label is None:
             label = arcade.Text(
                 text,
                 0,
@@ -963,6 +990,7 @@ class RadarDisplay(arcade.Window):
                 width=DATA_BLOCK_WIDTH,
                 align="left",
             )
+        if text_size is None:
             text_size = (label.content_width, label.content_height)
         width, height = text_size
         arcade.draw_circle_filled(x, y, 3, arcade.color.LIGHT_BLUE)
@@ -977,23 +1005,8 @@ class RadarDisplay(arcade.Window):
             arcade.color.WHITE,
             1,
         )
-        if label is None:
-            arcade.draw_text(
-                text,
-                text_x - width / 2,
-                text_y,
-                arcade.color.WHITE,
-                DATA_BLOCK_FONT_SIZE,
-                font_name=DATA_BLOCK_FONT,
-                anchor_x="left",
-                anchor_y="center",
-                multiline=True,
-                width=DATA_BLOCK_WIDTH,
-                align="left",
-            )
-        else:
-            label.position = (text_x - width / 2, text_y)
-            label.draw()
+        label.position = (text_x - width / 2, text_y)
+        label.draw()
 
     def draw_selected_aircraft_details(self):
         snapshot = next(
@@ -1015,9 +1028,13 @@ class RadarDisplay(arcade.Window):
         distance, _ = self.calculate_range_and_bearing(
             snapshot.latitude, snapshot.longitude
         )
+        location = self.atc_facility.location
+        magnetic_heading = (
+            round(location.true_to_magnetic(snapshot.heading)) % 360 or 360
+        )
         text = (
             f"SELECTED {snapshot.callsign}\n"
-            f"HDG {round(snapshot.heading) % 360:03d}\n"
+            f"HDG {magnetic_heading:03d}\n"
             f"SQK {snapshot.squawk}\n"
             f"SPD {snapshot.speed:g} KT\n"
             f"RNG {distance:.1f} NM"
@@ -1052,8 +1069,11 @@ class RadarDisplay(arcade.Window):
             guidance = getattr(aircraft, "flight_guidance", None)
             if guidance is not None:
                 if guidance.vector_heading is not None:
-                    heading = guidance.vector_heading or 360
-                    text += f"\nVECTOR {heading:03d} TRUE"
+                    heading = (
+                        round(location.true_to_magnetic(guidance.vector_heading)) % 360
+                        or 360
+                    )
+                    text += f"\nVECTOR {heading:03d}"
                 else:
                     text += f"\nNEXT {guidance.route[guidance.next_index].name}"
                 if guidance.assigned_altitude is not None:
@@ -1112,7 +1132,7 @@ class RadarDisplay(arcade.Window):
                 )
                 text += (
                     f"\n{draft.kind} {draft.target}\n"
-                    f"POSITION {round(math.degrees(bearing)) % 360:03d}/"
+                    f"POSITION {round(location.true_to_magnetic(math.degrees(bearing))) % 360:03d}/"
                     f"{distance:.1f} NM FROM {display_airport_identifier(self.atc_facility.airport_code)}\n"
                     f"REPORTED ALT {snapshot.altitude * 100:g} FT\n"
                     f"INFO: {draft.text}\n"
@@ -1617,7 +1637,13 @@ class RadarDisplay(arcade.Window):
             self.scratchpad_edit_error = ""
             return
         if symbol in LAYER_KEYS:
-            self.gis_overlays.toggle(LAYER_KEYS.index(symbol))
+            overlays = self.gis_overlays
+            if overlays is None:
+                raise RuntimeError("Cannot toggle map layers without a location")
+            if modifiers & arcade.key.MOD_SHIFT and symbol in SHIFT_LAYER_KEYS:
+                overlays.toggle(len(LAYER_KEYS) + SHIFT_LAYER_KEYS.index(symbol))
+            else:
+                overlays.toggle(LAYER_KEYS.index(symbol))
             return
         if symbol in PAN_DIRECTIONS:
             self.radar_viewport.pan(*PAN_DIRECTIONS[symbol])
@@ -1649,7 +1675,7 @@ class RadarDisplay(arcade.Window):
         self.strip_panel.hover_position = (x, y)
 
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
-        self.on_mouse_motion(x, y, dx, dy)
+        RadarDisplay.on_mouse_motion(self, x, y, dx, dy)
         if buttons & arcade.MOUSE_BUTTON_LEFT:
             self.strip_panel.move_drag(x, y)
 
@@ -1676,13 +1702,15 @@ class RadarDisplay(arcade.Window):
     def on_close(self):
         if self.voice_audio is not None:
             self.voice_audio.close()
-        self.gis_overlays.close()
+        if self.gis_overlays is not None:
+            self.gis_overlays.close()
         super().on_close()
 
     def close(self):
         if self.voice_audio is not None:
             self.voice_audio.close()
-        self.gis_overlays.close()
+        if self.gis_overlays is not None:
+            self.gis_overlays.close()
         super().close()
 
     def update(self, delta_time):
@@ -1707,7 +1735,7 @@ class RadarDisplay(arcade.Window):
         self.map_camera.use()
         self.sweep_sector.angle = np.degrees(self.sweep.angle)
         self.sweep_sector.draw()
-        self.default_camera.use()
+        self.ui_camera.use()
         start_x, start_y = self.transform_position(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
         end_x, end_y = self.transform_position(
             SCREEN_WIDTH / 2 + DISPLAY_RADIUS * np.sin(self.sweep.angle),
@@ -1731,28 +1759,38 @@ class RadarDisplay(arcade.Window):
             SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, rect_width, rect_height
         )
 
-    @staticmethod
-    def draw_degree_markings(center_x, center_y, width, height=None):
+    def draw_degree_markings(self, center_x, center_y, width, height=None):
         """
         Draw the degree markings around the display.
         """
-        for angle in range(0, 360, 15):
-            angle_radians = np.radians(angle)
-            if height:
-                x = center_x + width * np.sin(angle_radians) / 2
-                y = center_y + height * np.cos(angle_radians) / 2
-            else:
-                x = center_x + width * np.sin(angle_radians)
-                y = center_y + width * np.cos(angle_radians)
-            arcade.draw_text(
-                f"{angle}",
-                x,
-                y,
-                arcade.color.WHITE,
-                12,
-                anchor_x="center",
-                anchor_y="center",
-            )
+        location = self.atc_facility.location
+        declination = location.magnetic_declination_degrees
+        key = (center_x, center_y, width, height, declination)
+        if key not in self.degree_markings:
+            batch = pyglet.graphics.Batch()
+            labels = []
+            for angle in range(0, 360, 15):
+                angle_radians = np.radians(location.magnetic_to_true(angle))
+                if height:
+                    x = center_x + width * np.sin(angle_radians) / 2
+                    y = center_y + height * np.cos(angle_radians) / 2
+                else:
+                    x = center_x + width * np.sin(angle_radians)
+                    y = center_y + width * np.cos(angle_radians)
+                labels.append(
+                    arcade.Text(
+                        f"{angle}",
+                        x,
+                        y,
+                        arcade.color.WHITE,
+                        12,
+                        anchor_x="center",
+                        anchor_y="center",
+                        batch=batch,
+                    )
+                )
+            self.degree_markings[key] = (batch, labels)
+        self.degree_markings[key][0].draw()
 
     def toggle_display_type(self):
         """
@@ -1800,4 +1838,7 @@ class RadarDisplay(arcade.Window):
         """
         arcade.draw_circle_filled(x, y, 3, color)
         if callsign is not None:
-            arcade.draw_text(callsign, x + 5, y, color, 12)
+            self.point_label.text = callsign
+            self.point_label.position = (x + 5, y)
+            self.point_label.color = color
+            self.point_label.draw()

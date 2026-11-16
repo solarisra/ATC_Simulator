@@ -31,12 +31,21 @@ LAYERS = (
     ("Airspace", "Airspace_Boundary.geojson", "geometry", (115, 100, 100)),
     ("Class airspace", "Class_Airspace.geojson", "geometry", (110, 100, 120)),
     ("Special use", "Special_Use_Airspace.geojson", "geometry", (125, 105, 90)),
-    ("ATS routes", "ATS_Route.geojson", "geometry", (85, 110, 125)),
+    ("V routes", "ATS_Route.geojson", "route_V", (85, 110, 125)),
     ("Route airspace", "Route_Airspace.geojson", "geometry", (95, 105, 120)),
     ("Radial bearings", "Radial_Bearing.geojson", "geometry", (100, 110, 105)),
     ("Pending runways", "Pending_Runway.geojson", "geometry", (115, 115, 115)),
+    ("T routes", "ATS_Route.geojson", "route_T", (85, 110, 125)),
+    ("Q routes", "ATS_Route.geojson", "route_Q", (85, 110, 125)),
+    ("J routes", "ATS_Route.geojson", "route_J", (85, 110, 125)),
 )
 LAYER_KEYS = tuple(getattr(arcade.key, f"F{i}") for i in range(1, 13))
+SHIFT_LAYER_KEYS = (arcade.key.F9, arcade.key.F10, arcade.key.F11)
+LAYER_SHORTCUTS = tuple(f"F{i}" for i in range(1, 13)) + (
+    "Shift+F9",
+    "Shift+F10",
+    "Shift+F11",
+)
 DEFAULT_VISIBLE = {0, 2, 4, 5, 7, 8}
 
 
@@ -230,8 +239,18 @@ class OverlayLoader:
             path = self.root / "GIS_JSON" / filename
             count = 0
             for feature in read_features(path, stop):
-                lines.extend(self.geometry_lines(feature.get("geometry")))
                 count += 1
+                if kind.startswith("route_"):
+                    properties = feature.get("properties")
+                    if not isinstance(properties, dict) or not isinstance(
+                        properties.get("IDENT"), str
+                    ):
+                        raise ValueError(f"Missing ATS route identifier in {path}")
+                    if not re.fullmatch(
+                        rf"{kind.removeprefix('route_')}\d+", properties["IDENT"]
+                    ):
+                        continue
+                lines.extend(self.geometry_lines(feature.get("geometry")))
             if stop.is_set():
                 return None
             if not count:
@@ -398,7 +417,7 @@ class GISOverlays:
     def draw_legend(self):
         for index, label in enumerate(self.legend):
             state = self.status[index] if index in self.visible else "off"
-            text = f"F{index + 1} {LAYERS[index][0]}: {state}"
+            text = f"{LAYER_SHORTCUTS[index]} {LAYERS[index][0]}: {state}"
             if label.text != text:
                 label.text = text
         self.legend_batch.draw()

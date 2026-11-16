@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from enum import StrEnum
 
+from Locations.Cascade.Sectors.medford import create_location as create_medford_location
 from Locations.Yuma import create_location as create_yuma_location
 from simulator.core.location import AirportDiagram, FlightPlate, Location  # noqa: F401
 
@@ -219,6 +220,11 @@ class ATCFacility:
                 airport_code="KNYL",
                 upper_control_flight_level=230,
                 upper_control_center=TrackingPosition.LOS_ANGELES,
+            ),
+            "KMFR": ATCFacility(
+                "Cascade Approach - Medford Sector",
+                create_medford_location(),
+                airport_code="KMFR",
             ),
             # Add more facilities as needed
         }

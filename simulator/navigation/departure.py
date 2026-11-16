@@ -1,7 +1,7 @@
 class Departure:
     """Simplified automatic ground wait, takeoff, and pilot check-in."""
 
-    def __init__(self, strip, airport, delay):
+    def __init__(self, strip, airport, delay, location):
         aircraft = strip.aircraft
         if airport.elevation is None:
             raise ValueError(f"Missing departure airport elevation for {aircraft.id}")
@@ -28,9 +28,9 @@ class Departure:
         aircraft.speed = 0
         aircraft.distance = 0
         if strip.operation_area in ("03L", "03R"):
-            aircraft.heading = 30
+            aircraft.heading = location.magnetic_to_true(30)
         elif strip.operation_area == "35":
-            aircraft.heading = 350
+            aircraft.heading = location.magnetic_to_true(350)
 
     @property
     def airborne(self):

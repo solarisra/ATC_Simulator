@@ -56,9 +56,14 @@ def _line_rect(column, row):
 
 
 class CommunicationsPanel:
-    def __init__(self, frequencies=None):
+    def __init__(self, frequencies=None, coordination_lines=None):
         if frequencies is None:
-            frequencies = create_yuma_location().radio_frequencies
+            location = create_yuma_location()
+            frequencies = location.radio_frequencies
+            if coordination_lines is None:
+                coordination_lines = location.coordination_lines
+        if coordination_lines is None:
+            coordination_lines = ()
         self.channels = [
             RadioChannel(
                 frequency.identifier,
@@ -69,14 +74,24 @@ class CommunicationsPanel:
             )
             for frequency in frequencies
         ]
-        self.channel_positions = tuple(
-            (index // 2, index % 2) for index in range(len(self.channels))
-        )
+        columns = {}
+        positions = []
+        for channel in self.channels:
+            key = channel.identifier.removesuffix("_low").removesuffix("_high")
+            if key not in columns:
+                columns[key] = len(columns)
+            if channel.band not in ("VHF", "UHF"):
+                raise ValueError(f"Unsupported radio band: {channel.band}")
+            position = (columns[key], 0 if channel.band == "VHF" else 1)
+            if position in positions or position[0] >= PANEL_COLUMNS:
+                raise ValueError(
+                    f"Radio channel cannot be placed: {channel.identifier}"
+                )
+            positions.append(position)
+        self.channel_positions = tuple(positions)
         self.lines = [
-            IntrafacilityLine("tower_local", "KNYL TWR (LOCAL)"),
-            IntrafacilityLine("range_control", "KNYL RANGE CONTROL"),
-            IntrafacilityLine("approach_departure", "KNYL APP/DEP"),
-            IntrafacilityLine("enroute", "KNYL ENR"),
+            IntrafacilityLine(identifier, label)
+            for identifier, label in coordination_lines
         ]
         self.mouse_ptt = False
         self.keyboard_ptt = False

@@ -9,6 +9,7 @@ def create_location():
         latitude=32.6566,
         longitude=-114.6056,
         elevation_ft=213.3,
+        magnetic_declination_degrees=10 + 14 / 60,
         emergency_frequencies=(
             RadioFrequency(
                 "emergency_low", "EMERGENCY", "VHF", "121.500", RadioState.LISTEN
@@ -36,5 +37,11 @@ def create_location():
             RadioFrequency("zla31_high", "ZLA SEC 31", "UHF", "307.800"),
             RadioFrequency("zab42_low", "ZAB SEC 42", "VHF", "125.250"),
             RadioFrequency("zab42_high", "ZAB SEC 42", "UHF", "307.300"),
+        ),
+        coordination_lines=(
+            ("tower_local", "KNYL TWR (LOCAL)"),
+            ("range_control", "KNYL RANGE CONTROL"),
+            ("approach_departure", "KNYL APP/DEP"),
+            ("enroute", "KNYL ENR"),
         ),
     )

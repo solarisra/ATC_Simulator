@@ -4,6 +4,7 @@ from unittest.mock import Mock, patch
 
 import arcade
 
+from Locations.Cascade.Sectors.medford import create_location as create_medford_location
 from simulator.core.constants import SCREEN_HEIGHT
 from simulator.core.location import RadioFrequency
 from simulator.display.radar import RadarDisplay
@@ -24,6 +25,21 @@ def make_panel():
 
 
 class CommunicationsTests(unittest.TestCase):
+    def test_single_band_and_paired_channels_keep_their_own_columns(self):
+        location = create_medford_location()
+        with patch("simulator.radio.communications.arcade.Text"):
+            panel = CommunicationsPanel(
+                location.radio_frequencies, location.coordination_lines
+            )
+        positions = {
+            channel.identifier: position
+            for channel, position in zip(panel.channels, panel.channel_positions)
+        }
+        self.assertEqual(positions["approach_low"], (2, 0))
+        self.assertEqual(positions["zse_king_low"], (3, 0))
+        self.assertEqual(positions["zse_king_high"], (3, 1))
+        self.assertEqual(panel.lines, [])
+
     def test_panel_uses_location_frequencies_without_mutating_configuration(self):
         frequencies = (
             RadioFrequency("custom", "TEST", "VHF", "123.450", RadioState.LISTEN),

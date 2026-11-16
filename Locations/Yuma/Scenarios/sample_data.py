@@ -24,7 +24,7 @@ from simulator.core.aircraft_models import (
     v22_osprey,
 )
 
-# Aircraft constructor fields: id, squawk, mode S, callsign, model, heading,
+# Aircraft constructor fields: id, squawk, mode S, callsign, model, true heading,
 # altitude (hundreds of feet), speed, distance, latitude, longitude, flight rules.
 ACTIVE_SAMPLE_AIRCRAFT = (
     (

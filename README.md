@@ -8,14 +8,35 @@ uv sync
 uv run python main.py
 ```
 
-The application starts without a scenario, with Yuma selected by default.
+The application starts without a selected location or scenario.
 Use **Location** to select an available facility; facilities with multiple
 sectors show a sector submenu. The **Scenario** menu lists scenarios for the
-selected location and sector. Currently only Yuma and its scenario are
-available. Wait for the default map layers to load, then choose **Scenario >
-Load Yuma**. A map loading error is shown on screen; use **Scenario > Retry
-failed maps** after correcting the cause. Loading Yuma again asks for
-confirmation before replacing the current traffic and strips.
+selected location and sector. Yuma has a scenario; selecting **Cascade
+Approach** automatically selects its currently configured Medford sector,
+a map-only location with no traffic scenario. Selecting
+another location while a scenario is running asks for confirmation before
+ending it. For Yuma traffic, select **Location > Yuma**, wait for the default
+map layers to load, then choose **Scenario > Load Yuma**. A map loading error
+is shown on screen; use **Scenario > Retry failed maps** after correcting the
+cause. Loading Yuma again asks for confirmation before replacing the current
+traffic and strips.
+
+The menu bar centers the selected location and shows voice status at the
+right. Map and other application messages appear just below the radar's top edge.
+**Options > Display** selects the radar scope: ARTS IIE is available, while
+FDAD and ACD are not yet implemented.
+The window can be resized or maximized; the interface scales proportionally.
+
+Medford uses KMFR runway 32 as the simulator's initial active runway. The map
+shows nearby airports from the GIS dataset; it does not define which airports
+are controlled by the Medford sector or depict verified sector boundaries.
+Medford's published airport and frequency data and procedure names are based
+on the [FAA-derived airport listing](https://www.airnav.com/airport/KMFR),
+effective 29 October 2026. Seattle Center's King Mountain frequencies are
+published for use when Cascade Approach is closed; operating hours are not
+simulated. The stored diagram link is for the chart cycle ending 26 November
+2026, and procedure names and diagrams are not yet displayed or simulated.
+No Medford interfacility coordination lines have been configured.
 
 `simulator/core/location.py` defines location coordinates, elevation in feet MSL, active
 runways and pads, airport diagram, procedures, and emergency, internal and
@@ -23,6 +44,12 @@ neighbor radio frequencies. Yuma's location data is in `Locations/Yuma/`;
 its scenario is in `Locations/Yuma/Scenarios/`. The Yuma scenario sets the
 active runways and pads when loaded. Diagram and procedure data are not yet
 provided, and weather is not generated or retrieved.
+Locations also specify magnetic declination, positive east. The simulator uses
+the configured fixed variation throughout each coverage area: Yuma 10°14′E
+and Medford 13°15′E. These values do not update automatically or vary with
+aircraft position.
+Controller-facing headings, position bearings and radar azimuth markings are
+magnetic; geographic movement and map projection use true bearings internally.
 
 `main.py` remains the launcher. Shared application code is organized under
 `simulator/` by application, core models, display, navigation and radio.
@@ -44,13 +71,16 @@ Check lint and formatting with `uv run ruff check .` and
 The ARTS sweep has a bright leading edge and an 18-degree fading sector.
 
 The radar map has individually switchable GIS overlays. Press F1 through F12
-to toggle the layers shown in the legend. Airports, navaids, state borders,
-airspace, special-use airspace and ATS routes start enabled; other layers load
-in the background when enabled. The legend
+to toggle the layers shown in the legend; Shift+F9, Shift+F10 and Shift+F11
+toggle T routes, Q routes and J routes, respectively. Airports, navaids, state borders,
+airspace, special-use airspace and V routes (Victor airways) start enabled;
+other layers load in the background when enabled. The legend
 shows loading or errors. Airport, waypoint, navaid and holding-fix positions
 come from `GIS_CSV`; state outlines come from the geometry in its state CSV.
 Airspace, routes, radial bearings and pending runways use the corresponding
-geometry files in `GIS_JSON`. Holding-pattern marks show their fixes, not
+geometry files in `GIS_JSON`. V, T, Q and J routes have separate overlays;
+only V routes start enabled. Other ATS route designations are not shown.
+Holding-pattern marks show their fixes, not
 the shape of the holding circuit. CSV records without coordinates and the
 nonspatial frequency table cannot be drawn.
 
@@ -59,7 +89,8 @@ not distributed in the repository because of their size. Supply those files
 locally to use their overlays; otherwise the legend reports a loading error.
 
 Click an aircraft or its data block to select it. Use the numeric keypad
-directions to position the selected aircraft's data block. The STARS-style
+directions to position the selected aircraft's data block. Near the circular
+scope edge, blocks are repositioned to keep them inside the perimeter. The STARS-style
 block shows the callsign, altitude in hundreds of feet with speed in tens of
 knots, aircraft type, and scratchpad on four lines in both display modes. The selected
 aircraft's heading, squawk, exact speed and range appear at the right of the
@@ -110,14 +141,19 @@ uv sync --python 3.12 --extra voice
 uv run --python 3.12 --extra voice python main.py
 ```
 
-Select **Audio > Enable voice** and wait for voice initialization before
-loading a scenario. **Audio > Disable voice** turns it off. Alternatively,
+Select **Options > Audio > Enable voice** and wait for voice initialization before
+loading a scenario. **Options > Audio > Disable voice** turns it off. Alternatively,
 pass `--voice` to initialize voice automatically at startup.
 
 The CUDA PyTorch download is several gigabytes; the Whisper and Kokoro models
 and pilot voice packs download on first use. Speech recognition and synthesis
 run locally. Voice initialization and errors appear in the window title and
 communications panel.
+Hugging Face model downloads work without a token but may be rate-limited; to
+authenticate, use `uv run --python 3.12 --extra voice hf auth login` or set
+`HF_TOKEN` in your environment. Do not put tokens in project files.
+PyTorch and Kokoro may emit platform, model-configuration, or deprecation
+warnings during initialization; these originate in those dependencies.
 The microphone stream is open while voice is enabled, but audio is captured in
 memory only while push-to-talk is held. A transmission over 60 seconds is
 rejected. Only frequencies that remain On for the entire transmission can
@@ -138,7 +174,7 @@ that frequency On and begin with the full callsign, for example:
 * `Devil two seven niner, say traffic`
 * `Devil two seven niner, radar contact bearing 240 altitude 13000 speed 400`
 
-The existing clearance restrictions still apply; headings are true and direct
+The existing clearance restrictions still apply; headings are magnetic and direct
 fixes must be on the remaining route. Heading instructions may specify a left
 or right turn; otherwise the aircraft takes the shorter turn. Rejected voice
 instructions, including their recognized text, are logged to the terminal.
@@ -229,7 +265,7 @@ clearance. Route edits to the underlying plan are resolved again; strip
 annotations do not change the route.
 
 To issue a simulated clearance, select an airborne aircraft and press `G`. Enter
-`HDG 090` for a true heading, `ALT 6000` for an altitude in feet, `DCT FIX`
+`HDG 090` for a magnetic heading, `ALT 6000` for an altitude in feet, `DCT FIX`
 for a fix on the remaining expanded route, `RESUME` to fly to the next
 remaining route fix after a vector, or `ALT CLR` to release the assigned
 altitude and return to normal filed-altitude guidance. Press Enter to issue

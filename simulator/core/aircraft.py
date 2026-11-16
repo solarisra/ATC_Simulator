@@ -91,7 +91,7 @@ class Aircraft:
         self.mode_s = mode_s
         self.callsign = callsign
         self.aircraft_model = aircraft_model
-        self.heading = heading  # The direction the aircraft is traveling in degrees
+        self.heading = heading  # True heading in degrees
         self.altitude = altitude  # Altitude in hundreds of feet
         self.speed = speed
         self.distance = distance

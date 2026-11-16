@@ -336,7 +336,7 @@ def handle_transmission(text, aircraft_list, facility, transmitting_channels):
                     )[int(digit)]
                     for digit in heading
                 )
-                + " true."
+                + "."
             )
         else:
             response = readback.replace(" FT", " feet").lower() + "."

@@ -544,6 +544,8 @@ class FlightStripTests(unittest.TestCase):
         display = SimpleNamespace(
             width=1640,
             height=900,
+            ui_scale=1.0,
+            display_type=RadarDisplay.STARS,
             secondary_radar_returns=[snapshot],
             data_block_labels={},
             data_block_directions={"A1": (1, 0)},

@@ -30,7 +30,7 @@ class VoiceCommandTests(unittest.TestCase):
             self.facility,
             {"enroute_high"},
         )
-        self.assertEqual(aircraft.flight_guidance.vector_heading, 270)
+        self.assertAlmostEqual(aircraft.flight_guidance.vector_heading, 280 + 14 / 60)
         self.assertEqual(reply.channel, "enroute_high")
         self.assertIn("two seven zero", reply.text)
         handle_transmission(
@@ -39,7 +39,7 @@ class VoiceCommandTests(unittest.TestCase):
             self.facility,
             {"enroute_high"},
         )
-        self.assertEqual(aircraft.flight_guidance.vector_heading, 275)
+        self.assertAlmostEqual(aircraft.flight_guidance.vector_heading, 285 + 14 / 60)
         handle_transmission(
             "Devil 279 climb and maintain one three thousand",
             self.aircraft,
@@ -54,6 +54,23 @@ class VoiceCommandTests(unittest.TestCase):
             {"enroute_high"},
         )
         self.assertIsNone(aircraft.flight_guidance.assigned_altitude)
+
+    def test_magnetic_heading_drives_true_geographic_motion(self):
+        aircraft = self.by_id["A3"]
+        aircraft.heading = 100 + 14 / 60
+        latitude, longitude = aircraft.lat, aircraft.lon
+        reply = handle_transmission(
+            "Devil 279 heading 090",
+            self.aircraft,
+            self.facility,
+            {"enroute_high"},
+        )
+        self.assertIn("Heading zero niner zero.", reply.text)
+        self.assertNotIn("true", reply.text.lower())
+        self.assertAlmostEqual(aircraft.flight_guidance.vector_heading, 100 + 14 / 60)
+        aircraft.update_position(10)
+        self.assertLess(aircraft.lat, latitude)
+        self.assertGreater(aircraft.lon, longitude)
 
     def test_callsign_and_frequency_are_required(self):
         aircraft = self.by_id["A1"]
@@ -78,7 +95,7 @@ class VoiceCommandTests(unittest.TestCase):
             self.facility,
             {"enroute_low"},
         )
-        self.assertEqual(aircraft.flight_guidance.vector_heading, 180)
+        self.assertAlmostEqual(aircraft.flight_guidance.vector_heading, 190 + 14 / 60)
 
     def test_directional_turns_follow_the_requested_direction_and_stop(self):
         aircraft = self.by_id["A1"]
@@ -87,7 +104,7 @@ class VoiceCommandTests(unittest.TestCase):
             ("left", 350, 10, 50),
         ):
             with self.subTest(direction=direction):
-                aircraft.heading = initial
+                aircraft.heading = self.facility.location.magnetic_to_true(initial)
                 reply = handle_transmission(
                     f"N135TC turn {direction} heading {target}",
                     self.aircraft,
@@ -96,12 +113,18 @@ class VoiceCommandTests(unittest.TestCase):
                 )
                 self.assertIn(f"Turn {direction}", reply.text)
                 aircraft.update_position(100)
-                self.assertAlmostEqual(aircraft.heading, halfway)
+                self.assertAlmostEqual(
+                    aircraft.heading, self.facility.location.magnetic_to_true(halfway)
+                )
                 aircraft.update_position(20)
-                self.assertAlmostEqual(aircraft.heading, target)
+                self.assertAlmostEqual(
+                    aircraft.heading, self.facility.location.magnetic_to_true(target)
+                )
                 self.assertIsNone(aircraft.flight_guidance.vector_turn_direction)
                 aircraft.update_position(5)
-                self.assertAlmostEqual(aircraft.heading, target)
+                self.assertAlmostEqual(
+                    aircraft.heading, self.facility.location.magnetic_to_true(target)
+                )
 
     def test_directional_heading_accepts_separated_callsign_and_hyphenated_digits(self):
         aircraft = self.by_id["A1"]
@@ -112,7 +135,7 @@ class VoiceCommandTests(unittest.TestCase):
             self.facility,
             {"enroute_low"},
         )
-        self.assertIn("Turn right, heading zero one zero true", reply.text)
+        self.assertIn("Turn right, heading zero one zero.", reply.text)
         aircraft.update_position(1)
         self.assertGreater(aircraft.heading, 350)
 
@@ -253,7 +276,9 @@ class VoiceCommandTests(unittest.TestCase):
             ("transcript", ("Devil 279 or fly heading 270", {"enroute_high"}))
         )
         RadarDisplay.process_voice(display)
-        self.assertEqual(self.by_id["A3"].flight_guidance.vector_heading, 270)
+        self.assertAlmostEqual(
+            self.by_id["A3"].flight_guidance.vector_heading, 280 + 14 / 60
+        )
         reply = display.voice_audio.speak.call_args.args[0]
         self.assertEqual(reply.aircraft_id, "A3")
         self.assertEqual(reply.channel, "enroute_high")

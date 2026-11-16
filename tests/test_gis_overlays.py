@@ -14,7 +14,13 @@ from unittest import mock
 import arcade
 import numpy as np
 
-from simulator.display.gis_overlays import GISOverlays, OverlayLoader
+from simulator.display.gis_overlays import (
+    DEFAULT_VISIBLE,
+    LAYER_KEYS,
+    LAYERS,
+    GISOverlays,
+    OverlayLoader,
+)
 from simulator.display.radar import RadarDisplay, RadarViewport
 
 
@@ -126,7 +132,7 @@ class OverlayLoaderTests(unittest.TestCase):
         route = self.root / "GIS_JSON" / "ATS_Route.geojson"
         feature = {
             "type": "Feature",
-            "properties": {},
+            "properties": {"IDENT": "V66"},
             "geometry": {
                 "type": "LineString",
                 "coordinates": [[-3, 0], [3, 0]],
@@ -140,6 +146,58 @@ class OverlayLoaderTests(unittest.TestCase):
         )
         route_lines, _ = self.loader.load(8, self.stop)
         self.assertEqual(len(route_lines), 2)
+
+    def test_ats_overlays_show_only_their_own_route_type(self):
+        path = self.root / "GIS_JSON" / "ATS_Route.geojson"
+        geometry = {"type": "LineString", "coordinates": [[-0.1, 0], [0.1, 0]]}
+        features = [
+            {
+                "type": "Feature",
+                "properties": {"IDENT": identifier},
+                "geometry": geometry,
+            }
+            for identifier in (
+                "V23",
+                "V100",
+                "Q100",
+                "J100",
+                "T201",
+                "VT688",
+                "V66A",
+                "UT306",
+                "UQ2",
+                "UJ10",
+            )
+        ]
+        path.write_text(
+            json.dumps({"type": "FeatureCollection", "features": features}),
+            encoding="utf-8",
+        )
+        expected = self.loader.geometry_lines(geometry)
+        for index, count in ((8, 2), (12, 1), (13, 1), (14, 1)):
+            with self.subTest(layer=LAYERS[index][0]):
+                lines, labels = self.loader.load(index, self.stop)
+                self.assertEqual(lines, expected * count)
+                self.assertEqual(labels, [])
+
+    def test_ats_overlay_accepts_valid_data_without_v_routes(self):
+        path = self.root / "GIS_JSON" / "ATS_Route.geojson"
+        path.write_text(
+            json.dumps(
+                {"features": [{"properties": {"IDENT": "Q100"}, "geometry": None}]}
+            ),
+            encoding="utf-8",
+        )
+        self.assertEqual(self.loader.load(8, self.stop), ([], []))
+
+    def test_ats_overlay_reports_missing_identifier(self):
+        path = self.root / "GIS_JSON" / "ATS_Route.geojson"
+        path.write_text(
+            json.dumps({"features": [{"properties": {}, "geometry": None}]}),
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(ValueError, "Missing ATS route identifier"):
+            self.loader.load(8, self.stop)
 
     def test_invalid_geojson_is_reported(self):
         path = self.root / "GIS_JSON" / "ATS_Route.geojson"
@@ -155,6 +213,37 @@ class OverlayLoaderTests(unittest.TestCase):
 
 
 class OverlayControlTests(unittest.TestCase):
+    def test_only_v_routes_are_enabled_by_default(self):
+        route_indices = {
+            index
+            for index, layer in enumerate(LAYERS)
+            if layer[1] == "ATS_Route.geojson"
+        }
+        self.assertEqual(
+            {LAYERS[index][0] for index in route_indices},
+            {"V routes", "T routes", "Q routes", "J routes"},
+        )
+        self.assertEqual(route_indices & DEFAULT_VISIBLE, {8})
+
+    def test_shifted_route_shortcuts_and_original_shortcuts(self):
+        display = SimpleNamespace(
+            gis_overlays=SimpleNamespace(toggle=mock.Mock()),
+            selected_aircraft_id=None,
+            scratchpad_edit_id=None,
+            handoff_choice_id=None,
+            data_block_directions={},
+        )
+        for key, index in (
+            (arcade.key.F9, 12),
+            (arcade.key.F10, 13),
+            (arcade.key.F11, 14),
+        ):
+            with self.subTest(key=key):
+                RadarDisplay.on_key_press(display, key, arcade.key.MOD_SHIFT)
+                display.gis_overlays.toggle.assert_called_with(index)
+                RadarDisplay.on_key_press(display, key, 0)
+                display.gis_overlays.toggle.assert_called_with(LAYER_KEYS.index(key))
+
     def test_key_toggles_overlay_without_changing_aircraft_placement(self):
         display = SimpleNamespace(
             gis_overlays=SimpleNamespace(toggle=mock.Mock()),

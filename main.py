@@ -22,7 +22,7 @@ __all__ = [
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Run the Yuma ATC simulator")
+    parser = argparse.ArgumentParser(description="Run the ATC simulator")
     parser.add_argument("--voice", action="store_true", help="enable local voice radio")
     args = parser.parse_args()
     app = ApplicationWindow()

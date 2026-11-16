@@ -213,8 +213,12 @@ class FlightPlanGuidance:
         strip.aircraft.target_speed = None
 
     def assign_heading(self, heading, turn_direction=None):
-        if not isinstance(heading, int) or not 1 <= heading <= 360:
-            raise ValueError("Heading must be 001 to 360 true")
+        if (
+            not isinstance(heading, (int, float))
+            or not math.isfinite(heading)
+            or not 0 <= heading <= 360
+        ):
+            raise ValueError("True heading must be between 0 and 360 degrees")
         if turn_direction not in (None, "LEFT", "RIGHT"):
             raise ValueError("Turn direction must be LEFT or RIGHT")
         self.vector_heading = heading % 360

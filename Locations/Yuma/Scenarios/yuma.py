@@ -149,6 +149,7 @@ def create_yuma_scenario(rng=None):
                 strip,
                 navigation_data.airport(facility.airport_code),
                 30 * departure_count,
+                facility.location,
             )
         strip.aircraft.flight_guidance = FlightPlanGuidance(strip, navigation_data)
     return aircraft_list, facility, strips

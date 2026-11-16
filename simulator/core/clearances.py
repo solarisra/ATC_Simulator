@@ -40,8 +40,12 @@ def execute_clearance(aircraft, facility, text, *, turn_direction=None):
         raise ValueError("Turn direction applies only to a heading clearance")
     if len(parts) == 2 and parts[0] == "HDG" and parts[1].isdigit():
         heading = int(parts[1])
-        guidance.assign_heading(heading, turn_direction)
-        return f"HEADING {heading:03d} TRUE"
+        if not 1 <= heading <= 360:
+            raise ValueError("Heading must be 001 to 360")
+        guidance.assign_heading(
+            facility.location.magnetic_to_true(heading), turn_direction
+        )
+        return f"HEADING {heading:03d}"
     if len(parts) == 2 and parts[0] == "ALT" and parts[1].isdigit():
         altitude = int(parts[1])
         if facility.above_control_limit(altitude / 100):

@@ -23,17 +23,23 @@ from simulator.app.application import (
 )
 from simulator.app.menu_theme import system_theme
 from simulator.core.atc import ATCFacility
+from simulator.core.constants import SCREEN_HEIGHT, SCREEN_WIDTH
+from simulator.display.flight_strips import PANEL_WIDTH
+from simulator.display.radar import RadarDisplay
 from simulator.radio.communications import CommunicationsPanel, RadioState
 
 
 def make_application():
     app = ApplicationWindow.__new__(ApplicationWindow)
     app.scenario_loaded = False
+    app.map_preview = False
     app.selected_location = LOCATIONS[0]
     app.selected_sector = None
     app.pending_scenario = None
+    app.pending_location = None
     app.open_menu = None
     app.submenu_location = None
+    app.submenu_option = None
     app.menu_hover = None
     app.confirm_replace = False
     app.menu_message = ""
@@ -45,6 +51,12 @@ def make_application():
     app.gis_overlays = SimpleNamespace(visible={0}, status=["ready"])
     app.voice_audio = None
     app.voice_message = ""
+    app.display_type = RadarDisplay.ARTS_IIE
+    app.ui_camera = Mock()
+    app.ui_offset_x = app.ui_offset_y = 0
+    app.ui_scale = app.ui_scale_x = app.ui_scale_y = 1.0
+    app.map_camera = Mock()
+    app._scaled_ui_camera = app.ui_camera
     with patch("simulator.radio.communications.arcade.Text"):
         app.communications_panel = CommunicationsPanel()
     app.atc_facility = ATCFacility.get_atc_facility_by_name("KNYL")
@@ -53,6 +65,48 @@ def make_application():
 
 
 class ApplicationTests(unittest.TestCase):
+    def test_resize_scales_and_translates_menu_input(self):
+        app = make_application()
+        app.on_resize(2000, 1100)
+        self.assertGreater(app.ui_scale, 1)
+        self.assertGreater(app.ui_offset_x, 0)
+        x = app.ui_offset_x + 10 * app.ui_scale_x
+        y = app.ui_offset_y + (MENU_BOTTOM + 5) * app.ui_scale_y
+        app.on_mouse_press(x, y, arcade.MOUSE_BUTTON_LEFT, 0)
+        self.assertEqual(app.open_menu, "location")
+        app.on_mouse_press(1, y, arcade.MOUSE_BUTTON_LEFT, 0)
+        self.assertEqual(app.open_menu, "location")
+        with patch.object(app, "select_location") as select:
+            app.on_mouse_press(
+                x,
+                app.ui_offset_y + (MENU_BOTTOM - 5) * app.ui_scale_y,
+                arcade.MOUSE_BUTTON_LEFT,
+                0,
+            )
+        select.assert_called_once_with(LOCATIONS[0])
+
+    def test_resize_maps_drag_and_release_coordinates_once(self):
+        app = make_application()
+        app.on_resize(2000, 1100)
+        app.map_preview = True
+        x = app.ui_offset_x + 300 * app.ui_scale_x
+        y = app.ui_offset_y + 400 * app.ui_scale_y
+        with (
+            patch.object(RadarDisplay, "on_mouse_drag") as drag,
+            patch.object(RadarDisplay, "on_mouse_release") as release,
+        ):
+            app.on_mouse_drag(
+                x,
+                y,
+                10 * app.ui_scale_x,
+                -5 * app.ui_scale_y,
+                arcade.MOUSE_BUTTON_LEFT,
+                0,
+            )
+            app.on_mouse_release(x, y, arcade.MOUSE_BUTTON_LEFT, 0)
+        drag.assert_called_once_with(300, 400, 10, -5, arcade.MOUSE_BUTTON_LEFT, 0)
+        release.assert_called_once_with(300, 400, arcade.MOUSE_BUTTON_LEFT, 0)
+
     def test_theme_results_update_menu_and_report_errors(self):
         app = make_application()
         app.theme_check_pending = True
@@ -105,6 +159,63 @@ class ApplicationTests(unittest.TestCase):
         self.assertIn(MENU_THEMES["Light"]["highlight"], colors)
         self.assertEqual(app.menu_text.color, MENU_THEMES["Light"]["text"])
 
+    def test_menu_bar_centers_location_and_right_aligns_voice(self):
+        app = make_application()
+        app._ctx = Mock()
+        app.startup_text = Mock()
+        app.menu_text = Mock()
+        app.clear = Mock()
+        drawn = []
+        app.menu_text.draw.side_effect = lambda: drawn.append(
+            (
+                app.menu_text.text,
+                app.menu_text.x,
+                app.menu_text.y,
+                app.menu_text.anchor_x,
+            )
+        )
+        with patch("simulator.app.application.arcade.draw_rect_filled"):
+            for location, sector, voice_status, expected_location, expected_voice in (
+                (None, None, None, "No location selected", "VOICE OFF"),
+                (LOCATIONS[0], None, "VOICE READY", "Yuma (KNYL)", "VOICE ON"),
+                (
+                    LOCATIONS[1],
+                    LOCATIONS[1].sectors[0],
+                    "VOICE ERROR",
+                    "Cascade Approach / Medford",
+                    "VOICE ERROR",
+                ),
+            ):
+                with self.subTest(location=expected_location, voice=expected_voice):
+                    app.selected_location = location
+                    app.selected_sector = sector
+                    app.communications_panel.voice_status = voice_status
+                    app.menu_message = "MAP ERROR: example"
+                    drawn.clear()
+                    app.on_draw()
+                    self.assertIn(
+                        (
+                            expected_location,
+                            (SCREEN_WIDTH + PANEL_WIDTH) / 2,
+                            MENU_BOTTOM + 7,
+                            "center",
+                        ),
+                        drawn,
+                    )
+                    self.assertIn(
+                        (
+                            expected_voice,
+                            SCREEN_WIDTH + PANEL_WIDTH - 10,
+                            MENU_BOTTOM + 7,
+                            "right",
+                        ),
+                        drawn,
+                    )
+                    self.assertIn(
+                        ("MAP ERROR: example", 10, SCREEN_HEIGHT - 20, "left"),
+                        drawn,
+                    )
+
     def test_system_theme_detects_linux_preference_and_legacy_gtk_theme(self):
         dark = subprocess.CompletedProcess([], 0, "'prefer-dark'\n", "")
         default = subprocess.CompletedProcess([], 0, "'default'\n", "")
@@ -140,13 +251,81 @@ class ApplicationTests(unittest.TestCase):
         scenario.assert_not_called()
         run.assert_called_once()
 
-    def test_default_location_and_filtered_scenarios(self):
+    def test_startup_has_no_location_or_map(self):
+        with (
+            patch.object(RadarDisplay, "__init__", return_value=None) as radar_init,
+            patch.object(ApplicationWindow, "set_size"),
+            patch.object(ApplicationWindow, "on_resize"),
+            patch.object(ApplicationWindow, "width", 1640),
+            patch.object(ApplicationWindow, "height", 1048),
+            patch("simulator.app.application.arcade.Camera2D"),
+            patch("simulator.app.application.arcade.Text"),
+            patch.object(ATCFacility, "get_atc_facility_by_name") as get_facility,
+        ):
+            app = ApplicationWindow()
+        self.assertIsNone(app.selected_location)
+        self.assertIsNone(radar_init.call_args.args[1])
+        get_facility.assert_not_called()
+        app.gis_overlays = None
+        app.voice_audio = None
+        app.ui_offset_x = app.ui_offset_y = 0
+        app.ui_scale_x = app.ui_scale_y = 1.0
+        self.assertEqual(app.available_scenarios(), ())
+        self.assertEqual(app.menu_entries("scenario"), ("Select a location first",))
+        self.assertTrue(
+            all(not entry.startswith("*") for entry in app.menu_entries("location"))
+        )
+        self.assertEqual(app.loading_message(), "")
+        app.on_mouse_press(
+            MENU_WIDTH + 10, MENU_BOTTOM + 5, arcade.MOUSE_BUTTON_LEFT, 0
+        )
+        app.on_mouse_press(
+            MENU_WIDTH + 10, MENU_BOTTOM - 5, arcade.MOUSE_BUTTON_LEFT, 0
+        )
+        self.assertIsNone(app.selected_location)
+        self.assertFalse(app.scenario_loaded)
+        app.retry_maps()
+
+    def test_select_yuma_and_filter_scenarios(self):
         app = make_application()
-        self.assertEqual(app.selected_location.label, "Yuma (KNYL)")
-        self.assertEqual(app.menu_entries("scenario")[0], "Load Yuma")
-        app.on_mouse_press(10, MENU_BOTTOM + 5, arcade.MOUSE_BUTTON_LEFT, 0)
-        app.on_mouse_press(10, MENU_BOTTOM - 5, arcade.MOUSE_BUTTON_LEFT, 0)
+        app.selected_location = None
+        app.atc_facility = None
+        app.gis_overlays = None
+        new_overlays = Mock(visible={0}, status=["ready"])
+        with (
+            patch(
+                "simulator.app.application.GISOverlays", return_value=new_overlays
+            ) as gis,
+            patch("simulator.app.application.FlightStripPanel"),
+            patch("simulator.radio.communications.arcade.Text"),
+        ):
+            app.on_mouse_press(10, MENU_BOTTOM + 5, arcade.MOUSE_BUTTON_LEFT, 0)
+            app.on_mouse_press(10, MENU_BOTTOM - 5, arcade.MOUSE_BUTTON_LEFT, 0)
         self.assertIs(app.selected_location, LOCATIONS[0])
+        self.assertEqual(app.atc_facility.airport_code, "KNYL")
+        self.assertEqual(app.menu_entries("scenario")[0], "Load Yuma")
+        gis.assert_called_once_with(32.6566, -114.6056)
+        new_overlays.toggle.assert_not_called()
+
+    def test_select_medford_as_first_location(self):
+        app = make_application()
+        app.selected_location = None
+        app.atc_facility = None
+        app.gis_overlays = None
+        with (
+            patch(
+                "simulator.app.application.GISOverlays",
+                return_value=Mock(visible={0}, status=["ready"]),
+            ) as gis,
+            patch("simulator.app.application.FlightStripPanel"),
+            patch("simulator.radio.communications.arcade.Text"),
+        ):
+            app.select_location(LOCATIONS[1])
+        gis.assert_called_once_with(42.3749647, -122.8732875)
+        self.assertIs(app.selected_location, LOCATIONS[1])
+        self.assertEqual(app.atc_facility.airport_code, "KMFR")
+        self.assertEqual(app.selected_sector.label, "Medford")
+        self.assertTrue(app.map_preview)
 
     def test_sector_submenu_selects_sector_and_filters_scenarios(self):
         app = make_application()
@@ -154,12 +333,21 @@ class ApplicationTests(unittest.TestCase):
         south = ScenarioChoice("South scenario", Mock(side_effect=create_yuma_scenario))
         facility = LocationChoice(
             "Test facility",
+            "KNYL",
             sectors=(
                 SectorChoice("North", (north,)),
                 SectorChoice("South", (south,)),
             ),
         )
-        with patch("simulator.app.application.LOCATIONS", (LOCATIONS[0], facility)):
+
+        def activate(location, sector):
+            app.selected_location = location
+            app.selected_sector = sector
+
+        with (
+            patch("simulator.app.application.LOCATIONS", (LOCATIONS[0], facility)),
+            patch.object(app, "activate_location", side_effect=activate),
+        ):
             app.on_mouse_press(10, MENU_BOTTOM + 5, arcade.MOUSE_BUTTON_LEFT, 0)
             app.on_mouse_motion(10, MENU_BOTTOM - ITEM_HEIGHT - 5, 0, 0)
             self.assertEqual(app.submenu_location, 1)
@@ -190,7 +378,11 @@ class ApplicationTests(unittest.TestCase):
 
     def test_location_with_no_scenarios_is_clear_and_retry_remains_available(self):
         app = make_application()
-        app.select_location(LocationChoice("Empty facility"))
+        with patch.object(app, "activate_location") as activate:
+            location = LocationChoice("Empty facility", "KMFR")
+            app.select_location(location)
+        activate.assert_called_once_with(location, None)
+        app.selected_location = location
         self.assertEqual(
             app.menu_entries("scenario"),
             ("No scenarios available", "Retry failed maps"),
@@ -202,6 +394,75 @@ class ApplicationTests(unittest.TestCase):
             MENU_WIDTH + 10, MENU_BOTTOM - 5, arcade.MOUSE_BUTTON_LEFT, 0
         )
         self.assertFalse(app.scenario_loaded)
+
+    def test_select_medford_replaces_map_radios_and_empty_traffic(self):
+        app = make_application()
+        old_overlays = Mock(visible={0}, status=["ready"])
+        app.gis_overlays = old_overlays
+        app.voice_audio = Mock(ready=True)
+        app.communications_panel.voice_status = "VOICE LOADING"
+        app.communications_panel.keyboard_ptt = True
+        new_overlays = Mock(visible={0}, status=["ready"])
+        with (
+            patch(
+                "simulator.app.application.GISOverlays", return_value=new_overlays
+            ) as gis,
+            patch("simulator.app.application.FlightStripPanel"),
+            patch("simulator.radio.communications.arcade.Text"),
+        ):
+            app.select_location(LOCATIONS[1])
+        gis.assert_called_once_with(42.3749647, -122.8732875)
+        old_overlays.close.assert_called_once()
+        app.voice_audio.discard_transmissions.assert_called_once()
+        self.assertFalse(app.communications_panel.mic_hot)
+        self.assertEqual(app.communications_panel.voice_status, "VOICE READY")
+        self.assertIs(app.selected_location, LOCATIONS[1])
+        self.assertEqual(app.selected_sector.label, "Medford")
+        self.assertEqual(app.atc_facility.airport_code, "KMFR")
+        self.assertEqual(app.atc_facility.active_runways, ("32",))
+        self.assertEqual(app.aircraft_list.aircraft_list, [])
+        self.assertTrue(app.map_preview)
+        self.assertEqual(app.available_scenarios(), ())
+        self.assertNotIn(
+            "KNYL", " ".join(line.label for line in app.communications_panel.lines)
+        )
+
+    def test_location_switch_confirms_and_cancel_preserves_scenario(self):
+        app = make_application()
+        app.scenario_loaded = True
+        aircraft = object()
+        app.aircraft_list = aircraft
+        with patch.object(app, "activate_location") as activate:
+            app.select_location(LOCATIONS[1])
+            self.assertTrue(app.confirm_replace)
+            self.assertIs(app.selected_location, LOCATIONS[0])
+            app.on_key_press(arcade.key.N, 0)
+            self.assertIs(app.aircraft_list, aircraft)
+            self.assertFalse(app.confirm_replace)
+            activate.assert_not_called()
+            app.select_location(LOCATIONS[1])
+            app.on_key_press(arcade.key.Y, 0)
+            activate.assert_called_once_with(LOCATIONS[1], LOCATIONS[1].sectors[0])
+
+    def test_failed_location_setup_keeps_current_scenario(self):
+        app = make_application()
+        app.scenario_loaded = True
+        app.gis_overlays = Mock(visible={0})
+        with (
+            patch("simulator.app.application.FlightStripPanel"),
+            patch("simulator.app.application.CommunicationsPanel"),
+            patch(
+                "simulator.app.application.GISOverlays",
+                side_effect=RuntimeError("map unavailable"),
+            ),
+            self.assertLogs("simulator.app.application", level="ERROR"),
+        ):
+            app.select_location(LOCATIONS[1])
+            app.on_key_press(arcade.key.Y, 0)
+        self.assertIs(app.selected_location, LOCATIONS[0])
+        self.assertTrue(app.scenario_loaded)
+        self.assertIn("map unavailable", app.menu_message)
+        app.gis_overlays.close.assert_not_called()
 
     def test_scenario_waits_for_maps_and_enabled_voice(self):
         app = make_application()
@@ -286,13 +547,24 @@ class ApplicationTests(unittest.TestCase):
         app.on_mouse_press(
             2 * MENU_WIDTH + 10, MENU_BOTTOM - 5, arcade.MOUSE_BUTTON_LEFT, 0
         )
+        self.assertEqual(app.submenu_option, "audio")
+        app.on_mouse_press(
+            2 * MENU_WIDTH + MENU_ITEM_WIDTH + 10,
+            MENU_BOTTOM - 5,
+            arcade.MOUSE_BUTTON_LEFT,
+            0,
+        )
         app.enable_voice.assert_called_once()
         app.voice_audio = Mock()
         app.on_mouse_press(
             2 * MENU_WIDTH + 10, MENU_BOTTOM + 5, arcade.MOUSE_BUTTON_LEFT, 0
         )
+        app.on_mouse_motion(2 * MENU_WIDTH + 10, MENU_BOTTOM - 5, 0, 0)
         app.on_mouse_press(
-            2 * MENU_WIDTH + 10, MENU_BOTTOM - 5, arcade.MOUSE_BUTTON_LEFT, 0
+            2 * MENU_WIDTH + MENU_ITEM_WIDTH + 10,
+            MENU_BOTTOM - 5,
+            arcade.MOUSE_BUTTON_LEFT,
+            0,
         )
         app.disable_voice.assert_called_once()
         app.on_mouse_press(
@@ -302,6 +574,57 @@ class ApplicationTests(unittest.TestCase):
             MENU_WIDTH + 10, MENU_BOTTOM - ITEM_HEIGHT - 5, arcade.MOUSE_BUTTON_LEFT, 0
         )
         self.assertEqual(app.gis_overlays.toggle.call_count, 2)
+
+    def test_display_submenu_selects_arts_and_reports_unavailable_scopes(self):
+        app = make_application()
+        self.assertEqual(app.menu_entries("options"), ("Audio  >", "Display  >"))
+        self.assertEqual(
+            app.menu_entries("display"),
+            ("* ARTS IIE", "  FDAD (unavailable)", "  ACD (unavailable)"),
+        )
+        options_x = 2 * MENU_WIDTH + 10
+        submenu_x = 2 * MENU_WIDTH + MENU_ITEM_WIDTH + 10
+        for index, scope in ((1, "FDAD"), (2, "ACD")):
+            with self.subTest(scope=scope):
+                app.on_mouse_press(
+                    options_x, MENU_BOTTOM + 5, arcade.MOUSE_BUTTON_LEFT, 0
+                )
+                app.on_mouse_motion(options_x, MENU_BOTTOM - ITEM_HEIGHT - 5, 0, 0)
+                self.assertEqual(app.submenu_option, "display")
+                app.on_mouse_motion(
+                    submenu_x, MENU_BOTTOM - (index + 1) * ITEM_HEIGHT - 5, 0, 0
+                )
+                self.assertEqual(app.menu_hover, ("option", index))
+                app.on_mouse_press(
+                    submenu_x,
+                    MENU_BOTTOM - (index + 1) * ITEM_HEIGHT - 5,
+                    arcade.MOUSE_BUTTON_LEFT,
+                    0,
+                )
+                self.assertEqual(app.display_type, RadarDisplay.ARTS_IIE)
+                self.assertIn(scope, app.menu_message)
+                self.assertIn("not available", app.menu_message)
+        app.display_type = RadarDisplay.STARS
+        app.on_mouse_press(options_x, MENU_BOTTOM + 5, arcade.MOUSE_BUTTON_LEFT, 0)
+        app.on_mouse_press(
+            options_x, MENU_BOTTOM - ITEM_HEIGHT - 5, arcade.MOUSE_BUTTON_LEFT, 0
+        )
+        app.on_mouse_press(
+            submenu_x, MENU_BOTTOM - ITEM_HEIGHT - 5, arcade.MOUSE_BUTTON_LEFT, 0
+        )
+        self.assertEqual(app.display_type, RadarDisplay.ARTS_IIE)
+        self.assertEqual(app.menu_message, "")
+        self.assertIsNone(app.open_menu)
+
+    def test_options_submenu_escape_closes_menu(self):
+        app = make_application()
+        app.on_mouse_press(
+            2 * MENU_WIDTH + 10, MENU_BOTTOM + 5, arcade.MOUSE_BUTTON_LEFT, 0
+        )
+        app.on_mouse_motion(2 * MENU_WIDTH + 10, MENU_BOTTOM - 5, 0, 0)
+        app.on_key_press(arcade.key.ESCAPE, 0)
+        self.assertIsNone(app.open_menu)
+        self.assertIsNone(app.submenu_option)
 
 
 if __name__ == "__main__":

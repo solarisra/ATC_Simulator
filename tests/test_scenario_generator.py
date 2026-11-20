@@ -2,7 +2,8 @@ import unittest
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from itertools import pairwise
-from unittest.mock import patch
+from types import SimpleNamespace
+from unittest.mock import Mock, patch
 
 from locations.Yuma.Scenarios.generator import (
     AIRCRAFT_TYPES,
@@ -14,8 +15,15 @@ from locations.Yuma.Scenarios.generator import (
 )
 from locations.Yuma.Scenarios.routing import NoSafeRouteError, yuma_router
 from locations.Yuma.Scenarios.sample_data import CIVILIAN_AIRPORTS
-from locations.Yuma.Scenarios.yuma import create_yuma_scenario
+from locations.Yuma.Scenarios.yuma import (
+    assign_incoming_controller,
+    create_yuma_scenario,
+)
+from simulator.core.aircraft import MIN_ENTRY_SEPARATION_NM, advance_aircraft_entry
 from simulator.core.atc import FlightPlan, RadarControlState, TrackingPosition
+from simulator.core.clearances import is_airborne
+from simulator.display.flight_strips import FlightStripPanel
+from simulator.display.radar import RadarDisplay, RadarReturnManager, RadarSweep
 from simulator.navigation.flight_navigation import NavigationData
 from simulator.navigation.navmath import NavigationalCoordinateSystem
 from simulator.radio.voice_commands import handle_transmission
@@ -83,8 +91,15 @@ class ScenarioGeneratorTests(unittest.TestCase):
         for strip in strips:
             track = strip.aircraft.track
             if strip in incoming:
-                self.assertEqual(track.owner, TrackingPosition.LOS_ANGELES)
+                expected = (
+                    TrackingPosition.LOS_ANGELES
+                    if strip.aircraft.altitude > 230
+                    or strip.aircraft.lon <= -114.6056
+                    else TrackingPosition.ALBUQUERQUE
+                )
+                self.assertEqual(track.owner, expected)
                 self.assertEqual(track.communications_owner, track.owner)
+                self.assertEqual(track.handoff_target, TrackingPosition.YUMA)
                 self.assertEqual(track.radar_return_state, RadarControlState.INCOMING)
             else:
                 self.assertEqual(track.owner, TrackingPosition.YUMA)
@@ -93,7 +108,7 @@ class ScenarioGeneratorTests(unittest.TestCase):
                     track.radar_return_state, RadarControlState.UNCONTROLLED
                 )
 
-    def test_generated_airborne_flights_start_with_yuma_ownership_and_comms(self):
+    def test_generated_inbound_ifr_offers_handoff_vfr_remains_local(self):
         types = dict.fromkeys(AIRCRAFT_TYPES, 0)
         types["small fixed-wing"] = 1
         observed_rules = set()
@@ -111,16 +126,24 @@ class ScenarioGeneratorTests(unittest.TestCase):
                 self.assertLessEqual(
                     aircraft.altitude, facility.upper_control_flight_level
                 )
-                self.assertEqual(aircraft.track.owner, TrackingPosition.YUMA)
-                self.assertEqual(
-                    aircraft.track.communications_owner, TrackingPosition.YUMA
-                )
-                self.assertIsNone(aircraft.track.handoff_target)
                 self.assertFalse(aircraft.track.identification_confirmation_due)
-                self.assertEqual(
-                    aircraft.track.radar_return_state, RadarControlState.UNCONTROLLED
-                )
+                if aircraft.flight_rules == "IFR":
+                    self.assertIn(
+                        aircraft.track.owner,
+                        (TrackingPosition.LOS_ANGELES, TrackingPosition.ALBUQUERQUE),
+                    )
+                    self.assertEqual(aircraft.track.communications_owner, aircraft.track.owner)
+                    self.assertEqual(aircraft.track.handoff_target, TrackingPosition.YUMA)
+                    self.assertEqual(aircraft.track.radar_return_state, RadarControlState.INCOMING)
+                else:
+                    self.assertEqual(aircraft.track.owner, TrackingPosition.YUMA)
+                    self.assertEqual(aircraft.track.communications_owner, TrackingPosition.YUMA)
+                    self.assertIsNone(aircraft.track.handoff_target)
+                    self.assertEqual(aircraft.track.radar_return_state, RadarControlState.UNCONTROLLED)
             ifr = next(s.aircraft for s in strips if s.aircraft.flight_rules == "IFR")
+            ifr.track.accept(TrackingPosition.YUMA)
+            ifr.track.transfer_communications()
+            ifr.track.confirm_identification()
             reply = handle_transmission(
                 f"{ifr.callsign} heading 270",
                 aircraft_list.aircraft_list,
@@ -137,6 +160,117 @@ class ScenarioGeneratorTests(unittest.TestCase):
             )
             self.assertEqual(ifr.track.radar_return_state, RadarControlState.CONTROLLED)
         self.assertEqual(observed_rules, {"IFR", "VFR"})
+
+    def test_incoming_center_selection_at_longitude_and_altitude_boundaries(self):
+        _, facility, strips = create_yuma_scenario()
+        strip = next(s for s in strips if s.aircraft.id == "A3")
+        for offset, altitude, expected in (
+            (-0.01, 230, TrackingPosition.LOS_ANGELES),
+            (0, 230, TrackingPosition.LOS_ANGELES),
+            (0.01, 230, TrackingPosition.ALBUQUERQUE),
+            (0.01, 231, TrackingPosition.LOS_ANGELES),
+        ):
+            with self.subTest(offset=offset, altitude=altitude):
+                strip.aircraft.lon = facility.location.longitude + offset
+                strip.aircraft.altitude = altitude
+                strip.aircraft.track.cancel()
+                assign_incoming_controller(strip, facility)
+                self.assertEqual(strip.aircraft.track.owner, expected)
+                self.assertEqual(strip.aircraft.track.handoff_target, TrackingPosition.YUMA)
+
+    def test_ifr_departures_do_not_receive_incoming_handoffs(self):
+        operations = dict.fromkeys(OPERATIONS, 0)
+        operations["departures"] = 1
+        types = dict.fromkeys(AIRCRAFT_TYPES, 0)
+        types["air carriers"] = 1
+        aircraft_list, _, _, _ = self.generate(
+            GeneratorSettings(7, "light", operations, types)
+        )
+        for plane in aircraft_list.aircraft_list:
+            self.assertEqual(plane.flight_rules, "IFR")
+            self.assertEqual(plane.track.owner, TrackingPosition.YUMA)
+            self.assertIsNone(plane.track.handoff_target)
+            self.assertFalse(plane.incoming_checkin_pending)
+
+    def test_scheduled_handoff_waits_for_unblocked_entry_and_is_not_repeated(self):
+        operations = dict.fromkeys(OPERATIONS, 0)
+        operations["approaches"] = 1
+        types = dict.fromkeys(AIRCRAFT_TYPES, 0)
+        types["air carriers"] = 1
+        aircraft_list, _, _, _ = self.generate(
+            GeneratorSettings(7, "light", operations, types)
+        )
+        first, second, *_ = aircraft_list.aircraft_list
+        self.assertEqual(first.track.handoff_target, TrackingPosition.YUMA)
+        self.assertIsNone(second.track.handoff_target)
+        self.assertTrue(second.incoming_handoff_on_entry)
+        first.lat, first.lon = second.lat, second.lon
+        second.entry_remaining = 1
+        advance_aircraft_entry(second, aircraft_list.aircraft_list, 1)
+        self.assertEqual(second.entry_remaining, 0)
+        self.assertIsNone(second.track.handoff_target)
+        first.lat += 1
+        advance_aircraft_entry(second, aircraft_list.aircraft_list, 0)
+        self.assertIsNone(second.track.handoff_target)
+        advance_aircraft_entry(second, aircraft_list.aircraft_list, 1)
+        self.assertIsNone(second.entry_remaining)
+        self.assertEqual(second.track.handoff_target, TrackingPosition.YUMA)
+        self.assertFalse(second.incoming_handoff_on_entry)
+        second.track.cancel()
+        advance_aircraft_entry(second, aircraft_list.aircraft_list, 10)
+        self.assertIsNone(second.track.handoff_target)
+
+    def test_inbound_checkin_waits_for_handoff_comms_and_30_nm(self):
+        operations = dict.fromkeys(OPERATIONS, 0)
+        operations["enroute"] = 1
+        for category, channel, frequency in (
+            ("air carriers", "approach_low", "124.700"),
+            ("military jets", "approach_high", "371.975"),
+        ):
+            with self.subTest(category=category):
+                types = dict.fromkeys(AIRCRAFT_TYPES, 0)
+                types[category] = 1
+                aircraft_list, facility, _, _ = self.generate(
+                    GeneratorSettings(7, "single", operations, types)
+                )
+                aircraft = aircraft_list.aircraft_list[0]
+                distance = [29.9]
+                display = SimpleNamespace(
+                    aircraft_list=aircraft_list, atc_facility=facility,
+                    secondary_radar_returns=[], departure_checkins=[],
+                    reported_departures=set(), selected_aircraft_id=None,
+                    sweep=RadarSweep(), radar_return_manager=RadarReturnManager(),
+                    display_type=RadarDisplay.STARS, ARTS_IIE=RadarDisplay.ARTS_IIE,
+                    secondary_update_elapsed=0, emergency_flash_elapsed=0,
+                    voice_audio=Mock(),
+                    calculate_range_and_bearing=lambda lat, lon, d=distance: (d[0], 0),
+                )
+                display.capture_secondary_radar_returns = lambda d=display: (
+                    RadarDisplay.capture_secondary_radar_returns(d)
+                )
+                with patch.object(RadarDisplay, "process_voice"):
+                    RadarDisplay.on_update(display, 1)
+                    aircraft.track.accept(TrackingPosition.YUMA)
+                    RadarDisplay.on_update(display, 1)
+                    aircraft.track.transfer_communications()
+                    distance[0] = 30.1
+                    RadarDisplay.on_update(display, 1)
+                    self.assertTrue(aircraft.incoming_checkin_pending)
+                    display.voice_audio.speak.assert_not_called()
+                    distance[0] = 30
+                    RadarDisplay.on_update(display, 0)
+                    display.voice_audio.speak.assert_not_called()
+                    RadarDisplay.on_update(display, 1)
+                    RadarDisplay.on_update(display, 1)
+                self.assertFalse(aircraft.incoming_checkin_pending)
+                self.assertTrue(aircraft.track.identification_confirmation_due)
+                self.assertEqual(aircraft.radio_channel, channel)
+                reply = display.voice_audio.speak.call_args.args[0]
+                self.assertEqual(display.voice_audio.speak.call_count, 1)
+                self.assertEqual(reply.channel, channel)
+                self.assertIn("YUMA APPROACH", reply.text)
+                self.assertIn(frequency, reply.text)
+                self.assertEqual(len(display.departure_checkins), 1)
 
     def test_operation_and_type_weights_are_respected(self):
         operations = dict.fromkeys(OPERATIONS, 0)
@@ -156,6 +290,118 @@ class ScenarioGeneratorTests(unittest.TestCase):
             )
         )
         self.assertEqual(warnings, [])
+
+    def test_light_inbound_traffic_enters_five_minutes_apart(self):
+        operations = dict.fromkeys(OPERATIONS, 0)
+        operations["approaches"] = 5
+        aircraft_list, facility, strips, _ = self.generate(
+            GeneratorSettings(0, "light", operations)
+        )
+        planes = aircraft_list.aircraft_list
+        self.assertEqual([p.entry_remaining for p in planes], [None, 300, 600, 900, 1200])
+        initial = [(p.lat, p.lon) for p in planes]
+        with patch("simulator.display.flight_strips.arcade.Text"):
+            panel = FlightStripPanel(strips, aircraft_list)
+        self.assertEqual(panel.active_strips(), [strips[0]])
+        display = type("Display", (), {})()
+        display.aircraft_list = aircraft_list
+        display.secondary_radar_returns = []
+        RadarDisplay.capture_secondary_radar_returns(display)
+        self.assertEqual([s.aircraft_id for s in display.secondary_radar_returns], [planes[0].id])
+        with self.assertRaisesRegex(ValueError, "unambiguous"):
+            handle_transmission(
+                f"{planes[1].callsign} ident",
+                planes,
+                facility,
+                {planes[1].radio_channel},
+            )
+
+        for elapsed in range(5, 1201, 5):
+            aircraft_list.update_positions(5)
+            for index, plane in enumerate(planes):
+                if elapsed < index * 300:
+                    self.assertFalse(is_airborne(plane))
+                    self.assertEqual((plane.lat, plane.lon), initial[index])
+                elif elapsed == index * 300 and index:
+                    self.assertTrue(is_airborne(plane))
+                    for other in planes[:index]:
+                        if is_airborne(other):
+                            self.assertGreaterEqual(
+                                NavigationalCoordinateSystem.calculate_distance(
+                                    plane.lat, plane.lon, other.lat, other.lon
+                                ),
+                                MIN_ENTRY_SEPARATION_NM,
+                            )
+            if elapsed % 300 == 0:
+                self.assertEqual(
+                    panel.active_strips(),
+                    [
+                        strip
+                        for strip in strips
+                        if strip.active and strip.aircraft.entry_remaining is None
+                    ],
+                )
+
+    def test_occupied_entry_delays_following_arrivals(self):
+        operations = dict.fromkeys(OPERATIONS, 0)
+        operations["approaches"] = 1
+        aircraft_list, _, _, _ = self.generate(GeneratorSettings(2, "light", operations))
+        first, second, third, *_ = aircraft_list.aircraft_list
+        first.lat, first.lon = second.lat, second.lon
+        second.entry_remaining = 10
+        third.entry_remaining = 310
+        self.assertEqual(advance_aircraft_entry(second, aircraft_list.aircraft_list, 60), 0)
+        self.assertEqual(second.entry_remaining, 0)
+        self.assertEqual(third.entry_remaining, 360)
+        self.assertEqual(advance_aircraft_entry(third, aircraft_list.aircraft_list, 60), 0)
+        self.assertEqual(third.entry_remaining, 300)
+        self.assertEqual(advance_aircraft_entry(second, aircraft_list.aircraft_list, 30), 0)
+        self.assertEqual(advance_aircraft_entry(third, aircraft_list.aircraft_list, 30), 0)
+        self.assertEqual(third.entry_remaining, 300)
+        first.lat += 1
+        self.assertEqual(advance_aircraft_entry(second, aircraft_list.aircraft_list, 1), 1)
+        self.assertIsNone(second.entry_remaining)
+        self.assertEqual(advance_aircraft_entry(third, aircraft_list.aircraft_list, 1), 0)
+        self.assertEqual(third.entry_remaining, 299)
+
+    def test_light_mixed_traffic_staggers_only_inbound_aircraft(self):
+        aircraft_list, _, _, _ = self.generate(GeneratorSettings(0, "light"))
+        departures = [p for p in aircraft_list.aircraft_list if p.departure is not None]
+        inbound = [p for p in aircraft_list.aircraft_list if p.departure is None]
+        self.assertTrue(departures)
+        self.assertEqual(
+            [p.entry_remaining for p in inbound], [None, 300, 600, 900]
+        )
+        self.assertTrue(all(p.entry_remaining is None for p in departures))
+        moderate, _, _, _ = self.generate(GeneratorSettings(0, "moderate"))
+        self.assertTrue(
+            all(p.entry_remaining is None for p in moderate.aircraft_list)
+        )
+
+    def test_seeded_arrival_waits_until_its_entry_point_is_clear(self):
+        operations = dict.fromkeys(OPERATIONS, 0)
+        operations["approaches"] = 1
+        aircraft_list, _, _, _ = self.generate(GeneratorSettings(2, "light", operations))
+        planes = aircraft_list.aircraft_list
+        previous = {planes[0].id}
+        entries = []
+        for elapsed in range(5, 1801, 5):
+            aircraft_list.update_positions(5)
+            active = {p.id for p in planes if p.entry_remaining is None}
+            for plane in planes:
+                if plane.id in active - previous:
+                    entries.append(elapsed)
+                    for other in planes:
+                        if other.id in previous and is_airborne(other):
+                            self.assertGreaterEqual(
+                                NavigationalCoordinateSystem.calculate_distance(
+                                    plane.lat, plane.lon, other.lat, other.lon
+                                ),
+                                MIN_ENTRY_SEPARATION_NM,
+                            )
+            previous = active
+        self.assertEqual(entries[:3], [300, 600, 900])
+        self.assertGreater(entries[3], 1200)
 
     def test_heavy_enroute_is_supported(self):
         operations = dict.fromkeys(OPERATIONS, 0)

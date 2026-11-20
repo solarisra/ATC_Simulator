@@ -49,8 +49,10 @@ class Departure:
             aircraft.heading = location.magnetic_to_true(30)
         elif self.strip.operation_area in ("21L", "21R"):
             aircraft.heading = location.magnetic_to_true(210)
-        elif self.strip.operation_area == "35":
-            aircraft.heading = location.magnetic_to_true(350)
+        elif self.strip.operation_area in ("08", "17", "26", "35"):
+            aircraft.heading = location.magnetic_to_true(
+                int(self.strip.operation_area) * 10
+            )
 
     @property
     def airborne(self):

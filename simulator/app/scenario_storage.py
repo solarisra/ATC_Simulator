@@ -153,6 +153,9 @@ def snapshot_scenario(
                     **_fields(plane, AIRCRAFT_FIELDS),
                     "ident_remaining": plane.ident_remaining,
                     "pilot_voice": plane.pilot_voice,
+                    "entry_remaining": plane.entry_remaining,
+                    "incoming_handoff_on_entry": plane.incoming_handoff_on_entry,
+                    "incoming_checkin_pending": plane.incoming_checkin_pending,
                 },
                 "model": plane.aircraft_model.aircraft_type,
                 "track": track,
@@ -283,6 +286,12 @@ def _validate_record(record):
         aircraft_schema["ident_remaining"] = NUMBER
     if "pilot_voice" in plane:
         aircraft_schema["pilot_voice"] = OPTIONAL_STRING
+    if "entry_remaining" in plane:
+        aircraft_schema["entry_remaining"] = OPTIONAL_NUMBER
+    if "incoming_handoff_on_entry" in plane:
+        aircraft_schema["incoming_handoff_on_entry"] = BOOL
+    if "incoming_checkin_pending" in plane:
+        aircraft_schema["incoming_checkin_pending"] = BOOL
     _validate_fields(plane, aircraft_schema)
     if (
         not plane["id"]
@@ -292,7 +301,19 @@ def _validate_record(record):
         or not -180 <= plane["lon"] <= 180
         or plane["altitude"] < 0
         or plane["distance"] < 0
+        or (
+            plane.get("incoming_checkin_pending", False)
+            and (plane["flight_rules"] != "IFR" or record["departure"] is not None)
+        )
         or plane.get("ident_remaining", 0) < 0
+        or (
+            plane.get("entry_remaining") is not None
+            and (
+                plane["entry_remaining"] < 0
+                or plane["landed"]
+                or record["departure"] is not None
+            )
+        )
         or (
             plane.get("pilot_voice") is not None
             and plane["pilot_voice"] not in PILOT_VOICES
@@ -349,6 +370,17 @@ def _validate_record(record):
     if track["handoff_elapsed"] < 0:
         raise ValueError("Invalid handoff elapsed time")
     _validate_coordination(track["coordination"])
+    if plane.get("incoming_handoff_on_entry", False) and (
+        plane.get("entry_remaining") is None
+        or plane["flight_rules"] != "IFR"
+        or track["owner"]
+        not in (TrackingPosition.LOS_ANGELES, TrackingPosition.ALBUQUERQUE)
+        or track["communications_owner"] != track["owner"]
+        or track["handoff_target"] is not None
+        or track["identification_confirmation_due"]
+        or (track["coordination"] is not None and not track["coordination"]["approved"])
+    ):
+        raise ValueError("Invalid scheduled incoming handoff")
     for item in track["coordination_history"]:
         if item is None:
             raise ValueError("Invalid coordination history")
@@ -493,7 +525,10 @@ def restore_scenario(data):
     for record in data["records"]:
         _validate_record(record)
         values = record["aircraft"]
-        if set(values) - {"ident_remaining", "pilot_voice"} != set(AIRCRAFT_FIELDS):
+        if set(values) - {
+            "ident_remaining", "pilot_voice", "entry_remaining",
+            "incoming_handoff_on_entry", "incoming_checkin_pending",
+        } != set(AIRCRAFT_FIELDS):
             raise ValueError("Invalid aircraft state fields")
         model = models[record["model"]]
         if values["target_speed"] is not None:
@@ -595,6 +630,9 @@ def restore_scenario(data):
         )
         plane.ident_remaining = values.get("ident_remaining", 0.0)
         plane.pilot_voice = values.get("pilot_voice")
+        plane.entry_remaining = values.get("entry_remaining")
+        plane.incoming_handoff_on_entry = values.get("incoming_handoff_on_entry", False)
+        plane.incoming_checkin_pending = values.get("incoming_checkin_pending", False)
         aircraft.add_aircraft([plane])
         strips_by_id[plane.id] = strip
     order = data["strip_order"]

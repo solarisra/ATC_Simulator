@@ -8,7 +8,7 @@ import arcade
 import numpy as np
 import pyglet
 
-from simulator.core.aircraft import display_callsign
+from simulator.core.aircraft import advance_aircraft_entry, display_callsign
 from simulator.core.atc import CoordinationKind, RadarControlState, TrackingPosition
 from simulator.core.clearances import (
     clearance_control_error,
@@ -630,7 +630,8 @@ class RadarDisplay(arcade.Window):
         overdue = [
             display_callsign(aircraft)
             for aircraft in self.aircraft_list.aircraft_list
-            if aircraft.track.owner == TrackingPosition.YUMA
+            if getattr(aircraft, "entry_remaining", None) is None
+            and aircraft.track.owner == TrackingPosition.YUMA
             and facility.above_control_limit(aircraft.altitude)
         ]
         if not overdue:
@@ -661,8 +662,13 @@ class RadarDisplay(arcade.Window):
         return_states = {}
         # Generate radar returns
         for aircraft in self.aircraft_list.aircraft_list:
+            active_time = advance_aircraft_entry(
+                aircraft, self.aircraft_list.aircraft_list, delta_time
+            )
+            if getattr(aircraft, "entry_remaining", None) is not None:
+                continue
             if not aircraft.landed:
-                aircraft.update_position(delta_time)
+                aircraft.update_position(active_time)
             departure = getattr(aircraft, "departure", None)
             if (
                 departure is not None
@@ -699,7 +705,7 @@ class RadarDisplay(arcade.Window):
                         f"ABOVE FL{facility.upper_control_flight_level:03d}: "
                         f"HANDOFF TO {facility.upper_control_center} REQUIRED"
                     )
-            if aircraft.track.advance(delta_time):
+            if aircraft.track.advance(active_time):
                 if aircraft.track.pending_radio_channel is not None:
                     aircraft.track.transfer_communications()
                     aircraft.radio_channel = aircraft.track.pending_radio_channel
@@ -715,7 +721,7 @@ class RadarDisplay(arcade.Window):
                             else "C TRANSFERS COMMS"
                         )
                     )
-            coordination_approved = aircraft.track.advance_coordination(delta_time)
+            coordination_approved = aircraft.track.advance_coordination(active_time)
             if coordination_approved and self.selected_aircraft_id == aircraft.id:
                 response = (
                     "TRAFFIC OBSERVED"
@@ -727,6 +733,47 @@ class RadarDisplay(arcade.Window):
                 aircraft.lat, aircraft.lon
             )
             aircraft.distance = distance
+            if (
+                active_time > 0
+                and getattr(aircraft, "incoming_checkin_pending", False)
+                and is_airborne(aircraft)
+                and aircraft.track.owner == TrackingPosition.YUMA
+                and aircraft.track.communications_owner == TrackingPosition.YUMA
+                and distance <= 30
+            ):
+                current_channel = aircraft.radio_channel
+                if current_channel is None or not current_channel.endswith(
+                    ("_low", "_high")
+                ):
+                    raise ValueError(f"No valid inbound radio channel for {aircraft.id}")
+                channel = "approach_" + current_channel.rsplit("_", 1)[1]
+                frequency = next(
+                    (item.frequency for item in facility.location.internal_frequencies
+                     if item.identifier == channel),
+                    None,
+                )
+                if frequency is None:
+                    raise ValueError(f"No approach frequency configured for {channel}")
+                altitude = round(aircraft.altitude) * 100
+                message = (
+                    f"{display_callsign(aircraft)}: YUMA APPROACH, ON {frequency}, "
+                    f"{altitude} FT"
+                )
+                voice = self.__dict__.get("voice_audio")
+                if voice is not None:
+                    voice.speak(
+                        PilotReply(
+                            aircraft.id,
+                            channel,
+                            f"{spoken_callsign(aircraft)}: YUMA APPROACH, on "
+                            f"{frequency}, {altitude} feet",
+                            aircraft.pilot_voice,
+                        )
+                    )
+                aircraft.radio_channel = channel
+                aircraft.incoming_checkin_pending = False
+                self.departure_checkins.append(message)
+                self.departure_checkins = self.departure_checkins[-3:]
             if is_airborne(aircraft):
                 return_states[aircraft.id] = (
                     getattr(aircraft, "ident_remaining", 0) > 0,

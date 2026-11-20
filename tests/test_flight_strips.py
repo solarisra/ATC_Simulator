@@ -250,7 +250,7 @@ class FlightStripTests(unittest.TestCase):
         ):
             panel.draw(aircraft[0].id, messages)
         self.assertEqual(
-            panel.checkins.text, "DEPARTURE CHECK-INS\n" + "\n".join(messages)
+            panel.checkins.text, "PILOT CHECK-INS\n" + "\n".join(messages)
         )
         panel.checkins.draw.assert_called_once()
         self.assertIsNone(panel.select_at(CHECKINS_TOP - 1))

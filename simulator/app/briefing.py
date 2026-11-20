@@ -12,12 +12,21 @@ def briefing_pages(facility, strips, communications):
         f"{line.label}: {'HOT' if line.hot else 'COLD'}"
         for line in communications.lines + communications.interfacility_lines
     ]
+    active_count = sum(
+        strip.active and strip.aircraft.entry_remaining is None for strip in strips
+    )
+    pending_count = sum(
+        strip.active and strip.aircraft.entry_remaining is not None for strip in strips
+    )
+    traffic = f"Traffic: {active_count} active aircraft"
+    if pending_count:
+        traffic += f"; {pending_count} scheduled inbound"
     pages = [
         [
             f"Location: {facility.name} ({', '.join(facility.active_runways) or 'none'})",
             f"Helicopter pads: {', '.join(facility.helicopter_pads) or 'none'}",
             "Weather: not simulated; altimeter 29.92 assumed",
-            f"Traffic: {sum(strip.active for strip in strips)} active aircraft",
+            traffic,
         ]
     ]
     for start in range(0, len(channels), 10):
@@ -34,11 +43,12 @@ def briefing_pages(facility, strips, communications):
             guidance = aircraft.flight_guidance
             departure = aircraft.departure
             heading = round(facility.location.true_to_magnetic(aircraft.heading)) % 360
-            status = (
-                f"departure {departure.state}"
-                if departure is not None and not departure.airborne
-                else "airborne"
-            )
+            if aircraft.entry_remaining is not None:
+                status = f"scheduled inbound in {aircraft.entry_remaining:.0f} seconds"
+            elif departure is not None and not departure.airborne:
+                status = f"departure {departure.state}"
+            else:
+                status = "airborne"
             if departure is not None and departure.scheduled_utc is not None:
                 status += f"; scheduled {departure.scheduled_utc:%Y-%m-%d %H:%M:%S} UTC"
             assigned = (

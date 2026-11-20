@@ -82,10 +82,10 @@ def coordination_display(owner=TrackingPosition.YUMA):
 def clearance_display():
     aircraft_list, facility, strips = create_yuma_scenario()
     aircraft = next(strip.aircraft for strip in strips if strip.aircraft.id == "A3")
-    aircraft.track.offer(TrackingPosition.YUMA)
     aircraft.track.accept(TrackingPosition.YUMA)
     aircraft.track.transfer_communications()
     aircraft.track.confirm_identification()
+    aircraft.incoming_checkin_pending = False
     display = SimpleNamespace(
         aircraft_list=aircraft_list,
         atc_facility=facility,
@@ -694,6 +694,30 @@ class SecondaryRadarTests(unittest.TestCase):
         RadarDisplay.on_key_press(display, arcade.key.A, 0)
         RadarDisplay.on_key_press(display, arcade.key.Y, 0)
         self.assertEqual(display.secondary_radar_returns[0].tracking_owner, "Y")
+
+    def test_automatic_incoming_offer_obeys_limit_and_separate_handoff_steps(self):
+        _, _, strips = create_yuma_scenario()
+        incoming = next(s.aircraft for s in strips if s.aircraft.id == "A3")
+        display, aircraft = coordination_display()
+        aircraft.track = incoming.track
+        aircraft.altitude = 231
+        display.capture_secondary_radar_returns()
+        self.assertEqual(display.secondary_radar_returns[0].handoff_target, "Y")
+        RadarDisplay.on_key_press(display, arcade.key.A, 0)
+        self.assertIn("YUMA CANNOT ACCEPT", display.handoff_message)
+        self.assertEqual(aircraft.track.handoff_target, TrackingPosition.YUMA)
+        aircraft.altitude = 230
+        RadarDisplay.on_key_press(display, arcade.key.A, 0)
+        RadarDisplay.on_key_press(display, arcade.key.Y, 0)
+        self.assertEqual(aircraft.track.owner, TrackingPosition.YUMA)
+        self.assertNotEqual(aircraft.track.communications_owner, TrackingPosition.YUMA)
+        self.assertTrue(aircraft.track.identification_confirmation_due)
+        RadarDisplay.on_key_press(display, arcade.key.C, 0)
+        RadarDisplay.on_key_press(display, arcade.key.Y, 0)
+        self.assertEqual(aircraft.track.communications_owner, TrackingPosition.YUMA)
+        self.assertTrue(aircraft.track.identification_confirmation_due)
+        RadarDisplay.on_key_press(display, arcade.key.V, 0)
+        self.assertFalse(aircraft.track.identification_confirmation_due)
 
     def test_sector_number_offers_handoff_without_transferring_communications(self):
         for digits, label, target in (

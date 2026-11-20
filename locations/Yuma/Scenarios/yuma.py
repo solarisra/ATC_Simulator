@@ -17,7 +17,7 @@ from locations.Yuma.Scenarios.sample_data import (
     SMALL_CIVILIAN_SAMPLES,
 )
 from simulator.core.aircraft import Aircraft, AircraftList
-from simulator.core.atc import ATCFacility, FlightPlan, FlightStrip
+from simulator.core.atc import ATCFacility, FlightPlan, FlightStrip, TrackingPosition
 from simulator.navigation.departure import Departure
 from simulator.navigation.flight_navigation import FlightPlanGuidance, NavigationData
 
@@ -67,10 +67,20 @@ def assign_incoming_controller(strip, facility):
         strip.aircraft.flight_rules == "IFR"
         and strip.flight_plan.origin != facility.airport_code
     ):
-        if facility.upper_control_center is None:
-            raise ValueError("An incoming controller is required for IFR traffic")
-        strip.aircraft.track.owner = facility.upper_control_center
-        strip.aircraft.track.communications_owner = facility.upper_control_center
+        aircraft = strip.aircraft
+        center = (
+            TrackingPosition.LOS_ANGELES
+            if facility.above_control_limit(aircraft.altitude)
+            or aircraft.lon <= facility.location.longitude
+            else TrackingPosition.ALBUQUERQUE
+        )
+        aircraft.track.owner = center
+        aircraft.track.communications_owner = center
+        aircraft.incoming_checkin_pending = True
+        if aircraft.entry_remaining is None:
+            aircraft.track.offer(TrackingPosition.YUMA)
+        else:
+            aircraft.incoming_handoff_on_entry = True
 
 
 def _choose_civilian_airports(rng):

@@ -4,7 +4,7 @@ import unittest
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import arcade
 
@@ -35,6 +35,134 @@ from simulator.radio.voice_commands import handle_transmission
 
 
 class ScenarioStorageTests(unittest.TestCase):
+    def test_incoming_handoff_and_checkin_state_survive_save_and_reload(self):
+        operations = dict.fromkeys(OPERATIONS, 0)
+        operations["approaches"] = 1
+        types = dict.fromkeys(AIRCRAFT_TYPES, 0)
+        types["air carriers"] = 1
+        settings = GeneratorSettings(7, "light", operations, types)
+        start = datetime(2026, 11, 15, 20, tzinfo=UTC)
+        aircraft, facility, strips, _ = generate_yuma_scenario(settings, start)
+        aircraft.aircraft_list[1].entry_remaining = 1
+        aircraft.aircraft_list[0].lat += 1
+        with patch("simulator.radio.communications.arcade.Text"):
+            communications = CommunicationsPanel(
+                facility.location.radio_frequencies,
+                facility.location.coordination_lines,
+                facility.location.interfacility_lines,
+            )
+        snapshot = snapshot_scenario(
+            aircraft, facility, strips, start, settings, communications, [], set()
+        )
+        with tempfile.TemporaryDirectory() as folder:
+            directory = Path(folder)
+            write_scenario("INBOUND", snapshot, directory)
+            restored = read_scenario("INBOUND", directory)
+            first, second, *_ = restored.aircraft.aircraft_list
+            self.assertEqual(first.track.handoff_target, TrackingPosition.YUMA)
+            self.assertTrue(second.incoming_handoff_on_entry)
+            self.assertIsNone(second.track.handoff_target)
+            restored.aircraft.update_positions(1)
+            self.assertEqual(second.track.handoff_target, TrackingPosition.YUMA)
+            second.track.cancel()
+            restored.aircraft.update_positions(1)
+            self.assertIsNone(second.track.handoff_target)
+            self.assertTrue(second.incoming_checkin_pending)
+            first.track.accept(TrackingPosition.YUMA)
+            first.track.transfer_communications()
+            display = SimpleNamespace(
+                aircraft_list=SimpleNamespace(aircraft_list=[first]),
+                atc_facility=restored.facility, secondary_radar_returns=[],
+                departure_checkins=[], reported_departures=set(),
+                selected_aircraft_id=None, sweep=RadarSweep(),
+                radar_return_manager=RadarReturnManager(),
+                display_type=RadarDisplay.STARS, ARTS_IIE=RadarDisplay.ARTS_IIE,
+                secondary_update_elapsed=0, emergency_flash_elapsed=0,
+                calculate_range_and_bearing=lambda lat, lon: (30, 0),
+                voice_audio=Mock(),
+            )
+            display.capture_secondary_radar_returns = lambda: (
+                RadarDisplay.capture_secondary_radar_returns(display)
+            )
+            with patch.object(RadarDisplay, "process_voice"):
+                RadarDisplay.on_update(display, 1)
+            display.voice_audio.speak.assert_called_once()
+            snapshot = snapshot_scenario(
+                restored.aircraft, restored.facility, restored.strips, start,
+                settings, communications, display.departure_checkins, set()
+            )
+            write_scenario("AFTER", snapshot, directory)
+            after = read_scenario("AFTER", directory)
+            self.assertFalse(after.aircraft.aircraft_list[0].incoming_checkin_pending)
+            self.assertTrue(after.aircraft.aircraft_list[1].incoming_checkin_pending)
+            self.assertIsNone(after.aircraft.aircraft_list[1].track.handoff_target)
+            display.aircraft_list.aircraft_list = [after.aircraft.aircraft_list[0]]
+            display.voice_audio.speak.reset_mock()
+            with patch.object(RadarDisplay, "process_voice"):
+                RadarDisplay.on_update(display, 1)
+            display.voice_audio.speak.assert_not_called()
+            after.aircraft.update_positions(1)
+            self.assertIsNone(after.aircraft.aircraft_list[1].track.handoff_target)
+            invalid = json.loads(json.dumps(snapshot))
+            invalid["records"][1]["aircraft"]["incoming_handoff_on_entry"] = True
+            with self.assertRaisesRegex(ValueError, "scheduled incoming handoff"):
+                write_scenario("INVALID HANDOFF", invalid, directory)
+
+    def test_scheduled_arrivals_survive_save_and_resume(self):
+        operations = dict.fromkeys(OPERATIONS, 0)
+        operations["approaches"] = 1
+        settings = GeneratorSettings(0, "light", operations)
+        start = datetime(2026, 11, 15, 20, tzinfo=UTC)
+        aircraft, facility, strips, _ = generate_yuma_scenario(settings, start)
+        for _ in range(24):
+            aircraft.update_positions(5)
+        expected = [plane.entry_remaining for plane in aircraft.aircraft_list]
+        self.assertEqual(expected, [None, 180, 480, 780, 1080])
+        with patch("simulator.radio.communications.arcade.Text"):
+            communications = CommunicationsPanel(
+                facility.location.radio_frequencies,
+                facility.location.coordination_lines,
+                facility.location.interfacility_lines,
+            )
+        snapshot = snapshot_scenario(
+            aircraft, facility, strips, start + timedelta(seconds=120),
+            settings, communications, [], set(),
+        )
+        briefing = briefing_pages(facility, strips, communications)
+        self.assertIn("1 active aircraft; 4 scheduled inbound", briefing[0][-1])
+        self.assertTrue(
+            any("scheduled inbound in 180 seconds" in line for page in briefing for line in page)
+        )
+        with tempfile.TemporaryDirectory() as folder:
+            directory = Path(folder)
+            write_scenario("ARRIVALS", snapshot, directory)
+            restored = read_scenario("ARRIVALS", directory)
+            legacy = json.loads(json.dumps(snapshot))
+            for record in legacy["records"]:
+                del record["aircraft"]["entry_remaining"]
+                del record["aircraft"]["incoming_handoff_on_entry"]
+                del record["aircraft"]["incoming_checkin_pending"]
+            write_scenario("OLD", legacy, directory)
+            old = read_scenario("OLD", directory)
+            invalid = json.loads(json.dumps(snapshot))
+            invalid["records"][1]["aircraft"]["entry_remaining"] = -1
+            with self.assertRaises(ValueError):
+                write_scenario("INVALID ENTRY", invalid, directory)
+
+        self.assertEqual(
+            [plane.entry_remaining for plane in restored.aircraft.aircraft_list],
+            expected,
+        )
+        self.assertTrue(all(plane.entry_remaining is None for plane in old.aircraft.aircraft_list))
+        for _ in range(36):
+            aircraft.update_positions(5)
+            restored.aircraft.update_positions(5)
+        self.assertEqual(
+            [plane.entry_remaining for plane in restored.aircraft.aircraft_list],
+            [plane.entry_remaining for plane in aircraft.aircraft_list],
+        )
+        self.assertIsNone(restored.aircraft.aircraft_list[1].entry_remaining)
+
     def test_pilot_voice_survives_scenario_save_and_reload(self):
         aircraft, facility, strips = create_yuma_scenario()
         assign_pilot_voices(aircraft.aircraft_list)

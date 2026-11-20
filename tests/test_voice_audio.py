@@ -1,7 +1,9 @@
 import importlib.util
 import queue
 import random
+import sys
 import threading
+import types
 import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
@@ -39,6 +41,54 @@ class VoiceCaptureTests(unittest.TestCase):
         self.assertEqual(
             _speech_text("Los AngelesX and EastLos Angeles"),
             "Los AngelesX and EastLos Angeles",
+        )
+
+    def test_voice_initialization_does_not_load_unused_pilot_voices(self):
+        audio = VoiceAudio.__new__(VoiceAudio)
+        audio.events = queue.SimpleQueue()
+        audio._jobs = queue.Queue()
+        audio._jobs.put(None)
+        audio._condition = threading.Condition()
+        audio._closed = False
+        audio._ready = False
+        audio._sounddevice = None
+
+        stream = Mock()
+        sounddevice = types.ModuleType("sounddevice")
+        sounddevice.InputStream = Mock(return_value=stream)
+        kokoro_pipeline = Mock()
+        kokoro_module = types.ModuleType("kokoro")
+        kokoro_module.KPipeline = Mock(return_value=kokoro_pipeline)
+        faster_whisper = types.ModuleType("faster_whisper")
+        faster_whisper.WhisperModel = Mock()
+        misaki = types.ModuleType("misaki")
+        misaki.__path__ = []
+        espeak = types.ModuleType("misaki.espeak")
+        espeak.EspeakFallback = Mock()
+
+        with (
+            patch.dict(
+                sys.modules,
+                {
+                    "sounddevice": sounddevice,
+                    "faster_whisper": faster_whisper,
+                    "kokoro": kokoro_module,
+                    "misaki": misaki,
+                    "misaki.espeak": espeak,
+                },
+            ),
+            patch("torch.cuda.is_available", return_value=True),
+            patch("simulator.radio.voice_audio.os.add_dll_directory", create=True),
+        ):
+            audio._run()
+
+        kokoro_pipeline.load_voice.assert_not_called()
+        statuses = []
+        while not audio.events.empty():
+            statuses.append(audio.events.get_nowait())
+        self.assertIn(
+            ("status", "Voice ready"),
+            statuses,
         )
 
     @unittest.skipUnless(

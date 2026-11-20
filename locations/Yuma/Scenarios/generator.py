@@ -7,6 +7,7 @@ from itertools import cycle
 
 from locations.Yuma.Scenarios.routing import NoSafeRouteError, yuma_router
 from locations.Yuma.Scenarios.sample_data import CIVILIAN_AIRPORTS
+from locations.Yuma.Scenarios.yuma import assign_incoming_controller
 from simulator.core import aircraft_models as models
 from simulator.core.aircraft import Aircraft, AircraftList, AircraftModel
 from simulator.core.atc import ATCFacility, FlightPlan, FlightStrip
@@ -20,6 +21,7 @@ from simulator.navigation.flight_navigation import (
 from simulator.navigation.navmath import NavigationalCoordinateSystem
 
 TRAFFIC_LEVELS = {"single": 1, "very light": 3, "light": 5, "moderate": 10, "heavy": 20}
+LIGHT_INBOUND_INTERVAL_SECONDS = 5 * 60
 OPERATIONS = ("departures", "approaches", "enroute")
 AIRCRAFT_TYPES = (
     "heavies",
@@ -345,6 +347,7 @@ def generate_yuma_scenario(settings, start_time=None):
     runway_cycle = cycle(("03L", "03R"))
     pad_cycle = cycle(facility.helicopter_pads)
     departures = []
+    inbound_count = 0
     direct_callsigns = []
     registration_rng = random.Random(f"{settings.seed}:registrations")
     registration_numbers = registration_rng.sample(
@@ -451,6 +454,10 @@ def generate_yuma_scenario(settings, start_time=None):
             lon,
             profile.rules,
         )
+        if settings.volume == "light" and operation != "departures":
+            if inbound_count:
+                aircraft.entry_remaining = inbound_count * LIGHT_INBOUND_INTERVAL_SECONDS
+            inbound_count += 1
 
         # Ensure adequate separation from existing aircraft
         for attempt in range(5):
@@ -472,7 +479,7 @@ def generate_yuma_scenario(settings, start_time=None):
                 aircraft.lon = lon
 
         strip = FlightStrip(identifier, aircraft, plan)
-        # Generated airborne traffic starts locally, so retain Yuma ownership.
+        assign_incoming_controller(strip, facility)
         if fallback:
             direct_callsigns.append(callsign)
             strip.remarks = "DIRECT ROUTE FALLBACK"

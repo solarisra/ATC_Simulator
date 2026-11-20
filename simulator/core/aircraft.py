@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import logging
 import math
 from typing import TYPE_CHECKING
 
-from simulator.core.atc import TrackOwnership
+from simulator.core.atc import TrackingPosition, TrackOwnership
 from simulator.core.constants import FPS
 from simulator.navigation.navmath import NavigationalCoordinateSystem
 
@@ -13,6 +14,7 @@ if TYPE_CHECKING:
 
 IDENT_DURATION_SECONDS = 18.0
 HEAVY_TAKEOFF_WEIGHT_KG = 300_000 * 0.45359237
+MIN_ENTRY_SEPARATION_NM = 5.0
 
 
 def is_heavy(aircraft: Aircraft) -> bool:
@@ -126,6 +128,9 @@ class Aircraft:
         self.radio_channel: str | None = None
         self.pilot_voice: str | None = None
         self.ident_remaining = 0.0
+        self.entry_remaining: float | None = None
+        self.incoming_handoff_on_entry = False
+        self.incoming_checkin_pending = False
 
     def activate_ident(self):
         self.ident_remaining = IDENT_DURATION_SECONDS
@@ -169,7 +174,7 @@ class Aircraft:
         """
         if not math.isfinite(delta_time) or delta_time < 0:
             raise ValueError("Elapsed time must be a non-negative finite number")
-        if delta_time == 0:
+        if delta_time == 0 or self.entry_remaining is not None:
             return
         self.ident_remaining = max(0.0, self.ident_remaining - delta_time)
         if self.departure is not None and self.departure.check_in is None:
@@ -310,6 +315,58 @@ class Aircraft:
         self.update_speed(target_speed)
 
 
+def advance_aircraft_entry(aircraft, aircraft_list, delta_time):
+    """Advance a scheduled entry, delaying it if its entry point is occupied."""
+    if not math.isfinite(delta_time) or delta_time < 0:
+        raise ValueError("Elapsed time must be a non-negative finite number")
+    remaining = getattr(aircraft, "entry_remaining", None)
+    if remaining is None:
+        return delta_time
+    if delta_time == 0:
+        return 0.0
+    if remaining > delta_time:
+        aircraft.entry_remaining = remaining - delta_time
+        return 0.0
+    # Reserve room for movement during this update, including coarse time steps.
+    blocked = any(
+        other is not aircraft
+        and getattr(other, "entry_remaining", None) is None
+        and not other.landed
+        and (other.departure is None or other.departure.airborne)
+        and NavigationalCoordinateSystem.calculate_distance(
+            aircraft.lat, aircraft.lon, other.lat, other.lon
+        )
+        < (
+            MIN_ENTRY_SEPARATION_NM
+            + (
+                aircraft.aircraft_model.max_speed * (delta_time - remaining)
+                + other.aircraft_model.max_speed * delta_time
+            )
+            / 3600
+        )
+        for other in aircraft_list
+    )
+    if blocked:
+        if remaining > 0:
+            logging.getLogger(__name__).info(
+                "Delaying arrival %s: entry point is occupied", aircraft.callsign
+            )
+        aircraft.entry_remaining = 0.0
+        delay = delta_time - remaining
+        after = False
+        for other in aircraft_list:
+            if other is aircraft:
+                after = True
+            elif after and getattr(other, "entry_remaining", None) is not None:
+                other.entry_remaining += delay
+        return 0.0
+    if aircraft.incoming_handoff_on_entry:
+        aircraft.track.offer(TrackingPosition.YUMA)
+        aircraft.incoming_handoff_on_entry = False
+    aircraft.entry_remaining = None
+    return delta_time - remaining
+
+
 class AircraftList:
     """
     Manages a list of aircraft and updates their positions.
@@ -336,7 +393,11 @@ class AircraftList:
                 "Assign the aircraft list to an ATC facility before updating positions"
             )
         for aircraft in self.aircraft_list:
-            aircraft.on_ground(delta_time, self.atc_facility)
+            active_time = advance_aircraft_entry(
+                aircraft, self.aircraft_list, delta_time
+            )
+            if aircraft.entry_remaining is None:
+                aircraft.on_ground(active_time, self.atc_facility)
 
     def assign_to_atc_facility(self, atc_facility):
         """

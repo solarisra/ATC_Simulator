@@ -198,6 +198,7 @@ class FlightStripPanel:
             if strip.active
             and strip.discarded == discarded
             and id(strip.aircraft) in active_aircraft
+            and getattr(strip.aircraft, "entry_remaining", None) is None
         ]
 
     def active_strips(self):
@@ -585,7 +586,7 @@ class FlightStripPanel:
             )
         self.header.draw()
         if departure_checkins:
-            self.checkins.text = "DEPARTURE CHECK-INS\n" + "\n".join(departure_checkins)
+            self.checkins.text = "PILOT CHECK-INS\n" + "\n".join(departure_checkins)
             self.checkins.draw()
         for index, strip in enumerate(visible):
             top = LIST_TOP - index * STRIP_HEIGHT

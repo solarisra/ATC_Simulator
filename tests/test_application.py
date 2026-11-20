@@ -10,6 +10,11 @@ from unittest.mock import Mock, patch
 
 import arcade
 
+from locations.Yuma.Scenarios.generator import (
+    OPERATIONS,
+    GeneratorSettings,
+    generate_yuma_scenario,
+)
 from locations.Yuma.Scenarios.yuma import create_yuma_scenario
 from simulator.app.application import (
     FAA_7110_65,
@@ -27,7 +32,7 @@ from simulator.app.application import (
     SectorChoice,
 )
 from simulator.app.menu_theme import system_theme
-from simulator.core.atc import ATCFacility
+from simulator.core.atc import ATCFacility, TrackingPosition
 from simulator.core.constants import SCREEN_HEIGHT, SCREEN_WIDTH
 from simulator.display.flight_strips import PANEL_WIDTH
 from simulator.display.radar import DEFAULT_RANGE_RING_BRIGHTNESS, RadarDisplay
@@ -38,6 +43,7 @@ def make_application():
     app = ApplicationWindow.__new__(ApplicationWindow)
     app.scenario_loaded = False
     app.map_preview = False
+    app.paused = False
     app.selected_location = LOCATIONS[0]
     app.selected_sector = None
     app.pending_scenario = None
@@ -88,6 +94,44 @@ def add_test_scenario(app, create=create_yuma_scenario):
 
 
 class ApplicationTests(unittest.TestCase):
+    def test_scenario_menu_actions_do_not_require_mouse_coordinates(self):
+        app = make_application()
+        scenario = add_test_scenario(app)
+        with (
+            patch.object(app, "request_scenario") as request,
+            patch.object(app, "open_generator") as generator,
+            patch.object(app, "open_saves") as saves,
+            patch.object(app, "retry_maps") as retry,
+        ):
+            for index in range(5):
+                app.select_scenario_menu_entry(index)
+        request.assert_called_once_with(scenario)
+        generator.assert_called_once_with()
+        self.assertEqual(
+            [call.args for call in saves.call_args_list], [("load",), ("save",)]
+        )
+        retry.assert_called_once_with()
+        with self.assertRaises(IndexError):
+            app.select_scenario_menu_entry(-1)
+
+    def test_option_menu_actions_do_not_require_mouse_coordinates(self):
+        app = make_application()
+        with patch.object(app, "enable_voice") as enable:
+            app.select_option_menu_entry("audio", 0)
+        enable.assert_called_once_with()
+        app.select_option_menu_entry("range_rings", 4)
+        self.assertEqual(app.range_ring_brightness, 40)
+        app.select_option_menu_entry("display", 1)
+        self.assertIn("FDAD", app.menu_message)
+        app.scenario_loaded = True
+        with patch.object(app, "select_yuma_runways") as runways:
+            app.select_option_menu_entry("runways", 1)
+        runways.assert_called_once_with(1)
+        with self.assertRaises(IndexError):
+            app.select_option_menu_entry("range_rings", 11)
+        with self.assertRaises(ValueError):
+            app.select_option_menu_entry("invalid", 0)
+
     def test_resize_scales_and_translates_menu_input(self):
         app = make_application()
         app.on_resize(2000, 1100)
@@ -622,6 +666,208 @@ class ApplicationTests(unittest.TestCase):
             app.on_update(60)
         self.assertNotEqual((aircraft.lat, aircraft.lon), position)
 
+    def test_tab_pauses_time_controls_and_voice_until_resumed(self):
+        app = make_application()
+        add_test_scenario(app)
+        app.gis_overlays = Mock(visible={0}, status=["ready"])
+        with patch("simulator.display.flight_strips.arcade.Text"):
+            app.request_scenario(app.available_scenarios()[0])
+        app.on_key_press(arcade.key.ENTER, 0)
+        aircraft = app.aircraft_list.aircraft_list[0]
+        position = aircraft.lat, aircraft.lon
+        start = app.scenario_utc
+        sweep = app.sweep.angle
+        app.communications_panel.keyboard_ptt = True
+        app.voice_audio = Mock(ready=True)
+        app.communications_panel.pilot_channel = "enroute_low"
+
+        app.on_key_press(arcade.key.TAB, 0)
+        self.assertTrue(app.paused)
+        self.assertFalse(app.communications_panel.mic_hot)
+        self.assertIsNone(app.communications_panel.pilot_channel)
+        app.voice_audio.discard_transmissions.assert_called_once()
+        with (
+            patch.object(RadarDisplay, "on_draw"),
+            patch("simulator.app.application.arcade.draw_rect_filled"),
+            patch.object(app, "_draw_text") as draw_text,
+        ):
+            app.on_draw()
+            draw_text.assert_any_call(
+                "PAUSED - PRESS TAB TO RESUME",
+                (SCREEN_WIDTH + PANEL_WIDTH) / 2,
+                SCREEN_HEIGHT - 47,
+                "center",
+            )
+
+        with (
+            patch.object(app, "update_menu_theme"),
+            patch.object(RadarDisplay, "on_key_press") as keys,
+            patch.object(RadarDisplay, "on_mouse_press") as clicks,
+            patch.object(RadarDisplay, "on_mouse_drag") as drag,
+            patch.object(RadarDisplay, "on_mouse_release") as release,
+            patch.object(RadarDisplay, "on_mouse_scroll") as scroll,
+            patch.object(RadarDisplay, "on_mouse_motion") as motion,
+            patch.object(RadarDisplay, "process_voice") as process_voice,
+        ):
+            app.on_update(60)
+            app.on_key_press(arcade.key.SPACE, 0)
+            app.on_key_press(arcade.key.ESCAPE, 0)
+            self.assertTrue(app.paused)
+            app.on_mouse_press(1, 1, arcade.MOUSE_BUTTON_LEFT, 0)
+            app.on_mouse_drag(1, 1, 1, 1, arcade.MOUSE_BUTTON_LEFT, 0)
+            app.on_mouse_release(1, 1, arcade.MOUSE_BUTTON_LEFT, 0)
+            app.on_mouse_scroll(1, 1, 0, 1)
+            app.on_mouse_motion(1, 1, 1, 1)
+            self.assertEqual((aircraft.lat, aircraft.lon), position)
+            self.assertEqual(app.scenario_utc, start)
+            self.assertEqual(app.sweep.angle, sweep)
+            for callback in (keys, clicks, drag, release, scroll, motion, process_voice):
+                callback.assert_not_called()
+            app.on_key_press(arcade.key.TAB, 0)
+            self.assertFalse(app.paused)
+            app.on_update(60)
+            process_voice.assert_called_once()
+        self.assertNotEqual((aircraft.lat, aircraft.lon), position)
+        self.assertEqual(app.scenario_utc, start + timedelta(seconds=60))
+
+    def test_escape_cancels_interactions_without_pausing(self):
+        app = make_application()
+        add_test_scenario(app)
+        app.gis_overlays = Mock(visible={0}, status=["ready"])
+        with patch("simulator.display.flight_strips.arcade.Text"):
+            app.request_scenario(app.available_scenarios()[0])
+        app.on_key_press(arcade.key.ENTER, 0)
+
+        app.open_menu = "options"
+        app.on_key_press(arcade.key.ESCAPE, 0)
+        self.assertIsNone(app.open_menu)
+        self.assertFalse(app.paused)
+
+        for attribute, value in (
+            ("drag_strip", app.strip_panel.strips[0]),
+            ("edit_strip", app.strip_panel.strips[0]),
+            ("show_discarded", True),
+        ):
+            with self.subTest(interaction=attribute):
+                setattr(app.strip_panel, attribute, value)
+                if attribute == "edit_strip":
+                    app.strip_panel.edit_field = "remarks"
+                app.on_key_press(arcade.key.ESCAPE, 0)
+                self.assertFalse(getattr(app.strip_panel, attribute))
+                self.assertFalse(app.paused)
+
+        for attribute in (
+            "clearance_draft",
+            "coordination_draft",
+            "scratchpad_edit_id",
+            "handoff_choice_id",
+        ):
+            with self.subTest(interaction=attribute):
+                setattr(app, attribute, "active")
+                app.on_key_press(arcade.key.ESCAPE, 0)
+                self.assertIsNone(getattr(app, attribute))
+                self.assertFalse(app.paused)
+
+        app.on_key_press(arcade.key.ESCAPE, 0)
+        self.assertFalse(app.paused)
+
+    def test_tab_pauses_without_closing_active_interactions(self):
+        app = make_application()
+        add_test_scenario(app)
+        app.gis_overlays = Mock(visible={0}, status=["ready"])
+        with patch("simulator.display.flight_strips.arcade.Text"):
+            app.request_scenario(app.available_scenarios()[0])
+
+        briefing = app.briefing
+        app.on_key_press(arcade.key.TAB, 0)
+        self.assertTrue(app.paused)
+        self.assertIs(app.briefing, briefing)
+        app.on_key_press(arcade.key.TAB, 0)
+        app.on_key_press(arcade.key.ENTER, 0)
+
+        for attribute, value in (
+            ("open_menu", "options"),
+            ("generator_dialog", Mock()),
+            ("saves_dialog", Mock()),
+            ("confirm_replace", True),
+            ("clearance_draft", "active"),
+            ("coordination_draft", "active"),
+            ("scratchpad_edit_id", "A1"),
+            ("handoff_choice_id", "A1"),
+        ):
+            with self.subTest(interaction=attribute):
+                setattr(app, attribute, value)
+                app.on_key_press(arcade.key.TAB, 0)
+                self.assertTrue(app.paused)
+                self.assertIs(getattr(app, attribute), value)
+                app.on_key_press(arcade.key.TAB, 0)
+                self.assertFalse(app.paused)
+                setattr(app, attribute, False if attribute == "confirm_replace" else None)
+
+        strip = app.strip_panel.strips[0]
+        app.strip_panel.edit_strip = strip
+        app.strip_panel.edit_field = "remarks"
+        app.on_key_press(arcade.key.TAB, 0)
+        self.assertTrue(app.paused)
+        self.assertIs(app.strip_panel.edit_strip, strip)
+        app.on_key_press(arcade.key.TAB, 0)
+        app.on_key_press(arcade.key.ESCAPE, 0)
+        self.assertIsNone(app.strip_panel.edit_strip)
+
+        app.strip_panel.drag_strip = strip
+        app.on_key_press(arcade.key.TAB, 0)
+        self.assertTrue(app.paused)
+        self.assertIsNone(app.strip_panel.drag_strip)
+        app.on_mouse_release(1, 1, arcade.MOUSE_BUTTON_LEFT, 0)
+        app.on_key_press(arcade.key.TAB, 0)
+        self.assertFalse(app.paused)
+
+    def test_scheduled_arrival_waits_while_paused_and_appears_on_radar(self):
+        app = make_application()
+        operations = dict.fromkeys(OPERATIONS, 0)
+        operations["approaches"] = 1
+        settings = GeneratorSettings(0, "light", operations)
+        add_test_scenario(app, lambda: generate_yuma_scenario(settings)[:3])
+        app.gis_overlays = Mock(visible={0}, status=["ready"])
+        with patch("simulator.display.flight_strips.arcade.Text"):
+            app.request_scenario(app.available_scenarios()[0])
+        app.on_key_press(arcade.key.ENTER, 0)
+        arrival = app.aircraft_list.aircraft_list[1]
+        self.assertNotIn(arrival.id, [item.aircraft_id for item in app.secondary_radar_returns])
+        with patch.object(app, "update_menu_theme"):
+            app.on_update(299)
+            self.assertEqual(arrival.entry_remaining, 1)
+            app.on_key_press(arcade.key.TAB, 0)
+            app.on_update(600)
+            self.assertEqual(arrival.entry_remaining, 1)
+            app.on_key_press(arcade.key.TAB, 0)
+            app.on_update(1)
+        self.assertIsNone(arrival.entry_remaining)
+        self.assertIn(arrival.id, [item.aircraft_id for item in app.secondary_radar_returns])
+        self.assertIn(arrival.id, [strip.aircraft.id for strip in app.strip_panel.active_strips()])
+
+    def test_incoming_checkin_waits_while_paused(self):
+        app = make_application()
+        add_test_scenario(app)
+        app.gis_overlays = Mock(visible={0}, status=["ready"])
+        with patch("simulator.display.flight_strips.arcade.Text"):
+            app.request_scenario(app.available_scenarios()[0])
+        app.on_key_press(arcade.key.ENTER, 0)
+        incoming = next(p for p in app.aircraft_list.aircraft_list if p.id == "A3")
+        incoming.lat = app.atc_facility.location.latitude
+        incoming.lon = app.atc_facility.location.longitude
+        incoming.track.accept(TrackingPosition.YUMA)
+        incoming.track.transfer_communications()
+        with patch.object(app, "update_menu_theme"):
+            app.on_key_press(arcade.key.TAB, 0)
+            app.on_update(1)
+            self.assertTrue(incoming.incoming_checkin_pending)
+            self.assertFalse(app.departure_checkins)
+            app.on_key_press(arcade.key.TAB, 0)
+            app.on_update(1)
+        self.assertFalse(incoming.incoming_checkin_pending)
+        self.assertIn("YUMA APPROACH", app.departure_checkins[0])
+
     def test_audio_menu_toggles_voice_and_retry_requeues_failed_map(self):
         app = make_application()
         app.gis_overlays = Mock(visible={0}, status=["error"])
@@ -803,6 +1049,9 @@ class ApplicationTests(unittest.TestCase):
             app.request_scenario(app.available_scenarios()[0])
             del app.available_scenarios
             app.on_key_press(arcade.key.ENTER, 0)
+            app.select_yuma_runways(1)
+            app.select_yuma_runways(4)
+            self.assertEqual(app.atc_facility.active_runways, ("21R", "21L", "26"))
             plane = app.aircraft_list.aircraft_list[0]
             voices = [item.pilot_voice for item in app.aircraft_list.aircraft_list]
             self.assertTrue(all(voices))
@@ -860,6 +1109,9 @@ class ApplicationTests(unittest.TestCase):
             app.on_key_press(arcade.key.ENTER, 0)
             app.on_key_press(arcade.key.Y, 0)
             restored = app.aircraft_list.aircraft_list[0]
+            self.assertEqual(app.atc_facility.active_runways, ("21R", "21L", "26"))
+            self.assertTrue(app.menu_entries("runways")[1].startswith("(*)"))
+            self.assertTrue(app.menu_entries("runways")[4].startswith("(*)"))
             self.assertEqual(
                 [item.pilot_voice for item in app.aircraft_list.aircraft_list], voices
             )
@@ -1154,6 +1406,135 @@ class ApplicationTests(unittest.TestCase):
         app.select_yuma_runways(1)
         self.assertEqual(facility.active_runways, ("03L", "03R", "35"))
         self.assertIn("Wait", app.menu_message)
+
+    def test_runway_radio_groups_and_waiting_departure_headings(self):
+        app = make_application()
+        _, facility, strips = create_yuma_scenario()
+        app.scenario_loaded = True
+        app.atc_facility = facility
+        app.strip_panel = SimpleNamespace(
+            strips=strips, active_runways=facility.active_runways
+        )
+        strip = next(item for item in strips if item.aircraft.departure is not None)
+        strip.operation_area = "35"
+        strip.aircraft.departure.align_runway_heading(facility.location)
+        self.assertEqual(
+            app.menu_entries("runways"),
+            (
+                "(*) Parallel 03L / 03R", "( ) Parallel 21L / 21R",
+                "( ) Other 08", "( ) Other 17", "( ) Other 26", "(*) Other 35",
+            ),
+        )
+        for index, runway in ((2, "08"), (3, "17"), (4, "26"), (5, "35")):
+            with self.subTest(runway=runway):
+                app.select_yuma_runways(index)
+                self.assertEqual(facility.active_runways, ("03L", "03R", runway))
+                self.assertEqual(strip.operation_area, runway)
+                self.assertAlmostEqual(
+                    strip.aircraft.heading,
+                    facility.location.magnetic_to_true(int(runway) * 10),
+                )
+                self.assertTrue(app.menu_entries("runways")[index].startswith("(*)"))
+                self.assertEqual(
+                    sum(entry.startswith("(*)") for entry in app.menu_entries("runways")),
+                    2,
+                )
+        app.select_yuma_runways(2)
+        app.select_yuma_runways(1)
+        self.assertEqual(facility.active_runways, ("21R", "21L", "08"))
+        self.assertEqual(strip.operation_area, "08")
+        self.assertEqual(app.strip_panel.active_runways, facility.active_runways)
+
+    def test_other_runway_change_waits_for_affected_takeoff(self):
+        app = make_application()
+        _, facility, strips = create_yuma_scenario()
+        app.scenario_loaded = True
+        app.atc_facility = facility
+        app.strip_panel = SimpleNamespace(
+            strips=strips, active_runways=facility.active_runways
+        )
+        strip = next(item for item in strips if item.aircraft.departure is not None)
+        strip.operation_area = "35"
+        strip.aircraft.departure.state = "takeoff"
+        app.select_yuma_runways(2)
+        self.assertEqual(facility.active_runways, ("03L", "03R", "35"))
+        self.assertEqual(strip.operation_area, "35")
+        self.assertIn("Wait", app.menu_message)
+
+    def test_other_runway_change_does_not_block_pad_or_parallel_takeoffs(self):
+        app = make_application()
+        _, facility, strips = create_yuma_scenario()
+        app.scenario_loaded = True
+        app.atc_facility = facility
+        app.strip_panel = SimpleNamespace(
+            strips=strips, active_runways=facility.active_runways
+        )
+        departures = [s for s in strips if s.aircraft.departure is not None]
+        departures[0].operation_area = "P1"
+        departures[0].aircraft.departure.state = "takeoff"
+        departures[1].operation_area = "03L"
+        departures[1].aircraft.departure.state = "takeoff"
+        app.select_yuma_runways(2)
+        self.assertEqual(facility.active_runways, ("03L", "03R", "08"))
+        self.assertEqual(departures[0].operation_area, "P1")
+        self.assertEqual(departures[1].operation_area, "03L")
+
+    def test_runway_menu_mouse_selection_and_radio_indicators(self):
+        app = make_application()
+        _, facility, strips = create_yuma_scenario()
+        app.scenario_loaded = True
+        app.atc_facility = facility
+        app.strip_panel = SimpleNamespace(
+            strips=strips, active_runways=facility.active_runways
+        )
+        app.menu_text = Mock()
+        options_x = 2 * MENU_WIDTH + 10
+        submenu_x = 2 * MENU_WIDTH + MENU_ITEM_WIDTH + 10
+        app.on_mouse_press(options_x, MENU_BOTTOM + 5, arcade.MOUSE_BUTTON_LEFT, 0)
+        app.on_mouse_press(
+            options_x, MENU_BOTTOM - 3 * ITEM_HEIGHT - 5, arcade.MOUSE_BUTTON_LEFT, 0
+        )
+        self.assertEqual(app.submenu_option, "runways")
+        with (
+            patch("simulator.app.application.arcade.draw_rect_filled"),
+            patch("simulator.app.application.arcade.draw_rect_outline"),
+            patch("simulator.app.application.arcade.draw_circle_outline") as circle,
+            patch("simulator.app.application.arcade.draw_circle_filled") as selected,
+        ):
+            app.draw_menu(
+                submenu_x - 10, MENU_BOTTOM - 3 * ITEM_HEIGHT,
+                app.menu_entries("runways"), "option",
+            )
+        self.assertEqual(circle.call_count, 6)
+        self.assertEqual(selected.call_count, 2)
+        app.on_mouse_press(
+            submenu_x, MENU_BOTTOM - 3 * ITEM_HEIGHT - 4 * ITEM_HEIGHT - 5,
+            arcade.MOUSE_BUTTON_LEFT, 0,
+        )
+        self.assertEqual(facility.active_runways, ("03L", "03R", "26"))
+        self.assertIsNone(app.open_menu)
+
+    def test_active_runways_are_visible_in_top_bar(self):
+        app = make_application()
+        _, facility, strips = create_yuma_scenario()
+        app.scenario_loaded = True
+        app.atc_facility = facility
+        app.strip_panel = SimpleNamespace(
+            strips=strips, active_runways=facility.active_runways
+        )
+        app.menu_message = "Wait for the departure to become airborne"
+        app.select_yuma_runways(1)
+        app.menu_text = Mock()
+        drawn = []
+        app.menu_text.draw.side_effect = lambda: drawn.append(app.menu_text.text)
+        with (
+            patch.object(RadarDisplay, "on_draw"),
+            patch("simulator.app.application.arcade.draw_rect_filled"),
+        ):
+            app.on_draw()
+        self.assertIn("Yuma (KNYL) | RWY 21R/21L/35", drawn)
+        self.assertEqual(app.menu_message, "")
+        self.assertFalse(any(text.startswith("ACTIVE RUNWAYS:") for text in drawn))
 
     def test_options_submenu_escape_closes_menu(self):
         app = make_application()

@@ -19,10 +19,10 @@ class VoiceCommandTests(unittest.TestCase):
         self.aircraft = aircraft_list.aircraft_list
         self.by_id = {aircraft.id: aircraft for aircraft in self.aircraft}
         track = self.by_id["A3"].track
-        track.offer(TrackingPosition.YUMA)
         track.accept(TrackingPosition.YUMA)
         track.transfer_communications()
         track.confirm_identification()
+        self.by_id["A3"].incoming_checkin_pending = False
 
     def test_scenario_assigns_role_and_band(self):
         self.assertEqual(self.by_id["A1"].radio_channel, "enroute_low")
@@ -474,6 +474,73 @@ class VoiceCommandTests(unittest.TestCase):
         )
         self.assertIn("Verify Los Angeles Center frequency 291.200.", reply.text)
         self.assertIsNone(aircraft.track.handoff_target)
+
+    def test_niner_transcriptions_in_contact_frequency(self):
+        aircraft = self.by_id["A1"]
+        for frequency in (
+            "two niner one point seven",
+            "2 9er 1 point 7",
+            "2 9 or 1 point 7",
+            "29er one point seven",
+            "291.7",
+        ):
+            with self.subTest(frequency=frequency):
+                aircraft.track = TrackOwnership()
+                aircraft.radio_channel = "enroute_low"
+                aircraft.track.offer(TrackingPosition.LOS_ANGELES, "ZLA SECTOR 9")
+                aircraft.track.advance(3)
+                reply = handle_transmission(
+                    f"N135TC contact Los Angeles Center {frequency}",
+                    self.aircraft,
+                    self.facility,
+                    {"enroute_low"},
+                )
+                self.assertIn("Contact Los Angeles Center on 291.700", reply.text)
+                self.assertEqual(aircraft.radio_channel, "zla9_high")
+
+    def test_niner_transcriptions_after_frequency_decimal(self):
+        aircraft = self.by_id["A1"]
+        aircraft.track.offer(TrackingPosition.LOS_ANGELES, "ZLA SECTOR 9")
+        aircraft.track.advance(3)
+        for frequency in ("291.9er", "291.9 or", "291 point niner"):
+            with self.subTest(frequency=frequency):
+                reply = handle_transmission(
+                    f"N135TC contact Los Angeles Center {frequency}",
+                    self.aircraft,
+                    self.facility,
+                    {"enroute_low"},
+                )
+                self.assertIn("Verify Los Angeles Center frequency 291.900", reply.text)
+                self.assertEqual(aircraft.radio_channel, "enroute_low")
+
+        with self.assertRaises(ValueError):
+            handle_transmission(
+                "N135TC contact Los Angeles Center 291.8 or",
+                self.aircraft,
+                self.facility,
+                {"enroute_low"},
+            )
+
+    def test_aviation_digit_words_in_contact_frequency(self):
+        aircraft = self.by_id["A1"]
+        for frequency, channel in (
+            ("one two fife point two fife", "zab42_low"),
+            ("tree zero seven point tree", "zab42_high"),
+            ("three zero seven point three", "zab42_high"),
+            ("125.25", "zab42_low"),
+        ):
+            with self.subTest(frequency=frequency):
+                aircraft.track = TrackOwnership()
+                aircraft.radio_channel = "enroute_low"
+                aircraft.track.offer(TrackingPosition.ALBUQUERQUE, "ZAB SECTOR 42")
+                aircraft.track.advance(3)
+                handle_transmission(
+                    f"N135TC contact Albuquerque Center {frequency}",
+                    self.aircraft,
+                    self.facility,
+                    {"enroute_low"},
+                )
+                self.assertEqual(aircraft.radio_channel, channel)
 
     def test_two_transcribed_for_to_keeps_clearance_grammar(self):
         aircraft = self.by_id["A3"]
@@ -1038,10 +1105,10 @@ class VoiceCommandTests(unittest.TestCase):
                 {"enroute_high"},
             )
         track = aircraft.track
-        track.offer(TrackingPosition.YUMA)
         track.accept(TrackingPosition.YUMA)
         track.transfer_communications()
         track.confirm_identification()
+        aircraft.incoming_checkin_pending = False
         RadarDisplay.on_update(display, 0.1)
         self.assertEqual(color(aircraft), arcade.color.GOLD)
         display.communications_panel = SimpleNamespace(

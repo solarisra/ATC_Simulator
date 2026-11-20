@@ -31,3 +31,13 @@ dev = [
 
 [tool.ruff.lint.per-file-ignores]
 "locations/**/__init__.py" = ["N999"]
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.uv.sources]
+torch = [
+    { index = "pytorch-cu128", marker = "sys_platform == 'win32'" },
+]

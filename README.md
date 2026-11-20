@@ -25,6 +25,11 @@ Use Left and Right to review its pages and Enter to acknowledge it and start
 the simulation. Weather is not yet simulated; the briefing assumes an
 altimeter setting of 29.92 inHg.
 
+Press Tab during a scenario to pause or resume, even with a menu or edit open.
+While paused, simulation time and gameplay controls are stopped; pending voice
+transmissions and any active strip drag are discarded. Escape continues to
+close menus or cancel edits and prompts.
+
 For generated traffic, choose **Scenario > Generate Yuma...**. Set the seed,
 traffic volume, and relative weights for operations and aircraft types; zero
 disables a category. Click the controls or use Up/Down to select a row and
@@ -54,6 +59,14 @@ departure strips. The same seed, settings, and starting local-time period
 reproduce the traffic and departure offsets; absolute departure times depend
 on the starting UTC. This is a simplified simulation, not an assessment of
 FAA separation requirements.
+
+For light traffic, generated inbound aircraft enter one at a time: the first is
+present at the start, and subsequent arrivals are scheduled five simulation
+minutes apart. An arrival waits if its entry point is within five nautical miles
+of an airborne aircraft, delaying later arrivals by the same amount. Pending
+arrivals appear in the briefing but not on radar or the strip board, and their
+remaining schedule is saved with the scenario. Other traffic levels and
+departure schedules are unchanged.
 
 Use **Scenario > Save scenario...** to name and save the current Yuma
 scenario, or **Scenario > Load saved scenario...** to select a saved one.
@@ -202,8 +215,9 @@ use CUDA when `torch.cuda.is_available()` is true and otherwise use the CPU.
 - **CPU:** Supported without an NVIDIA GPU, but voice processing is slower.
   The application displays a CPU-performance warning during initialization.
 - **GPU:** NVIDIA CUDA acceleration is recommended for faster voice processing.
-  It requires a CUDA-enabled PyTorch installation, a compatible NVIDIA driver,
-  and the CUDA runtime libraries required by the speech dependencies.
+  On Windows, `uv sync` selects the CUDA 12.8 PyTorch build automatically. It
+  requires a compatible NVIDIA driver and the CUDA runtime libraries required
+  by the speech dependencies.
 - **Other GPUs:** The current voice implementation does not select Apple MPS,
   DirectML, or other non-CUDA acceleration backends.
 
@@ -273,6 +287,8 @@ positions. It also recognizes the observed callsign transcription "double"
 for "Devil", but rejects the call if it could address more than one aircraft.
 In a callsign, it also accepts the observed "mic" transcription for "Mike"
 while retaining literal callsign matching and rejecting ambiguity.
+In callsigns and center frequencies, "niner" is also accepted when transcribed
+as "9er" or "9 or".
 It accepts the observed "identity", "identical", and "I dent" transcriptions
 as `ident` and handles "two"/"to" swaps in numeric values and supported
 instruction phrases. Within one transmission, "correction" can replace a
@@ -414,7 +430,13 @@ ownership, no pending handoff, and an altitude within Yuma's control limit.
 These are simplified text interactions; they do not model voice, separation,
 terrain, airspace restrictions, or coordination approvals.
 
-The Yuma scenario assumes 03L, 03R and 35 are active.
+The Yuma scenario initially assumes 03L, 03R and 35 are active. The active
+runways appear in the top bar. Use Options > Runways to select one parallel
+pair (03L/03R or 21L/21R) and independently select one of 08, 17, 26 or 35.
+Waiting departures assigned to a runway being replaced are reassigned and
+aligned with the new runway; a change is blocked while an affected departure
+is taking off. Existing arrival strip assignments are not changed automatically.
+Active runways are saved with the scenario.
 Yuma-bound or departing military and commercial samples, including the
 Citation M2 and V-22, alternate between 03L/03R; small civilian fixed-wing
 samples use 35. Helicopter strips
@@ -455,10 +477,13 @@ guidance in [2-3](documentation/ATC_7110.65BB/chapter_2/chap2_section_3.html).
 The first line also shows simulated track ownership: `Y` for Yuma, `L` for
 Los Angeles Center, and `A` for Albuquerque Center. These are illustrative
 simulator identifiers, not verified operational position symbols. An offer
-appears as `Y>L`, `Y>A`, `L>Y`, or `A>Y`. In the sample scenario, incoming
-IFR aircraft start under simulated Los Angeles Center ownership. Generated
-airborne traffic starts in the local area with Yuma track and communications
-ownership. Other startup tracks belong to Yuma.
+appears as `Y>L`, `Y>A`, `L>Y`, or `A>Y`. Sample and generated inbound IFR
+aircraft start under center track and communications ownership and automatically
+offer a handoff to Yuma when they appear. The simplified center selection uses
+Los Angeles for aircraft west of or on Yuma's longitude, and Albuquerque for
+aircraft east of it; above FL230, Los Angeles is used regardless of longitude.
+This is not a representation of actual sector boundaries. Other startup tracks
+belong to Yuma.
 The secondary return and data block are white for uncontrolled aircraft, gold for incoming
 center-controlled aircraft, green after Yuma says `radar contact`, and blue
 after an outgoing handoff is accepted. An incoming handoff remains gold until
@@ -471,10 +496,11 @@ Yuma-owned aircraft, alternatively press H, type sector 9, 10, 31 or 42, then
 press Enter to offer an automated handoff to that sector without entering
 coordination details. The return flashes until the simulated center accepts;
 communications remain with Yuma until transferred separately.
-For a selected
-center-owned aircraft, press I and enter the simulated incoming information;
-press A, review the target and restrictions, and press Y to accept. X cancels
-or rejects a pending offer. Escape cancels a prompt.
+For a selected center-owned aircraft without a pending offer, press I and enter
+the simulated incoming information to create one manually. Press A, review the
+target and restrictions, and press Y to accept an incoming offer. X cancels or
+rejects a pending offer; rejected automatic offers are not repeated. Escape
+cancels a prompt.
 
 Radar identification and communications are separate in this simulation.
 After accepting a handoff, press C, review the coordination reminder, and press
@@ -482,6 +508,12 @@ Y to record the communications transfer. Following an incoming handoff, V
 records the controller's confirmation of identification; this does not
 automatically establish the green radar-contact indication. Complete both
 steps before initiating another radar handoff.
+After accepting the incoming IFR handoff and transferring communications, the
+pilot checks in with Yuma Approach once within 30 nautical miles of NYL,
+including for overflights. The check-in uses the aircraft's VHF or UHF approach
+frequency and occurs once, even across a saved and reloaded scenario. Monitor
+that approach frequency to hear the call; it also appears in the pilot check-ins
+area above the flight strips.
 
 For a point-out, select the aircraft and press P; for traffic coordination,
 press T. A Yuma-owned track prompts for L or A; a center-owned track simulates

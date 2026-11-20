@@ -118,7 +118,7 @@ def _tokens(text: str) -> list[str]:
     return re.findall(r"[A-Z0-9]+(?:-[A-Z0-9]+)?", text)
 
 
-def _callsign_tokens(words: list[str]) -> list[str]:
+def _niner_tokens(words: list[str]) -> list[str]:
     # Whisper can transcribe "niner" as "9 or" or append "er" to digits.
     return [
         word[:-2] if re.fullmatch(r"\d*9ER", word) else word
@@ -209,6 +209,7 @@ def _squawk_code(words: list[str]) -> str:
 
 
 def _contact_frequency(words: list[str]) -> str:
+    words = _niner_tokens(words)
     if "POINT" in words:
         point = words.index("POINT")
         left, right = words[:point], words[point + 1 :]
@@ -340,7 +341,7 @@ def _address(words, aircraft_list):
         for aircraft in aircraft_list:
             callsign = aircraft.callsign.upper()
             for end in range(1, len(candidate_words) + 1):
-                callsign_words = _callsign_tokens(candidate_words[:end])
+                callsign_words = _niner_tokens(candidate_words[:end])
                 candidates = {_identifier(callsign_words)}
                 if "MIC" in callsign_words:
                     candidates.add(
@@ -528,7 +529,12 @@ def _traffic_reply(aircraft, aircraft_list):
 
 
 def handle_transmission(text, aircraft_list, facility, transmitting_channels):
-    aircraft, words = _corrected_address(_tokens(text), aircraft_list)
+    available = [
+        aircraft
+        for aircraft in aircraft_list
+        if getattr(aircraft, "entry_remaining", None) is None
+    ]
+    aircraft, words = _corrected_address(_tokens(text), available)
     normalized = []
     index = 0
     while index < len(words):

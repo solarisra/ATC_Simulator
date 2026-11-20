@@ -5,7 +5,11 @@ from simulator.core.atc import RadarControlState, TrackingPosition
 
 def is_airborne(aircraft):
     departure = getattr(aircraft, "departure", None)
-    return not aircraft.landed and (departure is None or departure.airborne)
+    return (
+        getattr(aircraft, "entry_remaining", None) is None
+        and not aircraft.landed
+        and (departure is None or departure.airborne)
+    )
 
 
 def clearance_control_error(aircraft, facility):

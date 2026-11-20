@@ -267,14 +267,6 @@ class VoiceAudio:
             kokoro = KPipeline(
                 lang_code="a", repo_id="hexgrad/Kokoro-82M", device=device
             )
-            for index, pilot_voice in enumerate(PILOT_VOICES, start=1):
-                with self._condition:
-                    if self._closed:
-                        return
-                self.events.put(
-                    ("status", f"Loading pilot voices {index}/{len(PILOT_VOICES)}")
-                )
-                kokoro.load_voice(pilot_voice)
             stream = sd.InputStream(
                 samplerate=SAMPLE_RATE,
                 channels=1,

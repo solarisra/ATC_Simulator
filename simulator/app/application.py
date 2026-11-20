@@ -145,7 +145,8 @@ LOCATIONS = (
 )
 MENU_NAMES = ("location", "scenario", "options", "pubs")
 OPTION_MENUS = ("audio", "display", "range_rings", "runways")
-YUMA_RUNWAY_CONFIGURATIONS = (("03L", "03R", "35"), ("21R", "21L", "35"))
+YUMA_PARALLEL_RUNWAYS = (("03L", "03R"), ("21R", "21L"))
+YUMA_OTHER_RUNWAYS = ("08", "17", "26", "35")
 RECIPROCAL_RUNWAYS = {"03L": "21R", "03R": "21L", "21R": "03L", "21L": "03R"}
 
 
@@ -164,6 +165,7 @@ class ApplicationWindow(RadarDisplay):
         self.on_resize(self.width, self.height)
         self.scenario_loaded = False
         self.map_preview = False
+        self.paused = False
         self.selected_location = None
         self.selected_sector = None
         self.pending_scenario = None
@@ -665,7 +667,26 @@ class ApplicationWindow(RadarDisplay):
         ):
             self.menu_message = "Load a Yuma scenario before changing runways"
             return
-        runways = YUMA_RUNWAY_CONFIGURATIONS[index]
+        if not 0 <= index < len(YUMA_PARALLEL_RUNWAYS) + len(YUMA_OTHER_RUNWAYS):
+            raise IndexError("Runway menu index out of range")
+        parallel = [
+            pair
+            for pair in YUMA_PARALLEL_RUNWAYS
+            if all(runway in facility.active_runways for runway in pair)
+        ]
+        other = [
+            runway for runway in YUMA_OTHER_RUNWAYS if runway in facility.active_runways
+        ]
+        if len(parallel) != 1 or len(other) != 1 or len(facility.active_runways) != 3:
+            self.menu_message = "Invalid active Yuma runway configuration"
+            return
+        old_other = other[0]
+        if index < len(YUMA_PARALLEL_RUNWAYS):
+            runways = (*YUMA_PARALLEL_RUNWAYS[index], old_other)
+        else:
+            runways = (
+                *parallel[0], YUMA_OTHER_RUNWAYS[index - len(YUMA_PARALLEL_RUNWAYS)]
+            )
         if facility.active_runways == runways:
             return
         for strip in self.strip_panel.strips:
@@ -673,6 +694,7 @@ class ApplicationWindow(RadarDisplay):
             if (
                 departure is not None
                 and departure.state == "takeoff"
+                and strip.operation_area in facility.active_runways
                 and strip.operation_area not in runways
             ):
                 self.menu_message = "Wait for the departure to become airborne"
@@ -682,14 +704,17 @@ class ApplicationWindow(RadarDisplay):
         for strip in self.strip_panel.strips:
             departure = strip.aircraft.departure
             replacement = RECIPROCAL_RUNWAYS.get(strip.operation_area)
+            if strip.operation_area == old_other:
+                replacement = runways[-1]
             if (
                 departure is not None
                 and departure.state == "waiting"
+                and strip.operation_area not in runways
                 and replacement in runways
             ):
                 strip.operation_area = replacement
                 departure.align_runway_heading(facility.location)
-        self.menu_message = f"ACTIVE RUNWAYS: {' / '.join(runways)}"
+        self.menu_message = ""
 
     def on_update(self, delta_time):
         while True:
@@ -706,6 +731,7 @@ class ApplicationWindow(RadarDisplay):
             self.__dict__.get("briefing")
             or self.__dict__.get("generator_dialog")
             or self.__dict__.get("saves_dialog")
+            or self.paused
         ):
             if self.gis_overlays is not None:
                 self.gis_overlays.update()
@@ -919,16 +945,71 @@ class ApplicationWindow(RadarDisplay):
             )
         if name == "runways":
             facility = self.atc_facility
-            if facility is None or facility.airport_code != "KNYL":
-                return ("Yuma scenarios only",)
+            if (
+                not self.scenario_loaded
+                or facility is None
+                or facility.airport_code != "KNYL"
+            ):
+                return ("Load a Yuma scenario first",)
             return tuple(
-                ("* " if runway in facility.active_runways else "  ") + label
-                for runway, label in (
-                    ("03L", "03L / 03R / 35"),
-                    ("21R", "21R / 21L / 35"),
+                (
+                    "(*) "
+                    if all(runway in facility.active_runways for runway in pair)
+                    else "( ) "
+                ) + label
+                for pair, label in zip(
+                    YUMA_PARALLEL_RUNWAYS, ("Parallel 03L / 03R", "Parallel 21L / 21R")
                 )
+            ) + tuple(
+                ("(*) " if runway in facility.active_runways else "( ) ")
+                + f"Other {runway}"
+                for runway in YUMA_OTHER_RUNWAYS
             )
         raise ValueError(f"Unknown menu: {name}")
+
+    def select_scenario_menu_entry(self, index):
+        if not 0 <= index < len(self.menu_entries("scenario")):
+            raise IndexError("Scenario menu index out of range")
+        scenarios = self.available_scenarios()
+        if index < len(scenarios):
+            self.request_scenario(scenarios[index])
+        elif self.selected_location == LOCATIONS[0] and index == len(scenarios):
+            self.open_generator()
+        elif self.selected_location == LOCATIONS[0] and index == len(scenarios) + 1:
+            self.open_saves("load")
+        elif self.selected_location == LOCATIONS[0] and index == len(scenarios) + 2:
+            self.open_saves("save")
+        elif (
+            self.gis_overlays is not None
+            and index == len(self.menu_entries("scenario")) - 1
+        ):
+            self.retry_maps()
+
+    def select_option_menu_entry(self, option, index):
+        if option not in OPTION_MENUS:
+            raise ValueError(f"Unknown option: {option}")
+        if not 0 <= index < len(self.menu_entries(option)):
+            raise IndexError("Option menu index out of range")
+        if option == "audio":
+            if self.voice_audio is None:
+                self.enable_voice()
+            else:
+                self.disable_voice()
+        elif option == "range_rings":
+            self.range_ring_brightness = index * 10
+        elif option == "runways":
+            self.select_yuma_runways(index)
+        elif option == "display":
+            if index == 0:
+                self.display_type = self.ARTS_IIE
+                if self.menu_message in (
+                    "FDAD radar scope is not available yet",
+                    "ACD radar scope is not available yet",
+                ):
+                    self.menu_message = ""
+            else:
+                scope = ("FDAD", "ACD")[index - 1]
+                self.menu_message = f"{scope} radar scope is not available yet"
 
     @staticmethod
     def menu_index(top, y):
@@ -947,7 +1028,19 @@ class ApplicationWindow(RadarDisplay):
                     arcade.LBWH(x + 1, y + 1, width - 2, ITEM_HEIGHT - 2),
                     colors["highlight"],
                 )
-            self._draw_text(label, x + 10, y + 9)
+            if (
+                hover_kind == "option"
+                and self.submenu_option == "runways"
+                and label.startswith(("(*) ", "( ) "))
+            ):
+                arcade.draw_circle_outline(
+                    x + 13, y + ITEM_HEIGHT / 2, 6, colors["text"], 1
+                )
+                if label.startswith("(*) "):
+                    arcade.draw_circle_filled(x + 13, y + ITEM_HEIGHT / 2, 3, colors["text"])
+                self._draw_text(label[4:], x + 27, y + 9)
+            else:
+                self._draw_text(label, x + 10, y + 9)
 
     def on_draw(self):
         if self.scenario_loaded or self.map_preview:
@@ -987,6 +1080,12 @@ class ApplicationWindow(RadarDisplay):
         )
         if self.selected_sector is not None:
             location_label += " / " + self.selected_sector.label
+        if (
+            (self.scenario_loaded or self.map_preview)
+            and self.atc_facility is not None
+            and self.atc_facility.active_runways
+        ):
+            location_label += " | RWY " + "/".join(self.atc_facility.active_runways)
         self._draw_text(
             location_label, (SCREEN_WIDTH + PANEL_WIDTH) / 2, MENU_BOTTOM + 7, "center"
         )
@@ -1058,6 +1157,17 @@ class ApplicationWindow(RadarDisplay):
             self._draw_text("NO [N / ESC]", x + 270, y + 25)
         if self.__dict__.get("briefing"):
             self.draw_briefing()
+        if self.paused:
+            arcade.draw_rect_filled(
+                arcade.LBWH(0, SCREEN_HEIGHT - 54, SCREEN_WIDTH + PANEL_WIDTH, 27),
+                colors["menu"],
+            )
+            self._draw_text(
+                "PAUSED - PRESS TAB TO RESUME",
+                (SCREEN_WIDTH + PANEL_WIDTH) / 2,
+                SCREEN_HEIGHT - 47,
+                "center",
+            )
 
     def draw_generator(self):
         dialog = self.generator_dialog
@@ -1181,6 +1291,8 @@ class ApplicationWindow(RadarDisplay):
             self.briefing = []
 
     def on_mouse_press(self, x, y, button, modifiers):
+        if self.paused:
+            return
         x, y = self.logical_mouse_position(x, y)
         if button != arcade.MOUSE_BUTTON_LEFT:
             return
@@ -1268,25 +1380,7 @@ class ApplicationWindow(RadarDisplay):
                     and top - len(entries) * ITEM_HEIGHT <= y < top
                 ):
                     index = self.menu_index(top, y)
-                    if option == "audio":
-                        if self.voice_audio is None:
-                            self.enable_voice()
-                        else:
-                            self.disable_voice()
-                    elif option == "range_rings":
-                        self.range_ring_brightness = index * 10
-                    elif option == "runways":
-                        self.select_yuma_runways(index)
-                    elif index == 0:
-                        self.display_type = self.ARTS_IIE
-                        if self.menu_message in (
-                            "FDAD radar scope is not available yet",
-                            "ACD radar scope is not available yet",
-                        ):
-                            self.menu_message = ""
-                    else:
-                        scope = ("FDAD", "ACD")[index - 1]
-                        self.menu_message = f"{scope} radar scope is not available yet"
+                    self.select_option_menu_entry(option, index)
                     self.open_menu = None
                     self.submenu_option = None
                     return
@@ -1305,25 +1399,7 @@ class ApplicationWindow(RadarDisplay):
                         return
                     self.select_location(location)
                 elif name == "scenario":
-                    scenarios = self.available_scenarios()
-                    if index < len(scenarios):
-                        self.request_scenario(scenarios[index])
-                    elif self.selected_location == LOCATIONS[0] and index == len(
-                        scenarios
-                    ):
-                        self.open_generator()
-                    elif (
-                        self.selected_location == LOCATIONS[0]
-                        and index == len(scenarios) + 1
-                    ):
-                        self.open_saves("load")
-                    elif (
-                        self.selected_location == LOCATIONS[0]
-                        and index == len(scenarios) + 2
-                    ):
-                        self.open_saves("save")
-                    elif self.gis_overlays is not None and index == len(entries) - 1:
-                        self.retry_maps()
+                    self.select_scenario_menu_entry(index)
                 elif name == "options":
                     self.submenu_option = OPTION_MENUS[index]
                     return
@@ -1338,6 +1414,8 @@ class ApplicationWindow(RadarDisplay):
             super().on_mouse_press(x, y, button, modifiers)
 
     def on_mouse_motion(self, x, y, dx, dy):
+        if self.paused:
+            return
         x, y = self.logical_mouse_position(x, y)
         dx, dy = dx / self.ui_scale_x, dy / self.ui_scale_y
         self.menu_hover = None
@@ -1396,6 +1474,22 @@ class ApplicationWindow(RadarDisplay):
         super().on_mouse_leave(x, y)
 
     def on_key_press(self, symbol, modifiers):
+        if symbol == arcade.key.TAB and self.scenario_loaded:
+            self.paused = not self.paused
+            if self.paused:
+                self.strip_panel.cancel_drag()
+                self.communications_panel.release_all()
+                if self.voice_audio is not None:
+                    self.voice_audio.discard_transmissions()
+                    self.communications_panel.pilot_channel = None
+                    if (
+                        self.voice_audio.ready
+                        and self.communications_panel.voice_status != "VOICE ERROR"
+                    ):
+                        self.communications_panel.voice_status = "VOICE READY"
+            return
+        if self.paused:
+            return
         if self.__dict__.get("briefing"):
             self.briefing_key(symbol)
             return
@@ -1459,6 +1553,8 @@ class ApplicationWindow(RadarDisplay):
         self.pending_saved_scenario = None
 
     def on_mouse_scroll(self, x, y, scroll_x, scroll_y):
+        if self.paused:
+            return
         x, y = self.logical_mouse_position(x, y)
         if not (
             0 <= x < SCREEN_WIDTH + PANEL_WIDTH and 0 <= y < MENU_BOTTOM + MENU_HEIGHT
@@ -1474,6 +1570,8 @@ class ApplicationWindow(RadarDisplay):
             super().on_mouse_scroll(x, y, scroll_x, scroll_y)
 
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
+        if self.paused:
+            return
         x, y = self.logical_mouse_position(x, y)
         dx, dy = dx / self.ui_scale_x, dy / self.ui_scale_y
         if (self.scenario_loaded or self.map_preview) and not (
@@ -1486,6 +1584,8 @@ class ApplicationWindow(RadarDisplay):
             super().on_mouse_drag(x, y, dx, dy, buttons, modifiers)
 
     def on_mouse_release(self, x, y, button, modifiers):
+        if self.paused:
+            return
         if self.__dict__.get("generator_dialog") or self.__dict__.get("saves_dialog"):
             return
         x, y = self.logical_mouse_position(x, y)
